@@ -89,13 +89,17 @@ body {
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--white);
+  background-color: #667eea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #ff9a56 100%);
   background: var(--gradient-hero);
+  background-size: 200% 200%;
   border: none;
   border-radius: 9999px;
   cursor: pointer;
   font-family: inherit;
   box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
   transition: transform 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none;
 }
 
 .app-logout:hover {
@@ -335,8 +339,10 @@ body {
 }
 
 .app-btn-primary {
+  background-color: #667eea;
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: var(--white);
+  -webkit-appearance: none;
 }
 
 .app-btn-secondary {
