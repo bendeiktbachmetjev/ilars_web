@@ -88,21 +88,24 @@ body {
   padding: 0.5rem 1.25rem;
   font-size: 0.9375rem;
   font-weight: 600;
-  color: var(--white);
+  color: #ffffff !important;
   background-color: #667eea;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #ff9a56 100%);
-  background: var(--gradient-hero);
+  background-image: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #ff9a56 100%);
   background-size: 200% 200%;
   border: none;
   border-radius: 9999px;
   cursor: pointer;
   font-family: inherit;
   box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, background-position 0.2s;
   -webkit-appearance: none;
+  appearance: none;
 }
 
 .app-logout:hover {
+  color: #ffffff !important;
+  background-color: #667eea;
+  background-image: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #ff9a56 100%);
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
 }
@@ -340,9 +343,10 @@ body {
 
 .app-btn-primary {
   background-color: #667eea;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: var(--white);
+  background-image: linear-gradient(135deg, #667eea, #764ba2);
+  color: #ffffff !important;
   -webkit-appearance: none;
+  appearance: none;
 }
 
 .app-btn-secondary {
