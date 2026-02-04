@@ -41,12 +41,32 @@
       '<div class="app-section">' +
       '<h1 class="app-form-title">Weekly LARS questionnaire</h1>' +
       '<form id="weekly-form">' +
-      '<div class="app-form-group"><label>Flatus (gas) control</label><div class="app-form-options" id="weekly-flatus"></div></div>' +
-      '<div class="app-form-group"><label>Liquid stool leakage</label><div class="app-form-options" id="weekly-liquid"></div></div>' +
-      '<div class="app-form-group"><label>Bowel frequency</label><div class="app-form-options" id="weekly-frequency"></div></div>' +
-      '<div class="app-form-group"><label>Repeat bowel opening</label><div class="app-form-options" id="weekly-repeat"></div></div>' +
-      '<div class="app-form-group"><label>Urgency to toilet</label><div class="app-form-options" id="weekly-urgency"></div></div>' +
-      '<div class="app-form-group"><p><strong>Total LARS score: <span id="weekly-total">0</span></strong></p></div>' +
+      '<div class="app-form-group app-form-group-with-icon">' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">💨</span><label>Flatus (gas) control</label></div>' +
+      '<div class="app-form-options" id="weekly-flatus"></div>' +
+      '</div>' +
+      '<div class="app-form-group app-form-group-with-icon">' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">💧</span><label>Liquid stool leakage</label></div>' +
+      '<div class="app-form-options" id="weekly-liquid"></div>' +
+      '</div>' +
+      '<div class="app-form-group app-form-group-with-icon">' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">📊</span><label>Bowel frequency</label></div>' +
+      '<div class="app-form-options" id="weekly-frequency"></div>' +
+      '</div>' +
+      '<div class="app-form-group app-form-group-with-icon">' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">🔄</span><label>Repeat bowel opening</label></div>' +
+      '<div class="app-form-options" id="weekly-repeat"></div>' +
+      '</div>' +
+      '<div class="app-form-group app-form-group-with-icon">' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">⚡</span><label>Urgency to toilet</label></div>' +
+      '<div class="app-form-options" id="weekly-urgency"></div>' +
+      '</div>' +
+      '<div class="app-form-group app-form-score">' +
+      '<div class="app-score-card">' +
+      '<p class="app-score-label">Total LARS score</p>' +
+      '<p class="app-score-value"><span id="weekly-total">0</span></p>' +
+      '</div>' +
+      '</div>' +
       '<div class="app-form-actions"><button type="submit" class="app-btn app-btn-primary">Submit</button></div>' +
       '</form>' +
       '</div>'
@@ -60,7 +80,7 @@
     options.forEach(function (label, i) {
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'app-form-option';
+      btn.className = 'app-form-option app-form-option-large';
       btn.textContent = label;
       btn.dataset.index = String(i);
       btn.addEventListener('click', function () {

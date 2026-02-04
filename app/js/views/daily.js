@@ -71,7 +71,8 @@
       '</div>' +
       '<div class="app-form-group">' +
       '<label>Bristol scale (1–7)</label>' +
-      '<input type="number" id="daily-bristol" min="1" max="7" value="1">' +
+      '<div class="app-bristol-scale" id="daily-bristol-scale"></div>' +
+      '<input type="number" id="daily-bristol" min="1" max="7" value="1" style="display:none;">' +
       '</div>' +
       '<div class="app-form-group">' +
       '<label>Food consumption (servings per item, 0–10)</label>' +
@@ -107,18 +108,79 @@
     });
   }
 
+  var FOOD_ICONS = {
+    vegetables_all_types: '🥬',
+    root_vegetables: '🍠',
+    whole_grains: '🌾',
+    whole_grain_bread: '🍞',
+    nuts_and_seeds: '🌰',
+    legumes: '🌱',
+    fruits_with_skin: '🍏',
+    berries_any: '🫐',
+    soft_fruits_without_skin: '🍌',
+    muesli_and_bran_cereals: '🥣'
+  };
+
+  var DRINK_ICONS = {
+    water: '💧',
+    coffee: '☕',
+    tea: '🫖',
+    alcohol: '🍷',
+    carbonated_drinks: '🥤',
+    juices: '🧃',
+    dairy_drinks: '🥛',
+    energy_drinks: '⚡'
+  };
+
+  function renderBristolScale() {
+    var container = document.getElementById('daily-bristol-scale');
+    if (!container) return;
+    var basePath = global.location.pathname.indexOf('/app/') !== -1 ? '../images/bristol_scale/' : 'images/bristol_scale/';
+    var html = '<div class="app-bristol-grid">';
+    for (var i = 1; i <= 7; i++) {
+      var imgPath = basePath + 'bristol_' + i + '.png';
+      html += '<div class="app-bristol-item' + (i === 1 ? ' selected' : '') + '" data-value="' + i + '">';
+      html += '<img src="' + imgPath + '" alt="Bristol ' + i + '" class="app-bristol-img" onerror="this.style.display=\'none\'">';
+      html += '<span class="app-bristol-number">' + i + '</span>';
+      html += '</div>';
+    }
+    html += '</div>';
+    container.innerHTML = html;
+    container.querySelectorAll('.app-bristol-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        var val = parseInt(item.dataset.value, 10);
+        var bristolInput = document.getElementById('daily-bristol');
+        if (bristolInput) bristolInput.value = val;
+        container.querySelectorAll('.app-bristol-item').forEach(function (i) { i.classList.remove('selected'); });
+        item.classList.add('selected');
+      });
+    });
+  }
+
   function renderFoodDrink() {
     var foodEl = document.getElementById('daily-food');
     var drinkEl = document.getElementById('daily-drink');
     if (foodEl) {
-      foodEl.innerHTML = FOOD_KEYS.map(function (k) {
-        return '<div class="app-form-group"><label>' + k.replace(/_/g, ' ') + '</label><input type="number" min="0" max="10" value="0" data-food="' + k + '"></div>';
-      }).join('');
+      foodEl.innerHTML = '<div class="app-food-grid">' + FOOD_KEYS.map(function (k) {
+        var icon = FOOD_ICONS[k] || '🍽️';
+        var label = k.replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+        return '<div class="app-food-item">' +
+          '<div class="app-food-icon">' + icon + '</div>' +
+          '<label class="app-food-label">' + label + '</label>' +
+          '<input type="number" min="0" max="10" value="0" data-food="' + k + '" class="app-food-input">' +
+          '</div>';
+      }).join('') + '</div>';
     }
     if (drinkEl) {
-      drinkEl.innerHTML = DRINK_KEYS.map(function (k) {
-        return '<div class="app-form-group"><label>' + k.replace(/_/g, ' ') + '</label><input type="number" min="0" max="10" value="0" data-drink="' + k + '"></div>';
-      }).join('');
+      drinkEl.innerHTML = '<div class="app-drink-grid">' + DRINK_KEYS.map(function (k) {
+        var icon = DRINK_ICONS[k] || '🥤';
+        var label = k.replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+        return '<div class="app-drink-item">' +
+          '<div class="app-drink-icon">' + icon + '</div>' +
+          '<label class="app-drink-label">' + label + '</label>' +
+          '<input type="number" min="0" max="10" value="0" data-drink="' + k + '" class="app-drink-input">' +
+          '</div>';
+      }).join('') + '</div>';
     }
   }
 
@@ -160,6 +222,7 @@
     renderOptions('daily-night', [{ value: 'Yes', label: 'Yes' }, { value: 'No', label: 'No' }], 'No');
     renderOptions('daily-leakage', [{ value: 'None', label: 'None' }, { value: 'Liquid', label: 'Liquid' }, { value: 'Solid', label: 'Solid' }], 'None');
     renderOptions('daily-incomplete', [{ value: 'Yes', label: 'Yes' }, { value: 'No', label: 'No' }], 'No');
+    renderBristolScale();
     renderFoodDrink();
 
     var bloatingEl = document.getElementById('daily-bloating');
