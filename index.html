@@ -6,6 +6,26 @@
   <title>iLARS — Your story after surgery</title>
   <meta name="description" content="iLARS helps patients after rectal cancer surgery track symptoms and stay connected with their care team.">
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Safari fix for login button - inline styles to ensure they apply */
+    .navbar-menu a.btn-login,
+    .navbar-cta a.btn-login,
+    a.btn-login {
+      display: inline-flex !important;
+      color: #ffffff !important;
+      background-color: #667eea !important;
+      background-image: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #ff9a56 100%) !important;
+      background-size: 200% 200% !important;
+      border-radius: 9999px !important;
+      padding: 0.5rem 1.25rem !important;
+      box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4) !important;
+      text-decoration: none !important;
+      font-weight: 600 !important;
+    }
+    .navbar-menu a.btn-login::after {
+      display: none !important;
+    }
+  </style>
 </head>
 <body>
   <!-- Navigation -->
