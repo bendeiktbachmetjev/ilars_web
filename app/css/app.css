@@ -537,16 +537,16 @@ body {
 
 .app-bristol-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
 }
 
 .app-bristol-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.75rem;
+  padding: 1rem;
   border: 2px solid #e5e5e7;
   border-radius: 12px;
   background: var(--white);
@@ -568,10 +568,11 @@ body {
 
 .app-bristol-img {
   width: 100%;
-  max-width: 60px;
+  max-width: 100px;
+  min-height: 80px;
   height: auto;
   border-radius: 8px;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   object-fit: contain;
 }
 

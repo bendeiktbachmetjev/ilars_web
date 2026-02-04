@@ -70,17 +70,17 @@
       '<span id="daily-activity-val">0</span>' +
       '</div>' +
       '<div class="app-form-group">' +
-      '<label>Bristol scale (1–7)</label>' +
-      '<div class="app-bristol-scale" id="daily-bristol-scale"></div>' +
-      '<input type="number" id="daily-bristol" min="1" max="7" value="1" style="display:none;">' +
-      '</div>' +
-      '<div class="app-form-group">' +
       '<label>Food consumption (servings per item, 0–10)</label>' +
       '<div id="daily-food"></div>' +
       '</div>' +
       '<div class="app-form-group">' +
       '<label>Drink consumption</label>' +
       '<div id="daily-drink"></div>' +
+      '</div>' +
+      '<div class="app-form-group">' +
+      '<label>Bristol scale (1–7)</label>' +
+      '<div class="app-bristol-scale" id="daily-bristol-scale"></div>' +
+      '<input type="number" id="daily-bristol" min="1" max="7" value="1" style="display:none;">' +
       '</div>' +
       '<div class="app-form-actions">' +
       '<button type="submit" class="app-btn app-btn-primary">Submit</button>' +
