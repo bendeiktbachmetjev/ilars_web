@@ -10,11 +10,11 @@
   var opts = {};
 
   var DIMENSIONS = [
-    { id: 'mobility', label: 'Mobility', options: ['No problems walking', 'Slight problems', 'Moderate problems', 'Severe problems', 'Unable to walk'] },
-    { id: 'self_care', label: 'Self-care', options: ['No problems washing/dressing', 'Slight problems', 'Moderate problems', 'Severe problems', 'Unable to wash/dress'] },
-    { id: 'usual', label: 'Usual activities', options: ['No problems', 'Slight problems', 'Moderate problems', 'Severe problems', 'Unable to do'] },
-    { id: 'pain', label: 'Pain / discomfort', options: ['None', 'Slight', 'Moderate', 'Severe', 'Extreme'] },
-    { id: 'anxiety', label: 'Anxiety / depression', options: ['Not anxious/depressed', 'Slightly', 'Moderately', 'Severely', 'Extremely'] }
+    { id: 'mobility', icon: '🚶', label: 'Mobility', options: ['No problems walking', 'Slight problems', 'Moderate problems', 'Severe problems', 'Unable to walk'] },
+    { id: 'self_care', icon: '🧼', label: 'Self-care', options: ['No problems washing/dressing', 'Slight problems', 'Moderate problems', 'Severe problems', 'Unable to wash/dress'] },
+    { id: 'usual', icon: '🏠', label: 'Usual activities', options: ['No problems', 'Slight problems', 'Moderate problems', 'Severe problems', 'Unable to do'] },
+    { id: 'pain', icon: '🤕', label: 'Pain / discomfort', options: ['None', 'Slight', 'Moderate', 'Severe', 'Extreme'] },
+    { id: 'anxiety', icon: '🧠', label: 'Anxiety / depression', options: ['Not anxious/depressed', 'Slightly', 'Moderately', 'Severely', 'Extremely'] }
   ];
 
   function todayStr() {
@@ -25,9 +25,21 @@
   function buildForm() {
     var html = '<a href="#" class="app-back-link" id="eq5d5l-back">← Back to dashboard</a><div class="app-section"><h1 class="app-form-title">EQ-5D-5L</h1><form id="eq5d5l-form">';
     DIMENSIONS.forEach(function (dim, i) {
-      html += '<div class="app-form-group"><label>' + dim.label + '</label><div class="app-form-options" id="eq5d5l-' + dim.id + '"></div></div>';
+      html += ''
+        + '<div class="app-form-group app-form-group-with-icon">'
+        +   '<div class="app-form-label-wrap"><span class="app-form-icon">' + dim.icon + '</span><label>' + dim.label + '</label></div>'
+        +   '<div class="app-form-options" id="eq5d5l-' + dim.id + '"></div>'
+        + '</div>';
     });
-    html += '<div class="app-form-group"><label>Your health today (0–100)</label><input type="range" id="eq5d5l-vas" min="0" max="100" value="50"><span id="eq5d5l-vas-v">50</span></div>';
+    html += ''
+      + '<div class="app-form-group app-form-group-with-icon">'
+      +   '<div class="app-slider-head">'
+      +     '<div class="app-form-label-wrap"><span class="app-form-icon">❤️</span><label for="eq5d5l-vas">Your health today</label></div>'
+      +     '<span class="app-value-chip" id="eq5d5l-vas-v">50</span>'
+      +   '</div>'
+      +   '<input class="app-range" type="range" id="eq5d5l-vas" min="0" max="100" value="50">'
+      +   '<p class="app-question-desc">0 = worst imaginable health, 100 = best imaginable health</p>'
+      + '</div>';
     html += '<div class="app-form-actions"><button type="submit" class="app-btn app-btn-primary">Submit</button></div></form></div>';
     return html;
   }
@@ -39,7 +51,7 @@
     options.forEach(function (label, i) {
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'app-form-option';
+      btn.className = 'app-form-option app-form-option-large';
       btn.textContent = label;
       btn.dataset.index = String(i);
       btn.addEventListener('click', function () {

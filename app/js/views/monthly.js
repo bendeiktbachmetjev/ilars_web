@@ -20,17 +20,92 @@
       '<div class="app-section">' +
       '<h1 class="app-form-title">Monthly quality of life</h1>' +
       '<form id="monthly-form">' +
-      '<div class="app-form-group"><label>Avoid traveling (1–4)</label><input type="range" id="monthly-avoid-travel" min="1" max="4" value="1"><span id="monthly-avoid-travel-v">1</span></div>' +
-      '<div class="app-form-group"><label>Avoid social activities (1–4)</label><input type="range" id="monthly-avoid-social" min="1" max="4" value="1"><span id="monthly-avoid-social-v">1</span></div>' +
-      '<div class="app-form-group"><label>Feel embarrassed (1–4)</label><input type="range" id="monthly-embarrassed" min="1" max="4" value="1"><span id="monthly-embarrassed-v">1</span></div>' +
-      '<div class="app-form-group"><label>Worry others notice (1–4)</label><input type="range" id="monthly-worry" min="1" max="4" value="1"><span id="monthly-worry-v">1</span></div>' +
-      '<div class="app-form-group"><label>Feel depressed (1–4)</label><input type="range" id="monthly-depressed" min="1" max="4" value="1"><span id="monthly-depressed-v">1</span></div>' +
-      '<div class="app-form-group"><label>Feel in control (0–10)</label><input type="range" id="monthly-control" min="0" max="10" value="0"><span id="monthly-control-v">0</span></div>' +
-      '<div class="app-form-group"><label>Satisfaction (0–10)</label><input type="range" id="monthly-satisfaction" min="0" max="10" value="0"><span id="monthly-satisfaction-v">0</span></div>' +
+      '<div class="app-form-group app-form-group-with-icon">' +
+        '<div class="app-slider-head">' +
+          '<div class="app-form-label-wrap"><span class="app-form-icon">✈️</span><label for="monthly-avoid-travel">Avoid traveling</label></div>' +
+          '<span class="app-value-chip" id="monthly-avoid-travel-v">1</span>' +
+        '</div>' +
+        '<input class="app-range" type="range" id="monthly-avoid-travel" min="1" max="4" value="1">' +
+        '<p class="app-question-desc">1 = not at all, 4 = very much</p>' +
+      '</div>' +
+
+      '<div class="app-form-group app-form-group-with-icon">' +
+        '<div class="app-slider-head">' +
+          '<div class="app-form-label-wrap"><span class="app-form-icon">🧑‍🤝‍🧑</span><label for="monthly-avoid-social">Avoid social activities</label></div>' +
+          '<span class="app-value-chip" id="monthly-avoid-social-v">1</span>' +
+        '</div>' +
+        '<input class="app-range" type="range" id="monthly-avoid-social" min="1" max="4" value="1">' +
+        '<p class="app-question-desc">1 = not at all, 4 = very much</p>' +
+      '</div>' +
+
+      '<div class="app-form-group app-form-group-with-icon">' +
+        '<div class="app-slider-head">' +
+          '<div class="app-form-label-wrap"><span class="app-form-icon">😳</span><label for="monthly-embarrassed">Feel embarrassed</label></div>' +
+          '<span class="app-value-chip" id="monthly-embarrassed-v">1</span>' +
+        '</div>' +
+        '<input class="app-range" type="range" id="monthly-embarrassed" min="1" max="4" value="1">' +
+        '<p class="app-question-desc">1 = not at all, 4 = very much</p>' +
+      '</div>' +
+
+      '<div class="app-form-group app-form-group-with-icon">' +
+        '<div class="app-slider-head">' +
+          '<div class="app-form-label-wrap"><span class="app-form-icon">👀</span><label for="monthly-worry">Worry others notice</label></div>' +
+          '<span class="app-value-chip" id="monthly-worry-v">1</span>' +
+        '</div>' +
+        '<input class="app-range" type="range" id="monthly-worry" min="1" max="4" value="1">' +
+        '<p class="app-question-desc">1 = not at all, 4 = very much</p>' +
+      '</div>' +
+
+      '<div class="app-form-group app-form-group-with-icon">' +
+        '<div class="app-slider-head">' +
+          '<div class="app-form-label-wrap"><span class="app-form-icon">😞</span><label for="monthly-depressed">Feel depressed</label></div>' +
+          '<span class="app-value-chip" id="monthly-depressed-v">1</span>' +
+        '</div>' +
+        '<input class="app-range" type="range" id="monthly-depressed" min="1" max="4" value="1">' +
+        '<p class="app-question-desc">1 = not at all, 4 = very much</p>' +
+      '</div>' +
+
+      '<div class="app-form-group app-form-group-with-icon">' +
+        '<div class="app-slider-head">' +
+          '<div class="app-form-label-wrap"><span class="app-form-icon">🎛️</span><label for="monthly-control">Feel in control</label></div>' +
+          '<span class="app-value-chip" id="monthly-control-v">0</span>' +
+        '</div>' +
+        '<input class="app-range" type="range" id="monthly-control" min="0" max="10" value="0">' +
+        '<p class="app-question-desc">0 = not at all, 10 = completely</p>' +
+      '</div>' +
+
+      '<div class="app-form-group app-form-group-with-icon">' +
+        '<div class="app-slider-head">' +
+          '<div class="app-form-label-wrap"><span class="app-form-icon">😊</span><label for="monthly-satisfaction">Satisfaction</label></div>' +
+          '<span class="app-value-chip" id="monthly-satisfaction-v">0</span>' +
+        '</div>' +
+        '<input class="app-range" type="range" id="monthly-satisfaction" min="0" max="10" value="0">' +
+        '<p class="app-question-desc">0 = very dissatisfied, 10 = very satisfied</p>' +
+      '</div>' +
+
+      '<div class="app-form-group app-form-score">' +
+        '<div class="app-score-card">' +
+          '<p class="app-score-label">QoL score</p>' +
+          '<p class="app-score-value"><span id="monthly-qol-score">0</span></p>' +
+        '</div>' +
+      '</div>' +
+
       '<div class="app-form-actions"><button type="submit" class="app-btn app-btn-primary">Submit</button></div>' +
       '</form>' +
       '</div>'
     );
+  }
+
+  function computeQolScore() {
+    var control = parseFloat(document.getElementById('monthly-control').value, 10) || 0;
+    var satisfaction = parseFloat(document.getElementById('monthly-satisfaction').value, 10) || 0;
+    return Math.round((control + satisfaction) / 2);
+  }
+
+  function updateQolScoreUI() {
+    var el = document.getElementById('monthly-qol-score');
+    if (!el) return;
+    el.textContent = String(computeQolScore());
   }
 
   function bindSliders() {
@@ -39,9 +114,13 @@
       var el = document.getElementById(id);
       var valEl = document.getElementById(id + '-v');
       if (el && valEl) {
-        el.addEventListener('input', function () { valEl.textContent = el.value; });
+        el.addEventListener('input', function () {
+          valEl.textContent = el.value;
+          updateQolScoreUI();
+        });
       }
     });
+    updateQolScoreUI();
   }
 
   function show() {
