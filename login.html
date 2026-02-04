@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log in — iLARS</title>
+  <meta name="description" content="Log in to iLARS as a patient or a doctor.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/pages/login.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-logo">
+        <img src="images/icon.png" alt="iLARS" class="navbar-icon" />
+        <span class="navbar-logo-text">iLARS</span>
+      </a>
+      <ul class="navbar-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About Us</a></li>
+        <li><a href="project.html">Our Project</a></li>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li class="navbar-cta"><a href="login.html" class="btn btn-login">Log in</a></li>
+      </ul>
+      <button class="navbar-toggle" aria-label="Toggle menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+
+  <main class="login-page">
+    <section class="login-hero">
+      <h1 class="login-title">Log in to iLARS</h1>
+      <p class="login-subtitle">Enter your patient code to fill questionnaires and track your symptoms — same as in the app.</p>
+    </section>
+
+    <!-- Patient code form: shown first so patient can enter code immediately (no extra step) -->
+    <div class="login-form-wrapper login-form-patient-first is-visible" id="login-form-patient" aria-hidden="false">
+      <h2 class="form-title">Enter your patient code</h2>
+      <form id="form-patient" novalidate>
+        <label for="patient-code">Patient code</label>
+        <input type="text" id="patient-code" name="patient_code" placeholder="e.g. ABC123" required autocomplete="off">
+        <p class="form-error" id="patient-form-error" role="alert"></p>
+        <button type="submit" class="btn-submit">Continue</button>
+      </form>
+      <p class="login-doctor-link">
+        <button type="button" class="link-button" id="login-show-doctor" aria-label="Log in as doctor">I'm a doctor</button>
+      </p>
+    </div>
+
+    <div class="login-role-cards is-hidden" id="login-role-cards" role="group" aria-label="Choose login type" style="display: none;">
+      <button type="button" class="login-role-card" data-role="patient" aria-label="Log in as patient">
+        <span class="role-icon" aria-hidden="true">👤</span>
+        <h2 class="role-title">I'm a Patient</h2>
+        <p class="role-desc">Enter your patient code to fill questionnaires and track your symptoms.</p>
+      </button>
+      <button type="button" class="login-role-card" data-role="doctor" aria-label="Log in as doctor">
+        <span class="role-icon" aria-hidden="true">🩺</span>
+        <h2 class="role-title">I'm a Doctor</h2>
+        <p class="role-desc">Sign in with your credentials to view your patients and their data.</p>
+      </button>
+    </div>
+
+    <div class="login-form-wrapper" id="login-form-doctor" aria-hidden="true">
+      <button type="button" class="form-back" id="login-back-doctor" aria-label="Back to role selection">← Back</button>
+      <h2 class="form-title">Doctor sign in</h2>
+      <form id="form-doctor" novalidate>
+        <label for="doctor-code">Doctor code or email</label>
+        <input type="text" id="doctor-code" name="doctor_code" placeholder="Your code or email" required autocomplete="username">
+        <label for="doctor-password">Password</label>
+        <input type="password" id="doctor-password" name="password" placeholder="Password" required autocomplete="current-password">
+        <p class="form-error" id="doctor-form-error" role="alert"></p>
+        <button type="submit" class="btn-submit">Sign in</button>
+      </form>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p class="logo-footer">iLARS</p>
+    <p>Your story after surgery. For informational and educational use only.</p>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/components/nav.js"></script>
+  <script src="js/pages/login.js"></script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iLARS — Patient</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="app-header">
+    <div class="app-header-inner">
+      <a href="../index.html" class="app-logo">
+        <span class="app-logo-text">iLARS</span>
+      </a>
+      <nav class="app-nav">
+        <a href="../index.html">Home</a>
+        <button type="button" class="app-logout" id="app-logout">Log out</button>
+      </nav>
+    </div>
+  </div>
+
+  <main class="app-main" id="app-main" role="main">
+    <div id="app-screen-dashboard" class="app-screen" aria-hidden="false">
+      <div class="app-dashboard">
+        <h1 class="app-page-title">Dashboard</h1>
+        <section class="app-section app-section-questionnaire">
+          <h2 class="app-section-title">Today's questionnaire</h2>
+          <div id="dashboard-next-block">
+            <p class="app-loading" id="dashboard-loading">Loading…</p>
+            <div class="app-next-card is-hidden" id="dashboard-next-card">
+              <p class="app-next-type" id="dashboard-next-type"></p>
+              <button type="button" class="app-btn app-btn-primary" id="dashboard-fill-btn">Fill it now</button>
+            </div>
+            <div class="app-next-done is-hidden" id="dashboard-next-done">
+              <p>All questionnaires up to date.</p>
+            </div>
+            <div class="app-next-error is-hidden" id="dashboard-next-error">
+              <p id="dashboard-error-text"></p>
+            </div>
+          </div>
+        </section>
+        <section class="app-section app-section-stats" id="dashboard-lars-section">
+          <h2 class="app-section-title">LARS score</h2>
+          <p class="app-section-hint is-hidden" id="dashboard-lars-hint">Complete weekly questionnaires to see your score over time.</p>
+          <div class="app-chart-wrap" id="dashboard-lars-chart"></div>
+          <div class="app-chart-periods" id="dashboard-lars-periods" role="tablist" aria-label="Chart period">
+            <button type="button" class="app-period-btn is-active" data-period="weekly" role="tab" aria-selected="true">Week</button>
+            <button type="button" class="app-period-btn" data-period="monthly" role="tab" aria-selected="false">Month</button>
+            <button type="button" class="app-period-btn" data-period="yearly" role="tab" aria-selected="false">Year</button>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div id="app-screen-daily" class="app-screen is-hidden" aria-hidden="true"></div>
+    <div id="app-screen-weekly" class="app-screen is-hidden" aria-hidden="true"></div>
+    <div id="app-screen-monthly" class="app-screen is-hidden" aria-hidden="true"></div>
+    <div id="app-screen-eq5d5l" class="app-screen is-hidden" aria-hidden="true"></div>
+  </main>
+
+  <footer class="app-footer">
+    <p class="app-footer-logo">iLARS</p>
+    <p>Your story after surgery. For informational and educational use only.</p>
+  </footer>
+
+  <div class="app-toast" id="app-toast" role="alert" aria-live="polite"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/views/dashboard.js"></script>
+  <script src="js/views/daily.js"></script>
+  <script src="js/views/weekly.js"></script>
+  <script src="js/views/monthly.js"></script>
+  <script src="js/views/eq5d5l.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

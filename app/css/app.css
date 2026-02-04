@@ -1,0 +1,515 @@
+/**
+ * iLARS Patient Web App — aligned with main site (web/css/style.css)
+ * Same gradients, typography, cards, and buttons
+ */
+
+:root {
+  --gradient-hero: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #ff9a56 100%);
+  --gradient-soft: linear-gradient(180deg, #f8f9ff 0%, #fff5f5 50%, #f0f4ff 100%);
+  --text-primary: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --text-muted: #86868b;
+  --white: #ffffff;
+  --shadow-soft: 0 4px 24px rgba(102, 126, 234, 0.08);
+  --shadow-card: 0 12px 48px rgba(0, 0, 0, 0.06);
+  --radius: 20px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background: var(--gradient-soft);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Header — same feel as main navbar */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.app-header-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0.875rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-logo {
+  text-decoration: none;
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+  background: var(--gradient-hero);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.app-logo:hover {
+  opacity: 0.85;
+}
+
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.app-nav a {
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  transition: color 0.2s;
+}
+
+.app-nav a:hover {
+  color: #667eea;
+}
+
+.app-logout {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--white);
+  background: var(--gradient-hero);
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.app-logout:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+/* Main content */
+.app-main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 3rem) 1.5rem;
+}
+
+.app-dashboard {
+  width: 100%;
+}
+
+.app-screen {
+  display: block;
+}
+
+.app-screen.is-hidden {
+  display: none !important;
+}
+
+.is-hidden {
+  display: none !important;
+}
+
+.app-page-title {
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: var(--gradient-hero);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 2rem;
+}
+
+/* Sections — same as feature cards on main site */
+.app-section {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  padding: 2rem 2rem;
+  margin-bottom: 1.5rem;
+  transition: box-shadow 0.2s;
+}
+
+.app-section-questionnaire {
+  margin-bottom: 1.75rem;
+}
+
+.app-section:hover {
+  box-shadow: var(--shadow-card);
+}
+
+.app-section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem;
+}
+
+.app-section-hint {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+.app-section-hint.is-hidden {
+  display: none;
+}
+
+/* Period buttons — centered under chart */
+.app-chart-periods {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.app-period-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s, border-color 0.2s, transform 0.15s;
+  white-space: nowrap;
+}
+
+.app-period-btn:hover {
+  transform: translateY(-1px);
+}
+
+.app-period-btn:hover {
+  color: var(--text-primary);
+  background: rgba(102, 126, 234, 0.08);
+}
+
+.app-period-btn.is-active {
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.12);
+  border-color: rgba(102, 126, 234, 0.25);
+}
+
+/* Line chart (LARS) — larger, centered */
+.app-chart-wrap {
+  min-height: 180px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 1rem 0;
+}
+
+.app-chart-empty {
+  margin: 0;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.app-line-chart-wrap {
+  padding: 1rem 0;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.app-line-chart {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.app-line-grid {
+  stroke: rgba(0, 0, 0, 0.06);
+  stroke-width: 1;
+}
+
+.app-line-path {
+  stroke: #667eea;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.app-line-point {
+  fill: #667eea;
+  stroke: var(--white);
+  stroke-width: 2;
+}
+
+.app-line-axis {
+  font-size: 12px;
+  fill: var(--text-muted);
+  text-anchor: end;
+  font-family: var(--font-sans);
+  font-weight: 500;
+}
+
+.app-line-xlabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.75rem;
+  padding: 0 0.75rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Today's questionnaire block */
+#dashboard-next-block {
+  margin-top: 0.5rem;
+}
+
+.app-loading {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  padding: 0.5rem 0;
+}
+
+.app-next-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.app-next-card .app-next-type {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.app-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+
+.app-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
+}
+
+.app-btn-primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: var(--white);
+}
+
+.app-btn-secondary {
+  background: #e5e5e7;
+  color: var(--text-primary);
+}
+
+.app-next-done {
+  padding: 0.5rem 0;
+}
+
+.app-next-done p {
+  margin: 0;
+  color: #0a7c42;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.app-next-error {
+  padding: 0.5rem 0;
+}
+
+.app-next-error p {
+  margin: 0;
+  color: #c62828;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.app-toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  padding: 0.875rem 1.5rem;
+  background: var(--text-primary);
+  color: var(--white);
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s, opacity 0.3s;
+  max-width: 90vw;
+  box-shadow: var(--shadow-card);
+}
+
+.app-toast.is-visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* Form screens */
+.app-form-title {
+  font-size: clamp(1.25rem, 3vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin: 0 0 1.5rem;
+}
+
+.app-form-group {
+  margin-bottom: 1.25rem;
+}
+
+.app-form-group label {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  margin-bottom: 0.35rem;
+  color: var(--text-primary);
+}
+
+.app-form-group input[type="text"],
+.app-form-group input[type="number"],
+.app-form-group select {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  font-size: 1rem;
+  border: 1px solid #e5e5e7;
+  border-radius: 12px;
+  font-family: var(--font-sans);
+  background: var(--white);
+  color: var(--text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.app-form-group input:focus,
+.app-form-group select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.app-form-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.app-form-option {
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  border: 1px solid #e5e5e7;
+  border-radius: 12px;
+  background: var(--white);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.app-form-option:hover {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.06);
+}
+
+.app-form-option.selected {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: var(--white);
+  border-color: transparent;
+}
+
+.app-form-slider-wrap {
+  padding: 0.5rem 0;
+}
+
+.app-form-slider-wrap input[type="range"] {
+  width: 100%;
+  margin: 0;
+}
+
+.app-form-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.app-form-actions .app-btn {
+  min-width: 120px;
+}
+
+.app-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  transition: color 0.2s;
+}
+
+.app-back-link:hover {
+  color: #667eea;
+}
+
+/* Footer — same as main site */
+.app-footer {
+  padding: 2rem 1.5rem;
+  text-align: center;
+  background: var(--text-primary);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  margin-top: 2rem;
+}
+
+.app-footer-logo {
+  color: var(--white);
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem;
+}
+
+.app-footer p:last-child {
+  margin: 0;
+}

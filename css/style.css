@@ -135,6 +135,46 @@ body {
   transform: scaleX(1);
 }
 
+/* Login CTA — right-aligned in navbar */
+.navbar-cta {
+  margin-left: auto;
+}
+
+.btn-login,
+.navbar-menu a.btn-login {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--gradient-hero);
+  background-size: 200% 200%;
+  border: none;
+  border-radius: 9999px;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-login:hover,
+.navbar-menu a.btn-login:hover {
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.btn-login:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* No underline on Login button when active */
+.navbar-menu a.btn-login::after {
+  display: none;
+}
+
 .navbar-toggle {
   display: none;
   flex-direction: column;
