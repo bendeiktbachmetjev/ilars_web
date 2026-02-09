@@ -58,29 +58,39 @@
      * @returns {Promise} Promise that resolves with user credential
      */
     signInWithGoogle: function() {
-      if (!this.auth || !this.googleProvider) {
+      var self = this;
+      if (!self.auth || !self.googleProvider) {
+        console.error('Firebase Auth not initialized', {
+          auth: !!self.auth,
+          provider: !!self.googleProvider
+        });
         return Promise.reject(new Error('Firebase Auth not initialized'));
       }
 
-      return this.auth.signInWithPopup(this.googleProvider)
+      console.log('Starting Google Sign-In...');
+      return self.auth.signInWithPopup(self.googleProvider)
         .then(function(result) {
+          console.log('Google Sign-In successful', result.user.email);
           // User signed in successfully
           var user = result.user;
-          return {
+          var userData = {
             uid: user.uid,
             email: user.email,
             displayName: user.displayName,
             photoURL: user.photoURL,
             idToken: null // Will be retrieved separately if needed
           };
-        })
-        .then(function(userData) {
+          
           // Get ID token for backend verification
-          return AuthService.auth.currentUser.getIdToken()
+          return self.auth.currentUser.getIdToken()
             .then(function(idToken) {
               userData.idToken = idToken;
               return userData;
             });
+        })
+        .catch(function(error) {
+          console.error('Google Sign-In error:', error);
+          throw error;
         });
     },
 

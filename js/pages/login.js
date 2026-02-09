@@ -11,16 +11,30 @@
     return;
   }
 
-  var roleCards = document.getElementById('login-role-cards');
-  var formPatient = document.getElementById('login-form-patient');
-  var formDoctor = document.getElementById('login-form-doctor');
-  var backPatient = document.getElementById('login-back-patient');
-  var backDoctor = document.getElementById('login-back-doctor');
-  var formPatientEl = document.getElementById('form-patient');
-  var btnGoogleSignIn = document.getElementById('btn-google-signin');
-  var doctorLoading = document.getElementById('doctor-loading');
-  var patientFormError = document.getElementById('patient-form-error');
-  var doctorFormError = document.getElementById('doctor-form-error');
+  var roleCards = null;
+  var formPatient = null;
+  var formDoctor = null;
+  var backPatient = null;
+  var backDoctor = null;
+  var formPatientEl = null;
+  var btnGoogleSignIn = null;
+  var doctorLoading = null;
+  var patientFormError = null;
+  var doctorFormError = null;
+  
+  // Get elements when DOM is ready
+  function getElements() {
+    roleCards = document.getElementById('login-role-cards');
+    formPatient = document.getElementById('login-form-patient');
+    formDoctor = document.getElementById('login-form-doctor');
+    backPatient = document.getElementById('login-back-patient');
+    backDoctor = document.getElementById('login-back-doctor');
+    formPatientEl = document.getElementById('form-patient');
+    btnGoogleSignIn = document.getElementById('btn-google-signin');
+    doctorLoading = document.getElementById('doctor-loading');
+    patientFormError = document.getElementById('patient-form-error');
+    doctorFormError = document.getElementById('doctor-form-error');
+  }
 
   function showRoleCards() {
     if (roleCards) {
@@ -121,21 +135,40 @@
   }
 
   function onGoogleSignIn() {
+    console.log('Google Sign-In button clicked');
+    
+    // Get elements fresh
+    doctorFormError = document.getElementById('doctor-form-error');
+    btnGoogleSignIn = document.getElementById('btn-google-signin');
+    doctorLoading = document.getElementById('doctor-loading');
+    
     hideError(doctorFormError);
     
     // Check if Firebase Auth is available
     if (!global.ILARS_AUTH) {
+      console.error('ILARS_AUTH not available');
       showError(doctorFormError, 'Authentication service not available. Please refresh the page.');
+      return;
+    }
+
+    // Check if Firebase SDK is loaded
+    if (!global.firebase) {
+      console.error('Firebase SDK not loaded');
+      showError(doctorFormError, 'Firebase SDK not loaded. Please refresh the page.');
       return;
     }
 
     // Initialize Firebase Auth if not already initialized
     if (!global.ILARS_AUTH.auth) {
+      console.log('Initializing Firebase Auth...');
       if (!global.ILARS_AUTH.init()) {
+        console.error('Failed to initialize Firebase Auth');
         showError(doctorFormError, 'Failed to initialize authentication. Please refresh the page.');
         return;
       }
     }
+    
+    console.log('Firebase Auth ready, starting sign-in...');
 
     // Show loading state
     if (btnGoogleSignIn) {
@@ -195,6 +228,11 @@
   }
 
   function bindEvents() {
+    console.log('Binding events...');
+    
+    // Get elements again to make sure they exist
+    getElements();
+    
     if (roleCards) {
       var cards = roleCards.querySelectorAll('.login-role-card');
       cards.forEach(function (card) {
@@ -206,29 +244,84 @@
       });
     }
     var showDoctorBtn = document.getElementById('login-show-doctor');
-    if (showDoctorBtn) showDoctorBtn.addEventListener('click', showDoctorForm);
+    if (showDoctorBtn) {
+      console.log('Binding showDoctorBtn');
+      showDoctorBtn.addEventListener('click', showDoctorForm);
+    }
     if (backPatient) backPatient.addEventListener('click', showRoleCards);
     if (backDoctor) backDoctor.addEventListener('click', showRoleCards);
     if (formPatientEl) formPatientEl.addEventListener('submit', onPatientSubmit);
-    if (btnGoogleSignIn) btnGoogleSignIn.addEventListener('click', onGoogleSignIn);
+    
+    // Bind Google Sign-In button - use event delegation for reliability
+    // This works even if the button is hidden initially
+    document.addEventListener('click', function(e) {
+      if (e.target && e.target.id === 'btn-google-signin') {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Google Sign-In button clicked (via delegation)');
+        onGoogleSignIn();
+      } else if (e.target && e.target.closest && e.target.closest('#btn-google-signin')) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Google Sign-In button clicked (via delegation - child element)');
+        onGoogleSignIn();
+      }
+    });
+    
+    // Also bind directly if element exists
+    btnGoogleSignIn = document.getElementById('btn-google-signin');
+    if (btnGoogleSignIn) {
+      console.log('Binding Google Sign-In button directly', btnGoogleSignIn);
+      btnGoogleSignIn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Google Sign-In button clicked (direct listener)');
+        onGoogleSignIn();
+      });
+    } else {
+      console.warn('Google Sign-In button not found, using event delegation only');
+    }
+    
+    console.log('Events bound');
   }
 
   function init() {
+    console.log('Login page init started');
+    
     if (global.ILARS_NAV && typeof global.ILARS_NAV.init === 'function') {
       global.ILARS_NAV.init();
     }
     
     // Initialize Firebase Auth when Firebase SDK is loaded
-    if (global.firebase && global.ILARS_AUTH) {
-      // Wait a bit for Firebase to be fully ready
-      setTimeout(function() {
-        if (global.ILARS_AUTH.init) {
-          global.ILARS_AUTH.init();
+    function initFirebase() {
+      console.log('Checking Firebase availability...', {
+        firebase: !!global.firebase,
+        ILARS_AUTH: !!global.ILARS_AUTH,
+        ILARS_FIREBASE_CONFIG: !!global.ILARS_FIREBASE_CONFIG
+      });
+      
+      if (global.firebase && global.ILARS_AUTH && global.ILARS_FIREBASE_CONFIG) {
+        try {
+          var initialized = global.ILARS_AUTH.init();
+          console.log('Firebase Auth initialized:', initialized);
+          if (!initialized) {
+            console.error('Failed to initialize Firebase Auth');
+          }
+        } catch (err) {
+          console.error('Error initializing Firebase Auth:', err);
         }
-      }, 100);
+      } else {
+        console.warn('Firebase not ready yet, will retry...');
+        // Retry after a short delay
+        setTimeout(initFirebase, 200);
+      }
     }
     
+    // Try to initialize Firebase immediately
+    initFirebase();
+    
     bindEvents();
+    console.log('Login page init completed');
   }
 
   if (document.readyState === 'loading') {
