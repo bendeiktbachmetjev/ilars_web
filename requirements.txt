@@ -1,0 +1,2 @@
+# No dependencies needed for Python http.server
+# This file is here for Railway compatibility

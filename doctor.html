@@ -3,21 +3,349 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Doctor dashboard — iLARS</title>
+  <title>Doctor Dashboard — iLARS</title>
   <link rel="stylesheet" href="css/style.css">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
+      background-size: 400% 400%;
+      animation: gradientShift 15s ease infinite;
+      min-height: 100vh;
+      padding-top: 80px;
+      padding-bottom: 40px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
     .navbar-menu a.btn-login, .navbar-cta a.btn-login, a.btn-login {
-      display: inline-flex !important; color: #ffffff !important;
+      display: inline-flex !important; 
+      color: #ffffff !important;
       background-color: #667eea !important;
       background-image: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #ff9a56 100%) !important;
-      background-size: 200% 200% !important; border-radius: 9999px !important;
-      padding: 0.5rem 1.25rem !important; box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4) !important;
-      text-decoration: none !important; font-weight: 600 !important;
+      background-size: 200% 200% !important; 
+      border-radius: 9999px !important;
+      padding: 0.5rem 1.25rem !important; 
+      box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4) !important;
+      text-decoration: none !important; 
+      font-weight: 600 !important;
     }
     .navbar-menu a.btn-login::after { display: none !important; }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 
+                  inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      padding: 48px;
+      animation: fadeIn 0.6s ease-out;
+      margin: 20px;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    h1 {
+      color: rgba(30, 30, 50, 0.95);
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      margin-bottom: 32px;
+      font-size: 42px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px 40px;
+      color: rgba(30, 30, 50, 0.7);
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .loading::after {
+      content: '...';
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+
+    @keyframes dots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60%, 100% { content: '...'; }
+    }
+
+    .skeleton-row {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .skeleton-row td {
+      padding: 16px 20px;
+    }
+
+    .skeleton-cell {
+      height: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .skeleton-cell::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.25) 50%,
+        transparent 100%
+      );
+      animation: shimmer 1.8s ease-in-out infinite;
+    }
+
+    .skeleton-row:nth-child(1) .skeleton-cell::after { animation-delay: 0s; }
+    .skeleton-row:nth-child(2) .skeleton-cell::after { animation-delay: 0.15s; }
+    .skeleton-row:nth-child(3) .skeleton-cell::after { animation-delay: 0.3s; }
+    .skeleton-row:nth-child(4) .skeleton-cell::after { animation-delay: 0.45s; }
+    .skeleton-row:nth-child(5) .skeleton-cell::after { animation-delay: 0.6s; }
+
+    @keyframes shimmer {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    .error {
+      background: rgba(255, 59, 48, 0.2);
+      backdrop-filter: blur(10px);
+      color: #ff3b30;
+      padding: 16px 20px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      border: 1px solid rgba(255, 59, 48, 0.3);
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 24px;
+      background: rgba(20, 20, 30, 0.85);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    thead {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.6) 0%, rgba(118, 75, 162, 0.6) 100%);
+      backdrop-filter: blur(10px);
+      border-radius: 16px 16px 0 0;
+    }
+
+    th {
+      text-align: left;
+      padding: 20px 24px;
+      font-weight: 700;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.98);
+      font-size: 14px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    th:first-child { border-top-left-radius: 16px; }
+    th:last-child { border-top-right-radius: 16px; }
+
+    td {
+      padding: 20px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 1);
+      font-size: 15px;
+      font-weight: 400;
+    }
+
+    tbody tr {
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      background: rgba(30, 30, 40, 0.6);
+    }
+
+    tbody tr:hover {
+      background: rgba(50, 50, 65, 0.8);
+      transform: scale(1.01);
+    }
+
+    tbody tr:last-child td:first-child { border-bottom-left-radius: 16px; }
+    tbody tr:last-child td:last-child { border-bottom-right-radius: 16px; }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .patient-code {
+      font-weight: 700;
+      background: linear-gradient(135deg, #a8b5ff 0%, #ffb3e6 50%, #8ec5fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: 16px;
+      letter-spacing: -0.3px;
+    }
+
+    .date {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .count {
+      text-align: center;
+      color: rgba(255, 255, 255, 1);
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .score {
+      color: rgba(255, 255, 255, 1);
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .score.good { color: #4ade80; }
+    .score.warning { color: #fbbf24; }
+    .score.bad { color: #f87171; }
+
+    .score span.date-part {
+      color: rgba(255, 255, 255, 0.6);
+      font-weight: 400;
+      font-size: 13px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 60px 40px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .back-btn {
+      padding: 12px 24px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      color: rgba(30, 30, 50, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-bottom: 24px;
+    }
+
+    .back-btn:hover {
+      background: rgba(255, 255, 255, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .chart-container {
+      background: rgba(20, 20, 30, 0.85);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .chart-title {
+      color: rgba(255, 255, 255, 1);
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      letter-spacing: -0.3px;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 300px;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding-top: 80px;
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .container {
+        padding: 32px 24px;
+        border-radius: 20px;
+        margin: 12px;
+      }
+
+      h1 {
+        font-size: 32px;
+      }
+
+      th, td {
+        padding: 16px 12px;
+        font-size: 13px;
+      }
+
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
+  <!-- Navigation -->
   <nav class="navbar">
     <div class="navbar-inner">
       <a href="index.html" class="navbar-logo">
@@ -26,18 +354,146 @@
       </a>
       <ul class="navbar-menu">
         <li><a href="index.html">Home</a></li>
-        <li><a href="login.html" class="btn btn-login">Log out</a></li>
+        <li><a href="#" id="btn-logout" class="btn btn-login">Log out</a></li>
       </ul>
-      <button class="navbar-toggle" aria-label="Toggle menu"><span></span><span></span><span></span></button>
+      <button class="navbar-toggle" aria-label="Toggle menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </div>
   </nav>
-  <main class="page-content" style="padding: 6rem 2rem; text-align: center;">
-    <h1 class="page-title">Doctor dashboard</h1>
-    <p class="page-subtitle">Patient list and details will appear here once doctor login is enabled.</p>
-    <p><a href="login.html">Back to Log in</a></p>
-  </main>
+
+  <!-- Patient List View -->
+  <div id="patient-list-view" class="view active">
+    <div class="container">
+      <h1>Patient List</h1>
+      <div id="patient-list-error" class="error" style="display: none;"></div>
+      <table id="patients-table" style="display: none;">
+        <thead>
+          <tr>
+            <th>Patient Code</th>
+            <th>Created</th>
+            <th>Weekly</th>
+            <th>Monthly</th>
+            <th>Last LARS</th>
+            <th>EQ-5D-5L</th>
+          </tr>
+        </thead>
+        <tbody id="patients-tbody">
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Patient Detail View -->
+  <div id="patient-detail-view" class="view">
+    <div class="container">
+      <button class="back-btn" onclick="window.app.navigate('list')">← Back to Patient List</button>
+      <h1>Patient: <span id="patient-detail-code"></span></h1>
+      <div id="patient-detail-loading" class="loading">Loading patient data...</div>
+      <div id="patient-detail-error" class="error" style="display: none;"></div>
+      <div id="patient-detail-content" style="display: none;">
+        <div class="charts-grid">
+          <!-- LARS Score Chart -->
+          <div class="chart-container">
+            <div class="chart-title">LARS Score Over Time</div>
+            <div class="chart-wrapper">
+              <canvas id="lars-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- EQ-5D-5L Chart -->
+          <div class="chart-container">
+            <div class="chart-title">EQ-5D-5L Health VAS</div>
+            <div class="chart-wrapper">
+              <canvas id="eq5d5l-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- LARS vs Food Consumption -->
+          <div class="chart-container">
+            <div class="chart-title">LARS Score vs Food Consumption</div>
+            <div class="chart-wrapper">
+              <canvas id="lars-food-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- LARS vs Daily Metrics -->
+          <div class="chart-container">
+            <div class="chart-title">LARS Score vs Daily Symptoms</div>
+            <div class="chart-wrapper">
+              <canvas id="lars-symptoms-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Food Consumption -->
+          <div class="chart-container">
+            <div class="chart-title">Food Consumption (Last 30 Days)</div>
+            <div class="chart-wrapper">
+              <canvas id="food-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Drink Consumption -->
+          <div class="chart-container">
+            <div class="chart-title">Drink Consumption (Last 30 Days)</div>
+            <div class="chart-wrapper">
+              <canvas id="drink-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  
   <script src="js/config.js"></script>
+  <script src="js/firebase/config.js"></script>
+  <script src="js/firebase/auth.js"></script>
+  <script src="js/auth-check.js"></script>
   <script src="js/components/nav.js"></script>
-  <script>if (window.ILARS_NAV) ILARS_NAV.init();</script>
+  <script src="js/doctors/api.js"></script>
+  <script src="js/doctors/views/patient-list.js"></script>
+  <script src="js/doctors/views/patient-detail.js"></script>
+  <script src="js/doctors/app.js"></script>
+  <script>
+    // Check authentication on page load
+    (function() {
+      if (window.ILARS_NAV && typeof window.ILARS_NAV.init === 'function') {
+        window.ILARS_NAV.init();
+      }
+
+      // Check if doctor is authenticated
+      if (window.ILARS_AUTH_CHECK) {
+        if (!window.ILARS_AUTH_CHECK.requireAuth()) {
+          return; // Redirecting to login
+        }
+      }
+
+      // Initialize Firebase Auth
+      if (window.ILARS_AUTH && window.ILARS_AUTH.init) {
+        window.ILARS_AUTH.init();
+      }
+
+      // Logout button handler
+      var logoutBtn = document.getElementById('btn-logout');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (window.ILARS_AUTH_CHECK && window.ILARS_AUTH_CHECK.signOut) {
+            window.ILARS_AUTH_CHECK.signOut().then(function() {
+              window.location.href = 'login.html';
+            });
+          } else {
+            window.location.href = 'login.html';
+          }
+        });
+      }
+    })();
+  </script>
 </body>
 </html>

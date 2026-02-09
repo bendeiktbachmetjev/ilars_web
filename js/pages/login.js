@@ -17,7 +17,8 @@
   var backPatient = document.getElementById('login-back-patient');
   var backDoctor = document.getElementById('login-back-doctor');
   var formPatientEl = document.getElementById('form-patient');
-  var formDoctorEl = document.getElementById('form-doctor');
+  var btnGoogleSignIn = document.getElementById('btn-google-signin');
+  var doctorLoading = document.getElementById('doctor-loading');
   var patientFormError = document.getElementById('patient-form-error');
   var doctorFormError = document.getElementById('doctor-form-error');
 
@@ -119,48 +120,78 @@
     xhr.send();
   }
 
-  function onDoctorSubmit(e) {
-    e.preventDefault();
+  function onGoogleSignIn() {
     hideError(doctorFormError);
-    var codeInput = document.getElementById('doctor-code');
-    var passInput = document.getElementById('doctor-password');
-    var code = (codeInput && codeInput.value || '').trim();
-    var password = (passInput && passInput.value || '');
-    if (!code || !password) {
-      showError(doctorFormError, 'Please enter your credentials.');
+    
+    // Check if Firebase Auth is available
+    if (!global.ILARS_AUTH) {
+      showError(doctorFormError, 'Authentication service not available. Please refresh the page.');
       return;
     }
-    doctorLogin(code, password);
-  }
 
-  function doctorLogin(doctorCode, password) {
-    var url = (CONFIG.API_BASE_URL || '').replace(/\/$/, '') + '/doctorLogin';
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.onreadystatechange = function () {
-      if (xhr.readyState !== 4) return;
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          var data = JSON.parse(xhr.responseText);
-          if (data && data.token) {
-            if (CONFIG.STORAGE_KEYS && CONFIG.STORAGE_KEYS.DOCTOR_TOKEN) {
-              try {
-                global.sessionStorage.setItem(CONFIG.STORAGE_KEYS.DOCTOR_TOKEN, data.token);
-                global.sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_ROLE, CONFIG.ROLES.DOCTOR);
-              } catch (err) {}
-            }
-            global.location.href = 'doctor.html';
-            return;
-          }
-        } catch (err) {}
+    // Initialize Firebase Auth if not already initialized
+    if (!global.ILARS_AUTH.auth) {
+      if (!global.ILARS_AUTH.init()) {
+        showError(doctorFormError, 'Failed to initialize authentication. Please refresh the page.');
+        return;
       }
-      showError(doctorFormError, 'Doctor login is not yet available. Use the doctor web app for now.');
-    };
-    xhr.onerror = function () {
-      showError(doctorFormError, 'Doctor login is not yet available. Use the doctor web app for now.');
-    };
-    xhr.send(JSON.stringify({ doctor_code: doctorCode, password: password }));
+    }
+
+    // Show loading state
+    if (btnGoogleSignIn) {
+      btnGoogleSignIn.disabled = true;
+    }
+    if (doctorLoading) {
+      doctorLoading.style.display = 'flex';
+    }
+
+    // Sign in with Google
+    global.ILARS_AUTH.signInWithGoogle()
+      .then(function(userData) {
+        // Store user info in sessionStorage
+        try {
+          if (CONFIG.STORAGE_KEYS) {
+            global.sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_ROLE, CONFIG.ROLES.DOCTOR);
+            global.sessionStorage.setItem('ilars_doctor_email', userData.email || '');
+            global.sessionStorage.setItem('ilars_doctor_name', userData.displayName || '');
+            global.sessionStorage.setItem('ilars_doctor_uid', userData.uid || '');
+            // Store ID token for backend verification if needed
+            if (userData.idToken) {
+              global.sessionStorage.setItem('ilars_doctor_id_token', userData.idToken);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to store user data:', err);
+        }
+
+        // Redirect to doctor dashboard
+        global.location.href = 'doctor.html';
+      })
+      .catch(function(error) {
+        console.error('Google Sign-In error:', error);
+        
+        // Hide loading state
+        if (btnGoogleSignIn) {
+          btnGoogleSignIn.disabled = false;
+        }
+        if (doctorLoading) {
+          doctorLoading.style.display = 'none';
+        }
+
+        // Show user-friendly error message
+        var errorMessage = 'Failed to sign in. ';
+        if (error.code === 'auth/popup-closed-by-user') {
+          errorMessage += 'Sign-in popup was closed.';
+        } else if (error.code === 'auth/popup-blocked') {
+          errorMessage += 'Popup was blocked. Please allow popups for this site.';
+        } else if (error.code === 'auth/network-request-failed') {
+          errorMessage += 'Network error. Please check your connection.';
+        } else {
+          errorMessage += 'Please try again.';
+        }
+        
+        showError(doctorFormError, errorMessage);
+      });
   }
 
   function bindEvents() {
@@ -179,13 +210,24 @@
     if (backPatient) backPatient.addEventListener('click', showRoleCards);
     if (backDoctor) backDoctor.addEventListener('click', showRoleCards);
     if (formPatientEl) formPatientEl.addEventListener('submit', onPatientSubmit);
-    if (formDoctorEl) formDoctorEl.addEventListener('submit', onDoctorSubmit);
+    if (btnGoogleSignIn) btnGoogleSignIn.addEventListener('click', onGoogleSignIn);
   }
 
   function init() {
     if (global.ILARS_NAV && typeof global.ILARS_NAV.init === 'function') {
       global.ILARS_NAV.init();
     }
+    
+    // Initialize Firebase Auth when Firebase SDK is loaded
+    if (global.firebase && global.ILARS_AUTH) {
+      // Wait a bit for Firebase to be fully ready
+      setTimeout(function() {
+        if (global.ILARS_AUTH.init) {
+          global.ILARS_AUTH.init();
+        }
+      }, 100);
+    }
+    
     bindEvents();
   }
 

@@ -56,7 +56,35 @@ Open: http://localhost:8080/
 - **Features** (`features.html`): Detailed feature descriptions
 - **Contact** (`contact.html`): Contact form
 
+## Railway Deployment
+
+This project is configured for Railway deployment. The `server.py` file serves the static files.
+
+**Deployment Configuration:**
+- Port: 8000 (or Railway's PORT environment variable)
+- Start Command: `python3 server.py`
+- Build: NIXPACKS (automatic Python detection)
+
+**To deploy:**
+1. Create a new Railway project
+2. Connect your GitHub repository
+3. Set root directory to `web/`
+4. Railway will automatically detect `railway.json` and deploy
+
+## Features
+
+- **Patient Login**: Patients can log in with their patient code
+- **Doctor Login**: Doctors can sign in with Google authentication (Firebase)
+- **Doctor Dashboard**: Full patient management interface with charts and analytics
+
+## Firebase Configuration
+
+The app uses Firebase for Google authentication. Make sure to:
+1. Add your Railway domain to Firebase Console → Authentication → Settings → Authorized domains
+2. Firebase config is in `js/firebase/config.js`
+
 ## Notes
 
 - Navigation automatically highlights the current page
-- All forms have client-side validation (backend integration TODO)
+- All forms have client-side validation
+- Doctor dashboard requires Google authentication

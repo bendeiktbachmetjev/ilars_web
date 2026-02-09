@@ -1,0 +1,145 @@
+// Patient list view
+class PatientListView {
+    constructor(api) {
+        this.api = api;
+        this.isLoaded = false;
+        this.cachedData = null;
+    }
+
+    async load(forceReload = false) {
+        const errorEl = document.getElementById('patient-list-error');
+        const tableEl = document.getElementById('patients-table');
+        const tbodyEl = document.getElementById('patients-tbody');
+
+        // If already loaded and not forcing reload, use cached data
+        if (this.isLoaded && !forceReload && this.cachedData) {
+            // Hide loading immediately, show table from cache
+            if (errorEl) errorEl.style.display = 'none';
+            this.renderTable(this.cachedData, tbodyEl, tableEl);
+            return;
+        }
+
+        // Show skeleton loader only on first load
+        if (!this.isLoaded) {
+            this.showSkeletonLoader(tbodyEl, tableEl);
+        }
+        if (errorEl) errorEl.style.display = 'none';
+
+        try {
+            const data = await this.api.getPatients();
+
+            if (errorEl) errorEl.style.display = 'none';
+
+            if (data.status === 'ok' && data.patients) {
+                // Cache the data
+                this.cachedData = data;
+                this.isLoaded = true;
+                this.renderTable(data, tbodyEl, tableEl);
+            } else {
+                this.showError('Failed to load patients: ' + (data.detail || 'Unknown error'));
+            }
+        } catch (error) {
+            this.showError('Error loading patients: ' + error.message);
+            console.error('Full error:', error);
+        }
+    }
+
+    showSkeletonLoader(tbodyEl, tableEl) {
+        // Show table with skeleton rows
+        tableEl.style.display = 'table';
+        tbodyEl.innerHTML = Array(5).fill(0).map(() => `
+            <tr class="skeleton-row">
+                <td><div class="skeleton-cell" style="width: 80%;"></div></td>
+                <td><div class="skeleton-cell" style="width: 60%;"></div></td>
+                <td><div class="skeleton-cell" style="width: 40%;"></div></td>
+                <td><div class="skeleton-cell" style="width: 40%;"></div></td>
+                <td><div class="skeleton-cell" style="width: 70%;"></div></td>
+                <td><div class="skeleton-cell" style="width: 70%;"></div></td>
+            </tr>
+        `).join('');
+    }
+
+    renderTable(data, tbodyEl, tableEl) {
+        if (data.patients.length === 0) {
+            tbodyEl.innerHTML = '<tr><td colspan="6" class="empty">No patients found</td></tr>';
+            tableEl.style.display = 'table';
+        } else {
+            tbodyEl.innerHTML = data.patients.map(patient => {
+                // Format LARS score with date and color class
+                let larsDisplay = '-';
+                let larsClass = '';
+                if (patient.last_lars_score !== null && patient.last_lars_score !== undefined) {
+                    const larsScore = patient.last_lars_score;
+                    const larsDate = this.formatDate(patient.last_lars_date);
+                    
+                    if (larsScore <= 20) {
+                        larsClass = 'good';
+                    } else if (larsScore <= 29) {
+                        larsClass = 'warning';
+                    } else {
+                        larsClass = 'bad';
+                    }
+                    
+                    larsDisplay = `${larsScore}${larsDate ? ` <span class="date-part">(${larsDate})</span>` : ''}`;
+                }
+                
+                // Format EQ-5D-5L score with date and color class
+                let eq5d5lDisplay = '-';
+                let eq5d5lClass = '';
+                if (patient.last_eq5d5l_score !== null && patient.last_eq5d5l_score !== undefined) {
+                    const eq5d5lScore = patient.last_eq5d5l_score;
+                    const eq5d5lDate = this.formatDate(patient.last_eq5d5l_date);
+                    
+                    if (eq5d5lScore >= 70) {
+                        eq5d5lClass = 'good';
+                    } else if (eq5d5lScore >= 50) {
+                        eq5d5lClass = 'warning';
+                    } else {
+                        eq5d5lClass = 'bad';
+                    }
+                    
+                    eq5d5lDisplay = `${eq5d5lScore}${eq5d5lDate ? ` <span class="date-part">(${eq5d5lDate})</span>` : ''}`;
+                }
+                
+                return `
+                    <tr onclick="window.app.navigate('patient/${this.escapeHtml(patient.patient_code)}')">
+                        <td class="patient-code">${this.escapeHtml(patient.patient_code)}</td>
+                        <td class="date">${this.formatDate(patient.created_at)}</td>
+                        <td class="count">${patient.weekly_count}</td>
+                        <td class="count">${patient.monthly_count}</td>
+                        <td class="score ${larsClass}">${larsDisplay}</td>
+                        <td class="score ${eq5d5lClass}">${eq5d5lDisplay}</td>
+                    </tr>
+                `;
+            }).join('');
+            tableEl.style.display = 'table';
+        }
+    }
+
+    showError(message) {
+        const errorEl = document.getElementById('patient-list-error');
+        if (errorEl) {
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+    }
+
+    formatDate(dateString) {
+        if (!dateString) return null;
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+}
+
+// PatientListView will be initialized by App when needed
+
