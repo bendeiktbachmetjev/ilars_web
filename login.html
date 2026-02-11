@@ -44,67 +44,69 @@
   </nav>
 
   <main class="login-page">
-    <!-- Role selection modal -->
-    <div class="role-modal is-open" id="login-role-modal" role="dialog" aria-modal="true" aria-labelledby="role-modal-title">
-      <div class="role-modal__backdrop" data-role-modal-close="true" aria-hidden="true"></div>
-      <div class="role-modal__dialog" role="document">
-        <button type="button" class="role-modal__close" id="role-modal-close" aria-label="Close">×</button>
-        <h2 class="role-modal__title" id="role-modal-title">Continue as</h2>
-        <div class="login-role-cards" id="login-role-cards" role="group" aria-label="Choose login type">
-          <button type="button" class="login-role-card" data-role="patient" aria-label="Log in as patient">
-            <span class="role-icon" aria-hidden="true">👤</span>
-            <h3 class="role-title">Patient</h3>
-            <p class="role-desc">Enter your patient code to fill questionnaires and track your symptoms.</p>
-          </button>
-          <button type="button" class="login-role-card" data-role="doctor" aria-label="Log in as doctor">
-            <span class="role-icon" aria-hidden="true">🩺</span>
-            <h3 class="role-title">Doctor</h3>
-            <p class="role-desc">Sign in with your Google account to access the doctor dashboard.</p>
-          </button>
-        </div>
-      </div>
-    </div>
+    <div class="login-centering">
+      <h1 class="login-heading">Log in to iLARS</h1>
+      <p class="login-subheading">Choose how you want to continue — as a patient or as a doctor.</p>
 
-    <div class="login-content">
-      <section class="login-hero">
-        <h1 class="login-title">Log in to iLARS</h1>
-        <p class="login-subtitle">Choose how you want to continue — as a patient or as a doctor.</p>
-      </section>
-
-      <div class="login-form-wrapper login-form-patient-first" id="login-form-patient" aria-hidden="true">
-        <h2 class="form-title">Enter your patient code</h2>
-        <form id="form-patient" novalidate>
-          <label for="patient-code">Patient code</label>
-          <input type="text" id="patient-code" name="patient_code" placeholder="e.g. ABC123" required autocomplete="off">
-          <p class="form-error" id="patient-form-error" role="alert"></p>
-          <button type="submit" class="btn-submit">Continue</button>
-        </form>
-        <p class="login-doctor-link">
-          <button type="button" class="link-button" id="login-change-role-patient" aria-label="Change role">Change role</button>
-        </p>
-      </div>
-
-      <div class="login-form-wrapper" id="login-form-doctor" aria-hidden="true">
-        <button type="button" class="form-back" id="login-back-doctor" aria-label="Change role">← Change role</button>
-        <h2 class="form-title">Doctor sign in</h2>
-        <p class="form-subtitle">Sign in with your Google account to access the doctor dashboard.</p>
-        <div id="doctor-signin-container">
-          <button type="button" id="btn-google-signin" class="btn-google-signin" aria-label="Sign in with Google">
-            <svg class="google-icon" width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-              <g fill="#000" fill-rule="evenodd">
-                <path d="M9 3.48c1.69 0 2.83.73 3.48 1.34l2.54-2.48C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.96l2.91 2.26C4.6 5.05 6.62 3.48 9 3.48z" fill="#EA4335"/>
-                <path d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.21 1.18-.84 2.08-1.79 2.68l2.83 2.2c1.7-1.57 2.68-3.88 2.68-6.38z" fill="#4285F4"/>
-                <path d="M3.88 10.78A5.54 5.54 0 0 1 3.58 9c0-.62.11-1.22.29-1.78L.96 4.96A9.008 9.008 0 0 0 0 9c0 1.45.35 2.82.96 4.04l2.92-2.26z" fill="#FBBC05"/>
-                <path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.83-2.2c-.76.53-1.78.9-3.13.9-2.38 0-4.4-1.57-5.12-3.74L.96 13.04C2.45 15.98 5.48 18 9 18z" fill="#34A853"/>
-              </g>
-            </svg>
-            <span>Sign in with Google</span>
-          </button>
-          <p class="form-error" id="doctor-form-error" role="alert"></p>
-          <div id="doctor-loading" class="doctor-loading" style="display: none;">
-            <div class="loading-spinner"></div>
-            <span>Signing in...</span>
+      <!-- Single slot: all three windows stack in the same position -->
+      <div class="login-window-slot">
+        <!-- Window 1: Role selection -->
+        <div class="login-window login-window--role is-visible" id="login-role-modal" role="group" aria-label="Choose login type">
+          <button type="button" class="login-window__close" id="role-modal-close" aria-label="Close">×</button>
+          <h2 class="login-window__title">Continue as</h2>
+          <div class="login-role-cards" id="login-role-cards">
+            <button type="button" class="login-role-card" data-role="patient" aria-label="Log in as patient">
+              <span class="login-role-card__icon" aria-hidden="true">👤</span>
+              <h3 class="login-role-card__title">Patient</h3>
+              <p class="login-role-card__desc">Enter your patient code to fill questionnaires and track your symptoms.</p>
+            </button>
+            <button type="button" class="login-role-card" data-role="doctor" aria-label="Log in as doctor">
+              <span class="login-role-card__icon" aria-hidden="true">🩺</span>
+              <h3 class="login-role-card__title">Doctor</h3>
+              <p class="login-role-card__desc">Sign in with your Google account to access the doctor dashboard.</p>
+            </button>
           </div>
+        </div>
+
+        <!-- Window 2: Patient code -->
+        <div class="login-window login-window--form" id="login-form-patient" aria-hidden="true">
+          <h2 class="login-window__title">Enter your patient code</h2>
+          <form id="form-patient" novalidate class="login-window__form">
+            <label for="patient-code">Patient code</label>
+            <input type="text" id="patient-code" name="patient_code" placeholder="e.g. ABC123" required autocomplete="off">
+            <p class="login-window__error" id="patient-form-error" role="alert"></p>
+            <button type="submit" class="login-window__btn">Continue</button>
+          </form>
+          <p class="login-window__change-role">
+            <button type="button" class="login-window__change-role-btn" id="login-change-role-patient" aria-label="Change role">Change role</button>
+          </p>
+        </div>
+
+        <!-- Window 3: Doctor Google sign-in -->
+        <div class="login-window login-window--form" id="login-form-doctor" aria-hidden="true">
+          <h2 class="login-window__title">Doctor sign in</h2>
+          <p class="login-window__subtitle">Sign in with your Google account to access the doctor dashboard.</p>
+          <div id="doctor-signin-container" class="login-window__google-wrap">
+            <button type="button" id="btn-google-signin" class="login-window__google-btn" aria-label="Sign in with Google">
+              <svg class="login-window__google-icon" width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                <g fill="#000" fill-rule="evenodd">
+                  <path d="M9 3.48c1.69 0 2.83.73 3.48 1.34l2.54-2.48C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.96l2.91 2.26C4.6 5.05 6.62 3.48 9 3.48z" fill="#EA4335"/>
+                  <path d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.21 1.18-.84 2.08-1.79 2.68l2.83 2.2c1.7-1.57 2.68-3.88 2.68-6.38z" fill="#4285F4"/>
+                  <path d="M3.88 10.78A5.54 5.54 0 0 1 3.58 9c0-.62.11-1.22.29-1.78L.96 4.96A9.008 9.008 0 0 0 0 9c0 1.45.35 2.82.96 4.04l2.92-2.26z" fill="#FBBC05"/>
+                  <path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.83-2.2c-.76.53-1.78.9-3.13.9-2.38 0-4.4-1.57-5.12-3.74L.96 13.04C2.45 15.98 5.48 18 9 18z" fill="#34A853"/>
+                </g>
+              </svg>
+              <span>Sign in with Google</span>
+            </button>
+            <p class="login-window__error" id="doctor-form-error" role="alert"></p>
+            <div id="doctor-loading" class="login-window__loading" style="display: none;">
+              <div class="login-window__spinner"></div>
+              <span>Signing in...</span>
+            </div>
+          </div>
+          <p class="login-window__change-role">
+            <button type="button" class="login-window__change-role-btn" id="login-back-doctor" aria-label="Change role">Change role</button>
+          </p>
         </div>
       </div>
     </div>
