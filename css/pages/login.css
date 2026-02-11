@@ -8,6 +8,15 @@
   padding-top: calc(80px + 2rem);
   padding-bottom: 3rem;
   background: var(--gradient-soft, linear-gradient(180deg, #f8f9ff 0%, #fff5f5 50%, #f0f4ff 100%));
+  display: flex;
+  flex-direction: column;
+}
+
+.login-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .login-hero {
@@ -101,7 +110,10 @@
 }
 
 .role-modal.is-open {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
 }
 
 .role-modal__backdrop {
@@ -120,12 +132,14 @@
 .role-modal__dialog {
   position: relative;
   width: min(760px, calc(100% - 2rem));
-  margin: 10vh auto 0;
+  margin: 0;
   padding: 1.75rem 1.5rem 1.5rem;
   background: var(--gradient-card, linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(248,250,255,0.98) 100%));
   border-radius: var(--radius, 20px);
   box-shadow: 0 24px 80px rgba(102, 126, 234, 0.16);
   border: 1px solid rgba(102, 126, 234, 0.14);
+  max-height: calc(100vh - 2.5rem);
+  overflow: auto;
 }
 
 .role-modal__title {
@@ -167,9 +181,9 @@
   outline-offset: 2px;
 }
 
-@media (max-height: 700px) {
-  .role-modal__dialog {
-    margin-top: 6vh;
+@media (max-height: 800px) {
+  .login-hero {
+    margin-bottom: 2rem;
   }
 }
 
