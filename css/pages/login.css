@@ -5,8 +5,8 @@
 
 .login-page {
   min-height: 100vh;
-  padding-top: calc(80px + 2rem);
-  padding-bottom: 3rem;
+  padding-top: calc(80px + 1rem);
+  padding-bottom: 2rem;
   background: var(--gradient-soft, linear-gradient(180deg, #f8f9ff 0%, #fff5f5 50%, #f0f4ff 100%));
   display: flex;
   flex-direction: column;
@@ -22,7 +22,7 @@
 .login-hero {
   text-align: center;
   max-width: 560px;
-  margin: 0 auto 3rem;
+  margin: 0 auto 1.75rem;
 }
 
 .login-hero .login-title {
