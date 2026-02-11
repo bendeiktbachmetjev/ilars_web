@@ -20,14 +20,17 @@
       try {
         var userRole = global.sessionStorage.getItem(CONFIG.STORAGE_KEYS.USER_ROLE);
         var doctorEmail = global.sessionStorage.getItem('ilars_doctor_email');
+        var hasDoctorSession = userRole === CONFIG.ROLES.DOCTOR && !!doctorEmail;
         
-        // Check if Firebase Auth user exists
-        if (global.ILARS_AUTH && global.ILARS_AUTH.isSignedIn) {
+        // If Firebase Auth is initialized, prefer it (stronger signal).
+        // IMPORTANT: only do this when ILARS_AUTH.auth exists, otherwise it will always return false
+        // during the initial page load and cause unwanted redirects.
+        if (global.ILARS_AUTH && global.ILARS_AUTH.auth && typeof global.ILARS_AUTH.isSignedIn === 'function') {
           return global.ILARS_AUTH.isSignedIn() && userRole === CONFIG.ROLES.DOCTOR;
         }
-        
-        // Fallback: check sessionStorage
-        return userRole === CONFIG.ROLES.DOCTOR && doctorEmail;
+
+        // Otherwise fall back to sessionStorage (set on successful Google sign-in).
+        return hasDoctorSession;
       } catch (err) {
         console.error('Auth check error:', err);
         return false;
@@ -89,11 +92,22 @@
      * Redirects to login if not authenticated
      */
     requireAuth: function() {
-      if (!this.isDoctorAuthenticated()) {
+      try {
+        // Allow immediately if we have a doctor session; Firebase may still be initializing.
+        var userRole = global.sessionStorage.getItem(CONFIG.STORAGE_KEYS.USER_ROLE);
+        var doctorEmail = global.sessionStorage.getItem('ilars_doctor_email');
+        var hasDoctorSession = userRole === CONFIG.ROLES.DOCTOR && !!doctorEmail;
+        if (hasDoctorSession) return true;
+
+        if (!this.isDoctorAuthenticated()) {
+          global.location.href = 'login.html';
+          return false;
+        }
+        return true;
+      } catch (err) {
         global.location.href = 'login.html';
         return false;
       }
-      return true;
     }
   };
 
