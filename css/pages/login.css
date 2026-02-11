@@ -191,6 +191,8 @@
   display: none;
   max-width: 400px;
   margin: 0 auto 2rem;
+  position: relative;
+  top: -1.5rem;
   padding: 2rem;
   background: var(--white);
   border-radius: var(--radius);
