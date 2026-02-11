@@ -140,6 +140,7 @@
   border: 1px solid rgba(102, 126, 234, 0.14);
   max-height: calc(100vh - 2.5rem);
   overflow: auto;
+  transform: translateY(-2.5rem);
 }
 
 .role-modal__title {
@@ -192,7 +193,7 @@
   max-width: 400px;
   margin: 0 auto 2rem;
   position: relative;
-  top: -1.5rem;
+  top: -2.5rem;
   padding: 2rem;
   background: var(--white);
   border-radius: var(--radius);
