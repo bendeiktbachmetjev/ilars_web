@@ -11,12 +11,15 @@
     return;
   }
 
+  var roleModal = null;
+  var roleModalClose = null;
   var roleCards = null;
   var formPatient = null;
   var formDoctor = null;
   var backPatient = null;
   var backDoctor = null;
   var formPatientEl = null;
+  var changeRolePatientBtn = null;
   var btnGoogleSignIn = null;
   var doctorLoading = null;
   var patientFormError = null;
@@ -24,22 +27,24 @@
   
   // Get elements when DOM is ready
   function getElements() {
+    roleModal = document.getElementById('login-role-modal');
+    roleModalClose = document.getElementById('role-modal-close');
     roleCards = document.getElementById('login-role-cards');
     formPatient = document.getElementById('login-form-patient');
     formDoctor = document.getElementById('login-form-doctor');
     backPatient = document.getElementById('login-back-patient');
     backDoctor = document.getElementById('login-back-doctor');
     formPatientEl = document.getElementById('form-patient');
+    changeRolePatientBtn = document.getElementById('login-change-role-patient');
     btnGoogleSignIn = document.getElementById('btn-google-signin');
     doctorLoading = document.getElementById('doctor-loading');
     patientFormError = document.getElementById('patient-form-error');
     doctorFormError = document.getElementById('doctor-form-error');
   }
 
-  function showRoleCards() {
-    if (roleCards) {
-      roleCards.classList.remove('is-hidden');
-      roleCards.style.display = '';
+  function openRoleModal() {
+    if (roleModal) {
+      roleModal.classList.add('is-open');
     }
     if (formPatient) {
       formPatient.classList.remove('is-visible');
@@ -51,11 +56,14 @@
     }
   }
 
-  function showPatientForm() {
-    if (roleCards) {
-      roleCards.classList.add('is-hidden');
-      roleCards.style.display = 'none';
+  function closeRoleModal() {
+    if (roleModal) {
+      roleModal.classList.remove('is-open');
     }
+  }
+
+  function showPatientForm() {
+    closeRoleModal();
     if (formDoctor) {
       formDoctor.classList.remove('is-visible');
       formDoctor.setAttribute('aria-hidden', 'true');
@@ -68,7 +76,7 @@
   }
 
   function showDoctorForm() {
-    if (roleCards) roleCards.classList.add('is-hidden');
+    closeRoleModal();
     if (formPatient) {
       formPatient.classList.remove('is-visible');
       formPatient.setAttribute('aria-hidden', 'true');
@@ -243,13 +251,33 @@
         });
       });
     }
-    var showDoctorBtn = document.getElementById('login-show-doctor');
-    if (showDoctorBtn) {
-      console.log('Binding showDoctorBtn');
-      showDoctorBtn.addEventListener('click', showDoctorForm);
+    if (changeRolePatientBtn) {
+      changeRolePatientBtn.addEventListener('click', openRoleModal);
     }
-    if (backPatient) backPatient.addEventListener('click', showRoleCards);
-    if (backDoctor) backDoctor.addEventListener('click', showRoleCards);
+    if (backPatient) backPatient.addEventListener('click', openRoleModal);
+    if (backDoctor) backDoctor.addEventListener('click', openRoleModal);
+    if (roleModalClose) roleModalClose.addEventListener('click', function () {
+      // If user closes the modal without choosing, default to patient flow.
+      showPatientForm();
+    });
+
+    if (roleModal) {
+      roleModal.addEventListener('click', function (e) {
+        var target = e.target;
+        if (target && target.getAttribute && target.getAttribute('data-role-modal-close') === 'true') {
+          // If user closes the modal without choosing, default to patient flow.
+          showPatientForm();
+        }
+      });
+    }
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && roleModal && roleModal.classList.contains('is-open')) {
+        // If user closes the modal without choosing, default to patient flow.
+        showPatientForm();
+      }
+    });
+
     if (formPatientEl) formPatientEl.addEventListener('submit', onPatientSubmit);
     
     // Bind Google Sign-In button - use event delegation for reliability
@@ -321,6 +349,8 @@
     initFirebase();
     
     bindEvents();
+    // Default entry: always show role selection first.
+    openRoleModal();
     console.log('Login page init completed');
   }
 

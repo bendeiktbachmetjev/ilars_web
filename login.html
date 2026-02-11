@@ -46,11 +46,31 @@
   <main class="login-page">
     <section class="login-hero">
       <h1 class="login-title">Log in to iLARS</h1>
-      <p class="login-subtitle">Enter your patient code to fill questionnaires and track your symptoms — same as in the app.</p>
+      <p class="login-subtitle">Choose how you want to continue — as a patient or as a doctor.</p>
     </section>
 
-    <!-- Patient code form: shown first so patient can enter code immediately (no extra step) -->
-    <div class="login-form-wrapper login-form-patient-first is-visible" id="login-form-patient" aria-hidden="false">
+    <!-- Role selection modal -->
+    <div class="role-modal is-open" id="login-role-modal" role="dialog" aria-modal="true" aria-labelledby="role-modal-title">
+      <div class="role-modal__backdrop" data-role-modal-close="true" aria-hidden="true"></div>
+      <div class="role-modal__dialog" role="document">
+        <button type="button" class="role-modal__close" id="role-modal-close" aria-label="Close">×</button>
+        <h2 class="role-modal__title" id="role-modal-title">Continue as</h2>
+        <div class="login-role-cards" id="login-role-cards" role="group" aria-label="Choose login type">
+          <button type="button" class="login-role-card" data-role="patient" aria-label="Log in as patient">
+            <span class="role-icon" aria-hidden="true">👤</span>
+            <h3 class="role-title">Patient</h3>
+            <p class="role-desc">Enter your patient code to fill questionnaires and track your symptoms.</p>
+          </button>
+          <button type="button" class="login-role-card" data-role="doctor" aria-label="Log in as doctor">
+            <span class="role-icon" aria-hidden="true">🩺</span>
+            <h3 class="role-title">Doctor</h3>
+            <p class="role-desc">Sign in with your Google account to access the doctor dashboard.</p>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="login-form-wrapper login-form-patient-first" id="login-form-patient" aria-hidden="true">
       <h2 class="form-title">Enter your patient code</h2>
       <form id="form-patient" novalidate>
         <label for="patient-code">Patient code</label>
@@ -59,25 +79,12 @@
         <button type="submit" class="btn-submit">Continue</button>
       </form>
       <p class="login-doctor-link">
-        <button type="button" class="link-button" id="login-show-doctor" aria-label="Log in as doctor">I'm a doctor</button>
+        <button type="button" class="link-button" id="login-change-role-patient" aria-label="Change role">Change role</button>
       </p>
     </div>
 
-    <div class="login-role-cards is-hidden" id="login-role-cards" role="group" aria-label="Choose login type" style="display: none;">
-      <button type="button" class="login-role-card" data-role="patient" aria-label="Log in as patient">
-        <span class="role-icon" aria-hidden="true">👤</span>
-        <h2 class="role-title">I'm a Patient</h2>
-        <p class="role-desc">Enter your patient code to fill questionnaires and track your symptoms.</p>
-      </button>
-      <button type="button" class="login-role-card" data-role="doctor" aria-label="Log in as doctor">
-        <span class="role-icon" aria-hidden="true">🩺</span>
-        <h2 class="role-title">I'm a Doctor</h2>
-        <p class="role-desc">Sign in with your credentials to view your patients and their data.</p>
-      </button>
-    </div>
-
     <div class="login-form-wrapper" id="login-form-doctor" aria-hidden="true">
-      <button type="button" class="form-back" id="login-back-doctor" aria-label="Back to role selection">← Back</button>
+      <button type="button" class="form-back" id="login-back-doctor" aria-label="Change role">← Change role</button>
       <h2 class="form-title">Doctor sign in</h2>
       <p class="form-subtitle">Sign in with your Google account to access the doctor dashboard.</p>
       <div id="doctor-signin-container">

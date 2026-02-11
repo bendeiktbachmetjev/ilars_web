@@ -35,7 +35,7 @@
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1.5rem;
   max-width: 640px;
-  margin: 0 auto 2rem;
+  margin: 0 auto;
 }
 
 .login-role-card {
@@ -92,9 +92,79 @@
   line-height: 1.5;
 }
 
-/* Role selection hidden when form is shown */
-.login-role-cards.is-hidden {
+/* Role selection modal */
+.role-modal {
+  position: fixed;
+  inset: 0;
   display: none;
+  z-index: 999;
+}
+
+.role-modal.is-open {
+  display: block;
+}
+
+.role-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+}
+
+.role-modal__dialog {
+  position: relative;
+  width: min(760px, calc(100% - 2rem));
+  margin: 10vh auto 0;
+  padding: 1.75rem 1.5rem 1.5rem;
+  background: var(--white);
+  border-radius: var(--radius, 20px);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.role-modal__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  margin: 0 0 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.role-modal__close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.12s, box-shadow 0.12s, color 0.12s;
+}
+
+.role-modal__close:hover {
+  color: #111827;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.role-modal__close:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+@media (max-height: 700px) {
+  .role-modal__dialog {
+    margin-top: 6vh;
+  }
 }
 
 .login-form-wrapper {
