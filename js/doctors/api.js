@@ -6,30 +6,11 @@ class ApiService {
     }
 
     async getAuthToken() {
-        if (!window.ILARS_AUTH) {
-            throw new Error('Authentication service not available');
+        // Delegate auth state checks to ILARS_AUTH and global auth-check logic.
+        // Here we only ensure the helper exists and request a fresh token.
+        if (!window.ILARS_AUTH || !window.ILARS_AUTH.getIdToken) {
+            throw new Error('Authentication not available');
         }
-        
-        // Ensure auth is initialized
-        if (!window.ILARS_AUTH.auth) {
-            if (window.ILARS_AUTH.init) {
-                if (!window.ILARS_AUTH.init()) {
-                    throw new Error('Failed to initialize authentication');
-                }
-            } else {
-                throw new Error('Authentication not initialized');
-            }
-        }
-        
-        // Check if user is signed in
-        if (!window.ILARS_AUTH.auth.currentUser) {
-            throw new Error('No user signed in');
-        }
-        
-        if (!window.ILARS_AUTH.getIdToken) {
-            throw new Error('getIdToken method not available');
-        }
-        
         return await window.ILARS_AUTH.getIdToken(true);
     }
 
