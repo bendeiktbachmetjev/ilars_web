@@ -316,24 +316,42 @@
           // Call /doctors/me to auto-create profile if needed
           window.ILARS_AUTH.getIdToken(false).then(function(token) {
             if (!token) {
-              console.log('No token available');
+              console.error('No token available - cannot create profile');
               return;
             }
 
             var apiBase = (window.ILARS_CONFIG.API_BASE_URL || '').replace(/\/$/, '');
-            console.log('Calling /doctors/me to ensure profile exists...');
+            console.log('Calling /doctors/me to ensure profile exists...', apiBase + '/doctors/me');
+            
             return fetch(apiBase + '/doctors/me', {
-              headers: { 'Authorization': 'Bearer ' + token }
+              method: 'GET',
+              headers: { 
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+              }
             }).then(function(r) {
+              console.log('Response status:', r.status);
+              if (!r.ok) {
+                console.error('API error:', r.status, r.statusText);
+                return r.text().then(function(text) {
+                  console.error('Error response:', text);
+                  throw new Error('API error: ' + r.status);
+                });
+              }
               return r.json();
             }).then(function(data) {
               console.log('Profile check result:', data);
+              if (data && data.status === 'ok') {
+                console.log('Profile exists or was created successfully');
+              }
               // Profile is now created/verified, page can continue
             }).catch(function(err) {
               console.error('Profile check error:', err);
+              // Don't redirect on error - let user try to fill form
             });
           }).catch(function(err) {
             console.error('Token error:', err);
+            // Don't redirect - let user see the form
           });
         }, 500);
       }

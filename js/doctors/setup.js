@@ -379,18 +379,32 @@
         if (global.ILARS_AUTH.getIdToken) {
           global.ILARS_AUTH.getIdToken(false).then(function (token) {
             if (!token) {
-              console.log('No token available');
+              console.error('No token available - cannot create profile');
               return;
             }
             
-            console.log('Calling /doctors/me to ensure profile exists...');
+            console.log('Calling /doctors/me to ensure profile exists...', API_BASE + '/doctors/me');
+            
             return fetch(API_BASE + '/doctors/me', {
-              headers: { 'Authorization': 'Bearer ' + token }
+              method: 'GET',
+              headers: { 
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+              }
             }).then(function (r) {
+              console.log('Response status:', r.status);
+              if (!r.ok) {
+                console.error('API error:', r.status, r.statusText);
+                return r.text().then(function(text) {
+                  console.error('Error response:', text);
+                  throw new Error('API error: ' + r.status);
+                });
+              }
               return r.json();
             }).then(function (data) {
               console.log('Profile check result:', data);
               if (data && data.status === 'ok') {
+                console.log('Profile exists or was created successfully');
                 if (data.profile && !data.needs_profile) {
                   // Profile complete with hospital - redirect to dashboard
                   console.log('Profile complete, redirecting to dashboard');
@@ -406,11 +420,14 @@
               }
             }).catch(function (err) {
               console.error('Profile check error:', err);
-              // Continue with setup if check fails
+              // Continue with setup if check fails - don't redirect
             });
           }).catch(function (err) {
             console.error('Token error:', err);
+            // Continue with setup - don't redirect
           });
+        } else {
+          console.error('getIdToken function not available');
         }
       }, 500);
     }
