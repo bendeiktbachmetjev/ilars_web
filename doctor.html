@@ -519,7 +519,10 @@
           return;
         }
         
-        window.ILARS_AUTH.getIdToken().then(function(token) {
+        // Check if we just completed profile (from setup page)
+        var justCompleted = window.sessionStorage.getItem('ilars_doctor_profile_completed') === '1';
+        
+        window.ILARS_AUTH.getIdToken(true).then(function(token) {
           var apiBase = (window.ILARS_CONFIG && window.ILARS_CONFIG.API_BASE_URL || '').replace(/\/$/, '');
           return fetch(apiBase + '/doctors/me', {
             headers: { 'Authorization': 'Bearer ' + token }
@@ -530,7 +533,37 @@
           });
         }).then(function(result) {
           if (result.data.status === 'ok' && result.data.needs_profile) {
-            window.location.href = 'doctor-setup.html';
+            // If we just completed profile but it's not showing as complete yet, wait a bit
+            if (justCompleted) {
+              console.log('Profile just completed, waiting for database sync...');
+              setTimeout(function() {
+                // Retry once more
+                window.ILARS_AUTH.getIdToken(true).then(function(token) {
+                  var apiBase = (window.ILARS_CONFIG && window.ILARS_CONFIG.API_BASE_URL || '').replace(/\/$/, '');
+                  return fetch(apiBase + '/doctors/me', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                  }).then(function(r) {
+                    return r.json().then(function(data) {
+                      if (data.status === 'ok' && !data.needs_profile) {
+                        window.sessionStorage.setItem('ilars_doctor_profile_completed', '1');
+                        var loader = document.querySelector('.profile-check-loader');
+                        if (loader) loader.remove();
+                        document.body.classList.add('profile-checked');
+                        document.documentElement.style.visibility = 'visible';
+                        document.documentElement.style.opacity = '1';
+                        initializeDashboard();
+                      } else {
+                        window.location.href = 'doctor-setup.html';
+                      }
+                    });
+                  });
+                }).catch(function() {
+                  window.location.href = 'doctor-setup.html';
+                });
+              }, 1500);
+            } else {
+              window.location.href = 'doctor-setup.html';
+            }
           } else if (result.data.status === 'ok' && !result.data.needs_profile) {
             window.sessionStorage.setItem('ilars_doctor_profile_completed', '1');
             // Show dashboard
@@ -545,7 +578,14 @@
           }
         }).catch(function(err) {
           console.error('Profile check failed:', err);
-          window.location.href = 'doctor-setup.html';
+          // If we just completed profile, give it a chance
+          if (justCompleted) {
+            setTimeout(function() {
+              window.location.href = 'doctor-setup.html';
+            }, 2000);
+          } else {
+            window.location.href = 'doctor-setup.html';
+          }
         });
       }
       
