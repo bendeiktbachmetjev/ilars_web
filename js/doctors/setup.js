@@ -293,60 +293,14 @@
           });
         })
         .then(function (data) {
-          // Profile saved successfully - wait a moment for database to commit
-          console.log('Profile saved successfully, verifying in database...');
+          // Profile saved successfully - redirect immediately
+          console.log('Profile saved successfully, redirecting to dashboard...');
           
-          if (data.doctor_code) {
-            showSuccess(data.doctor_code);
-          }
+          // Mark profile as completed
+          global.sessionStorage.setItem('ilars_doctor_profile_completed', '1');
           
-          // Wait 2 seconds for database to commit, then verify
-          setTimeout(function() {
-            // Verify profile was saved by checking database
-            if (!global.ILARS_AUTH || !global.ILARS_AUTH.getIdToken) {
-              // If auth not available, redirect anyway
-              global.sessionStorage.setItem('ilars_doctor_profile_completed', '1');
-              global.location.href = 'doctor.html';
-              return;
-            }
-            
-            global.ILARS_AUTH.getIdToken(true).then(function(token) {
-              if (!token) {
-                // Token issue, but profile was saved - redirect anyway
-                global.sessionStorage.setItem('ilars_doctor_profile_completed', '1');
-                global.location.href = 'doctor.html';
-                return;
-              }
-              
-              // Verify profile is complete in database
-              return fetch(API_BASE + '/doctors/me', {
-                headers: { 'Authorization': 'Bearer ' + token }
-              }).then(function(r) {
-                return r.json().then(function(verifyData) {
-                  return { ok: r.ok, data: verifyData };
-                });
-              });
-            }).then(function(verifyResult) {
-              if (verifyResult && verifyResult.data && verifyResult.data.status === 'ok' && !verifyResult.data.needs_profile) {
-                // Profile confirmed complete in database
-                console.log('Profile verified in database, redirecting to dashboard');
-                global.sessionStorage.setItem('ilars_doctor_profile_completed', '1');
-                global.location.href = 'doctor.html';
-              } else {
-                // Profile not yet complete in database, wait a bit more and retry
-                console.log('Profile not yet complete, waiting...');
-                setTimeout(function() {
-                  global.sessionStorage.setItem('ilars_doctor_profile_completed', '1');
-                  global.location.href = 'doctor.html';
-                }, 2000);
-              }
-            }).catch(function(err) {
-              console.error('Verification error:', err);
-              // Even if verification fails, redirect - profile was saved
-              global.sessionStorage.setItem('ilars_doctor_profile_completed', '1');
-              global.location.href = 'doctor.html';
-            });
-          }, 2000);
+          // Redirect immediately to dashboard
+          global.location.href = 'doctor.html';
         })
         .catch(function (err) {
           console.error('Save profile error:', err);
