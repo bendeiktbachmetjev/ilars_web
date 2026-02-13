@@ -119,26 +119,6 @@
       display: block;
     }
 
-    .setup-success {
-      background: rgba(76, 175, 80, 0.1);
-      border: 1px solid rgba(76, 175, 80, 0.3);
-      color: #2e7d32;
-      padding: 1rem;
-      border-radius: 12px;
-      margin-bottom: 1.25rem;
-      font-size: 0.9rem;
-      display: none;
-    }
-
-    .setup-success.is-visible {
-      display: block;
-    }
-
-    .setup-success strong {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: 600;
-    }
 
     .setup-btn {
       width: 100%;
@@ -213,12 +193,6 @@
     <div class="setup-window">
       <h1 class="setup-title">Complete Your Profile</h1>
       <p class="setup-subtitle">Please fill in your details to start using the doctor dashboard.</p>
-
-      <div id="setup-success" class="setup-success" role="alert">
-        <strong>Profile saved successfully!</strong>
-        <div>Your doctor code: <strong id="doctor-code-display"></strong></div>
-        <div style="margin-top: 0.5rem;">Redirecting to dashboard...</div>
-      </div>
 
       <form id="setup-form" novalidate>
         <div class="setup-form-group">
