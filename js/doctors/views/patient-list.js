@@ -39,8 +39,17 @@ class PatientListView {
                 this.showError('Failed to load patients: ' + (data.detail || 'Unknown error'));
             }
         } catch (error) {
-            this.showError('Error loading patients: ' + error.message);
+            const errorMsg = error.message || 'Unknown error';
+            this.showError('Error loading patients: ' + errorMsg);
             console.error('Full error:', error);
+            
+            // If authentication error, redirect to login after delay
+            if (errorMsg.includes('No user signed in') || errorMsg.includes('Authentication') || errorMsg.includes('not available')) {
+                console.warn('Authentication error detected, redirecting to login...');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            }
         }
     }
 
