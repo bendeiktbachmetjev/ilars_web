@@ -492,7 +492,7 @@
       
       function checkProfile() {
         // Wait for scripts to load
-        if (typeof window.ILARS_AUTH_CHECK === 'undefined' || typeof window.ILARS_CONFIG === 'undefined') {
+        if (typeof window.ILARS_AUTH_CHECK === 'undefined' || typeof window.ILARS_CONFIG === 'undefined' || typeof window.ILARS_AUTH === 'undefined') {
           setTimeout(checkProfile, 50);
           return;
         }
@@ -506,23 +506,49 @@
           }
         }
         
-        // Initialize Firebase Auth
-        if (window.ILARS_AUTH && window.ILARS_AUTH.init) {
-          window.ILARS_AUTH.init();
+        // Initialize Firebase Auth and wait for it to be ready
+        function waitForAuth() {
+          if (!window.ILARS_AUTH) {
+            setTimeout(waitForAuth, 100);
+            return;
+          }
+          
+          // Initialize Firebase Auth if not already done
+          if (!window.ILARS_AUTH.auth && window.ILARS_AUTH.init) {
+            if (!window.ILARS_AUTH.init()) {
+              console.error('Failed to initialize Firebase Auth');
+              setTimeout(waitForAuth, 200);
+              return;
+            }
+          }
+          
+          // Wait for auth state to settle
+          setTimeout(function() {
+            if (!window.ILARS_AUTH.auth || !window.ILARS_AUTH.auth.currentUser) {
+              console.log('No Firebase user found, waiting...');
+              setTimeout(waitForAuth, 500);
+              return;
+            }
+            
+            // Now we can safely get token
+            performProfileCheck();
+          }, 300);
         }
         
-        // Check profile
-        var profileCompleted = window.sessionStorage.getItem('ilars_doctor_profile_completed');
-        
-        if (!window.ILARS_AUTH || !window.ILARS_AUTH.getIdToken) {
-          window.location.href = 'doctor-setup.html';
-          return;
-        }
-        
-        // Check if we just completed profile (from setup page)
-        var justCompleted = window.sessionStorage.getItem('ilars_doctor_profile_completed') === '1';
-        
-        window.ILARS_AUTH.getIdToken(true).then(function(token) {
+        function performProfileCheck() {
+          // Check profile
+          var profileCompleted = window.sessionStorage.getItem('ilars_doctor_profile_completed');
+          
+          if (!window.ILARS_AUTH || !window.ILARS_AUTH.getIdToken) {
+            console.error('ILARS_AUTH.getIdToken not available');
+            window.location.href = 'doctor-setup.html';
+            return;
+          }
+          
+          // Check if we just completed profile (from setup page)
+          var justCompleted = window.sessionStorage.getItem('ilars_doctor_profile_completed') === '1';
+          
+          window.ILARS_AUTH.getIdToken(true).then(function(token) {
           var apiBase = (window.ILARS_CONFIG && window.ILARS_CONFIG.API_BASE_URL || '').replace(/\/$/, '');
           return fetch(apiBase + '/doctors/me', {
             headers: { 'Authorization': 'Bearer ' + token }
@@ -576,17 +602,22 @@
           } else {
             window.location.href = 'doctor-setup.html';
           }
-        }).catch(function(err) {
-          console.error('Profile check failed:', err);
-          // If we just completed profile, give it a chance
-          if (justCompleted) {
-            setTimeout(function() {
+          }).catch(function(err) {
+            console.error('Profile check failed:', err);
+            // If we just completed profile, give it a chance
+            if (justCompleted) {
+              console.log('Just completed profile, retrying after delay...');
+              setTimeout(function() {
+                performProfileCheck();
+              }, 2000);
+            } else {
               window.location.href = 'doctor-setup.html';
-            }, 2000);
-          } else {
-            window.location.href = 'doctor-setup.html';
-          }
-        });
+            }
+          });
+        }
+        
+        // Start auth initialization and wait
+        waitForAuth();
       }
       
       function initializeDashboard() {
