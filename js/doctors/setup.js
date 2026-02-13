@@ -161,8 +161,28 @@
 
     setLoading(true);
 
+    // Ensure Firebase Auth is initialized
+    if (!global.ILARS_AUTH || !global.ILARS_AUTH.auth) {
+      if (global.ILARS_AUTH && global.ILARS_AUTH.init) {
+        if (!global.ILARS_AUTH.init()) {
+          showError('Authentication service not available. Please refresh the page.');
+          setLoading(false);
+          return;
+        }
+      } else {
+        showError('Authentication service not available. Please refresh the page.');
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Get fresh token (force refresh)
     global.ILARS_AUTH.getIdToken(true)
       .then(function (token) {
+        if (!token) {
+          throw new Error('Failed to get authentication token. Please try signing in again.');
+        }
+
         var body = {
           email: global.sessionStorage.getItem('ilars_doctor_email') || '',
           first_name: firstName || null,
@@ -182,7 +202,13 @@
       })
       .then(function (r) {
         return r.json().then(function (data) {
-          if (!r.ok) throw new Error(data.detail || 'Failed to save profile');
+          if (!r.ok) {
+            var errorMsg = data.detail || 'Failed to save profile';
+            if (r.status === 401) {
+              errorMsg = 'Session expired. Please sign in again.';
+            }
+            throw new Error(errorMsg);
+          }
           return data;
         });
       })
@@ -198,7 +224,12 @@
         }
       })
       .catch(function (err) {
-        showError(err.message || 'Failed to save. Please try again.');
+        console.error('Save profile error:', err);
+        var errorMsg = err.message || 'Failed to save. Please try again.';
+        if (errorMsg.includes('token') || errorMsg.includes('expired') || errorMsg.includes('401')) {
+          errorMsg = 'Your session has expired. Please refresh the page and sign in again.';
+        }
+        showError(errorMsg);
         setLoading(false);
       });
   }
@@ -220,21 +251,31 @@
     });
 
     // Check if profile already completed
-    if (global.ILARS_AUTH && global.ILARS_AUTH.getIdToken) {
-      global.ILARS_AUTH.getIdToken().then(function (token) {
-        return fetch(API_BASE + '/doctors/me', {
-          headers: { 'Authorization': 'Bearer ' + token }
+    if (global.ILARS_AUTH) {
+      // Ensure Firebase Auth is initialized
+      if (global.ILARS_AUTH.init && !global.ILARS_AUTH.auth) {
+        global.ILARS_AUTH.init();
+      }
+      
+      if (global.ILARS_AUTH.getIdToken) {
+        global.ILARS_AUTH.getIdToken(true).then(function (token) {
+          if (!token) return;
+          return fetch(API_BASE + '/doctors/me', {
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+        }).then(function (r) {
+          if (!r) return;
+          return r.json();
+        }).then(function (data) {
+          if (data && data.status === 'ok' && data.profile && !data.needs_profile) {
+            // Profile already complete, redirect to dashboard
+            global.location.href = 'doctor.html';
+          }
+        }).catch(function (err) {
+          console.log('Profile check:', err);
+          // Continue with setup if check fails
         });
-      }).then(function (r) {
-        return r.json();
-      }).then(function (data) {
-        if (data.status === 'ok' && data.profile && !data.needs_profile) {
-          // Profile already complete, redirect to dashboard
-          global.location.href = 'doctor.html';
-        }
-      }).catch(function () {
-        // Continue with setup
-      });
+      }
     }
   }
 
