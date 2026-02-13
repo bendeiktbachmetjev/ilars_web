@@ -57,38 +57,111 @@ class PatientListView {
         }
         this.createButton._ilarsBound = true;
         this.createButton.addEventListener('click', () => {
-            this.handleCreatePatient();
+            this.showCreatePatientModal();
         });
+        this.bindCreatePatientModal();
     }
 
-    async handleCreatePatient() {
+    bindCreatePatientModal() {
+        const modal = document.getElementById('create-patient-modal');
+        const backdrop = modal ? modal.querySelector('.create-patient-modal-backdrop') : null;
+        const btnConfirm = document.getElementById('create-patient-modal-confirm');
+        const btnCancel = document.getElementById('create-patient-modal-cancel');
+        const btnClose = document.getElementById('create-patient-modal-close');
+
+        const hideModal = () => {
+            if (modal) {
+                modal.classList.remove('is-visible');
+                modal.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('modal-open');
+            }
+        };
+
+        if (btnConfirm && !btnConfirm._ilarsBound) {
+            btnConfirm._ilarsBound = true;
+            btnConfirm.addEventListener('click', () => this.confirmCreatePatient());
+        }
+        if (btnCancel) {
+            btnCancel.addEventListener('click', hideModal);
+        }
+        if (btnClose) {
+            btnClose.addEventListener('click', hideModal);
+        }
+        if (backdrop) {
+            backdrop.addEventListener('click', hideModal);
+        }
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) hideModal();
+            });
+        }
+    }
+
+    async showCreatePatientModal() {
+        if (!this.api) return;
+        const modal = document.getElementById('create-patient-modal');
+        const doctorNameEl = document.getElementById('create-patient-modal-doctor-name');
+        const dateEl = document.getElementById('create-patient-modal-date');
+
+        if (doctorNameEl) doctorNameEl.textContent = '—';
+        if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        try {
+            if (this.api.getDoctorProfile) {
+                const data = await this.api.getDoctorProfile();
+                if (data && data.status === 'ok' && data.profile) {
+                    const p = data.profile;
+                    const name = [p.first_name, p.last_name].filter(Boolean).join(' ').trim() || p.email || '—';
+                    if (doctorNameEl) doctorNameEl.textContent = name;
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load doctor profile:', e);
+        }
+
+        if (modal) {
+            modal.classList.add('is-visible');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('modal-open');
+        }
+    }
+
+    async confirmCreatePatient() {
         if (!this.api || !this.api.createPatient) {
             this.showError('Create patient API not available.');
             return;
         }
 
+        const modal = document.getElementById('create-patient-modal');
+        const btnConfirm = document.getElementById('create-patient-modal-confirm');
         const errorEl = document.getElementById('patient-list-error');
         if (errorEl) {
             errorEl.style.display = 'none';
             errorEl.textContent = '';
         }
 
-        const btn = this.createButton;
-        const originalText = btn ? btn.textContent : '';
+        const hideModal = () => {
+            if (modal) {
+                modal.classList.remove('is-visible');
+                modal.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('modal-open');
+            }
+        };
+
+        const originalText = btnConfirm ? btnConfirm.textContent : '';
 
         try {
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = 'Creating...';
+            if (btnConfirm) {
+                btnConfirm.disabled = true;
+                btnConfirm.textContent = 'Creating...';
             }
 
             const data = await this.api.createPatient();
+            hideModal();
 
             const code = data && data.patient_code ? data.patient_code : 'Unknown';
-            // Simple, clear feedback with patient code
             alert('New patient created. Patient code: ' + code);
 
-            // Force reload list to include new patient
             this.isLoaded = false;
             await this.load(true);
         } catch (error) {
@@ -96,9 +169,9 @@ class PatientListView {
             this.showError(msg);
             console.error('Create patient error:', error);
         } finally {
-            if (btn) {
-                btn.disabled = false;
-                btn.textContent = originalText || 'Create patient';
+            if (btnConfirm) {
+                btnConfirm.disabled = false;
+                btnConfirm.textContent = originalText || 'Create patient';
             }
         }
     }

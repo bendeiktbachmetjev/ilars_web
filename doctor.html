@@ -526,6 +526,127 @@
     body.modal-open {
       overflow: hidden;
     }
+
+    /* Create patient confirmation modal */
+    .create-patient-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .create-patient-modal.is-visible {
+      display: flex;
+    }
+    .create-patient-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(6px);
+    }
+    .create-patient-modal-content {
+      position: relative;
+      background: #fff;
+      border-radius: 20px;
+      padding: 2rem 2.25rem;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.18), 0 8px 24px rgba(102, 126, 234, 0.15);
+      animation: modalFadeIn 0.3s ease-out;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.96) translateY(-10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .create-patient-modal-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #1e1e32;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    .create-patient-modal-subtitle {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .create-patient-modal-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1rem;
+      background: rgba(102, 126, 234, 0.08);
+      border-radius: 12px;
+      margin-bottom: 0.75rem;
+      font-size: 0.95rem;
+    }
+    .create-patient-modal-row-label {
+      color: #555;
+      font-weight: 500;
+    }
+    .create-patient-modal-row-value {
+      color: #1e1e32;
+      font-weight: 600;
+    }
+    .create-patient-modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 1.5rem;
+      flex-direction: row-reverse;
+    }
+    .create-patient-modal-btn {
+      flex: 1;
+      padding: 0.75rem 1.25rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      font-family: inherit;
+      border: none;
+    }
+    .create-patient-modal-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .create-patient-modal-btn-confirm {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
+    }
+    .create-patient-modal-btn-confirm:hover:not(:disabled) {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+    .create-patient-modal-btn-cancel {
+      background: rgba(0, 0, 0, 0.06);
+      color: #444;
+    }
+    .create-patient-modal-btn-cancel:hover:not(:disabled) {
+      background: rgba(0, 0, 0, 0.1);
+    }
+    .create-patient-modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 32px;
+      height: 32px;
+      font-size: 1.4rem;
+      line-height: 1;
+      color: #999;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      border-radius: 8px;
+    }
+    .create-patient-modal-close:hover {
+      color: #333;
+      background: rgba(0, 0, 0, 0.05);
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -842,6 +963,28 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Create patient confirmation modal -->
+  <div id="create-patient-modal" class="create-patient-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="create-patient-modal-title">
+    <div class="create-patient-modal-backdrop"></div>
+    <div class="create-patient-modal-content">
+      <h2 id="create-patient-modal-title" class="create-patient-modal-title">Confirm create patient</h2>
+      <p class="create-patient-modal-subtitle">Please verify you are on the correct account before creating a new patient.</p>
+      <div class="create-patient-modal-row">
+        <span class="create-patient-modal-row-label">Doctor</span>
+        <span id="create-patient-modal-doctor-name" class="create-patient-modal-row-value">—</span>
+      </div>
+      <div class="create-patient-modal-row">
+        <span class="create-patient-modal-row-label">Date</span>
+        <span id="create-patient-modal-date" class="create-patient-modal-row-value">—</span>
+      </div>
+      <div class="create-patient-modal-actions">
+        <button type="button" id="create-patient-modal-confirm" class="create-patient-modal-btn create-patient-modal-btn-confirm">Create patient</button>
+        <button type="button" id="create-patient-modal-cancel" class="create-patient-modal-btn create-patient-modal-btn-cancel">Cancel</button>
+      </div>
+      <button type="button" id="create-patient-modal-close" class="create-patient-modal-close" aria-label="Close">×</button>
     </div>
   </div>
 

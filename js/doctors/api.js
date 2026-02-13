@@ -14,6 +14,20 @@ class ApiService {
         return await window.ILARS_AUTH.getIdToken(true);
     }
 
+    async getDoctorProfile() {
+        const token = await this.getAuthToken();
+        const response = await fetch(`${this.baseUrl}/doctors/me`, {
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+    }
+
     async getPatients(status = 'active') {
         const token = await this.getAuthToken();
         const url = status ? `${this.baseUrl}/getPatients?status=${encodeURIComponent(status)}` : `${this.baseUrl}/getPatients`;
