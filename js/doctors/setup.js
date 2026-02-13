@@ -154,10 +154,8 @@
       return;
     }
 
-    if (!hospitalId) {
-      showError('Please enter a valid hospital code. The code will be validated when you submit.');
-      return;
-    }
+    // Note: hospitalId will be resolved from hospitalCode during save
+    // We validate the code exists before allowing submission
 
     setLoading(true);
 
@@ -226,11 +224,11 @@
             throw new Error('Failed to get authentication token. Your session may have expired. Please sign in again.');
           }
 
+          // Profile already exists (auto-created on login), we're just updating it with hospital
           var body = {
-            email: global.sessionStorage.getItem('ilars_doctor_email') || '',
             first_name: firstName || null,
             last_name: lastName || null,
-            hospital_code: hospitalCode, // Only code is sent - API resolves hospital_id
+            hospital_code: hospitalCode, // Required - API resolves hospital_id
             date_of_birth: dob || null
           };
 

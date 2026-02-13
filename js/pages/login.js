@@ -178,20 +178,27 @@
           }
         } catch (err) {}
         
-        // Check if profile is complete before redirecting
+        // Auto-create profile and check if hospital is assigned
         var apiBase = (CONFIG.API_BASE_URL || '').replace(/\/$/, '');
         return fetch(apiBase + '/doctors/me', {
           headers: { 'Authorization': 'Bearer ' + (userData.idToken || '') }
         }).then(function(r) {
           return r.json();
         }).then(function(data) {
+          // Profile is auto-created, needs_profile means no hospital assigned
           if (data.status === 'ok' && data.needs_profile) {
+            // Profile exists but no hospital - go to setup
             global.location.href = 'doctor-setup.html';
-          } else {
+          } else if (data.status === 'ok' && !data.needs_profile) {
+            // Profile complete with hospital - go to dashboard
             global.location.href = 'doctor.html';
+          } else {
+            // Fallback to setup
+            global.location.href = 'doctor-setup.html';
           }
-        }).catch(function() {
-          // On error, redirect to setup page to be safe
+        }).catch(function(err) {
+          console.error('Profile check error:', err);
+          // On error, redirect to setup page
           global.location.href = 'doctor-setup.html';
         });
       })

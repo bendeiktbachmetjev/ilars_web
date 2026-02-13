@@ -289,6 +289,9 @@
         }
       }
 
+      // Auto-create profile if needed (profile is created automatically in /doctors/me)
+      // Just ensure Firebase Auth is initialized
+
       // Initialize Firebase Auth (but don't redirect on load - let setup.js handle it)
       function initAuth() {
         if (!window.ILARS_AUTH) {
