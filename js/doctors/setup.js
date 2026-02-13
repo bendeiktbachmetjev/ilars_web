@@ -162,18 +162,28 @@
     setLoading(true);
 
     // Ensure Firebase Auth is initialized
-    if (!global.ILARS_AUTH || !global.ILARS_AUTH.auth) {
-      if (global.ILARS_AUTH && global.ILARS_AUTH.init) {
-        if (!global.ILARS_AUTH.init()) {
-          showError('Authentication service not available. Please refresh the page.');
-          setLoading(false);
-          return;
-        }
-      } else {
-        showError('Authentication service not available. Please refresh the page.');
+    if (!global.ILARS_AUTH) {
+      showError('Authentication service not available. Please refresh the page.');
+      setLoading(false);
+      return;
+    }
+
+    if (!global.ILARS_AUTH.auth) {
+      if (global.ILARS_AUTH.init && !global.ILARS_AUTH.init()) {
+        showError('Failed to initialize authentication. Please refresh the page.');
         setLoading(false);
         return;
       }
+    }
+
+    // Check if user is signed in
+    if (!global.ILARS_AUTH.auth || !global.ILARS_AUTH.auth.currentUser) {
+      showError('You are not signed in. Please go back and sign in with Google.');
+      setLoading(false);
+      setTimeout(function() {
+        global.location.href = 'login.html';
+      }, 2000);
+      return;
     }
 
     // Get fresh token (force refresh)
@@ -251,15 +261,33 @@
     });
 
     // Check if profile already completed
-    if (global.ILARS_AUTH) {
-      // Ensure Firebase Auth is initialized
-      if (global.ILARS_AUTH.init && !global.ILARS_AUTH.auth) {
-        global.ILARS_AUTH.init();
+    function checkExistingProfile() {
+      if (!global.ILARS_AUTH) {
+        // Wait for auth to load
+        setTimeout(checkExistingProfile, 200);
+        return;
       }
-      
+
+      // Ensure Firebase Auth is initialized
+      if (!global.ILARS_AUTH.auth && global.ILARS_AUTH.init) {
+        if (!global.ILARS_AUTH.init()) {
+          console.log('Firebase Auth initialization failed, continuing with setup');
+          return;
+        }
+      }
+
+      // Check if user is signed in
+      if (!global.ILARS_AUTH.auth || !global.ILARS_AUTH.auth.currentUser) {
+        console.log('No user signed in, continuing with setup');
+        return;
+      }
+
       if (global.ILARS_AUTH.getIdToken) {
         global.ILARS_AUTH.getIdToken(true).then(function (token) {
-          if (!token) return;
+          if (!token) {
+            console.log('No token available, continuing with setup');
+            return;
+          }
           return fetch(API_BASE + '/doctors/me', {
             headers: { 'Authorization': 'Bearer ' + token }
           });
@@ -277,6 +305,8 @@
         });
       }
     }
+
+    checkExistingProfile();
   }
 
   if (document.readyState === 'loading') {
