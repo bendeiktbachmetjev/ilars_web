@@ -154,8 +154,11 @@
       return;
     }
 
-    // Note: hospitalId will be resolved from hospitalCode during save
-    // We validate the code exists before allowing submission
+    // Validate hospital code exists before submission
+    if (!inputHospitalId || !inputHospitalId.value) {
+      showError('Please enter a valid hospital code. The code will be validated when you submit.');
+      return;
+    }
 
     setLoading(true);
 
