@@ -352,53 +352,70 @@
       saveProfile();
     });
 
-    // Check if profile already completed
-    function checkExistingProfile() {
-      if (!global.ILARS_AUTH) {
-        // Wait for auth to load
-        setTimeout(checkExistingProfile, 200);
+    // Ensure profile exists and check if hospital is already assigned
+    function ensureProfileExists() {
+      if (!global.ILARS_AUTH || !CONFIG) {
+        setTimeout(ensureProfileExists, 200);
         return;
       }
 
       // Ensure Firebase Auth is initialized
       if (!global.ILARS_AUTH.auth && global.ILARS_AUTH.init) {
         if (!global.ILARS_AUTH.init()) {
-          console.log('Firebase Auth initialization failed, continuing with setup');
+          setTimeout(ensureProfileExists, 200);
           return;
         }
       }
 
-      // Check if user is signed in
-      if (!global.ILARS_AUTH.auth || !global.ILARS_AUTH.auth.currentUser) {
-        console.log('No user signed in, continuing with setup');
-        return;
-      }
+      // Wait for auth state
+      setTimeout(function() {
+        if (!global.ILARS_AUTH.auth || !global.ILARS_AUTH.auth.currentUser) {
+          console.log('No user signed in, waiting...');
+          setTimeout(ensureProfileExists, 500);
+          return;
+        }
 
-      if (global.ILARS_AUTH.getIdToken) {
-        global.ILARS_AUTH.getIdToken(true).then(function (token) {
-          if (!token) {
-            console.log('No token available, continuing with setup');
-            return;
-          }
-          return fetch(API_BASE + '/doctors/me', {
-            headers: { 'Authorization': 'Bearer ' + token }
+        // Call /doctors/me to auto-create profile if needed
+        if (global.ILARS_AUTH.getIdToken) {
+          global.ILARS_AUTH.getIdToken(false).then(function (token) {
+            if (!token) {
+              console.log('No token available');
+              return;
+            }
+            
+            console.log('Calling /doctors/me to ensure profile exists...');
+            return fetch(API_BASE + '/doctors/me', {
+              headers: { 'Authorization': 'Bearer ' + token }
+            }).then(function (r) {
+              return r.json();
+            }).then(function (data) {
+              console.log('Profile check result:', data);
+              if (data && data.status === 'ok') {
+                if (data.profile && !data.needs_profile) {
+                  // Profile complete with hospital - redirect to dashboard
+                  console.log('Profile complete, redirecting to dashboard');
+                  global.location.href = 'doctor.html';
+                } else {
+                  // Profile exists but no hospital - continue with setup
+                  console.log('Profile exists, hospital needed');
+                  // Prefill form if data available
+                  if (data.profile) {
+                    prefillFromGoogle();
+                  }
+                }
+              }
+            }).catch(function (err) {
+              console.error('Profile check error:', err);
+              // Continue with setup if check fails
+            });
+          }).catch(function (err) {
+            console.error('Token error:', err);
           });
-        }).then(function (r) {
-          if (!r) return;
-          return r.json();
-        }).then(function (data) {
-          if (data && data.status === 'ok' && data.profile && !data.needs_profile) {
-            // Profile already complete, redirect to dashboard
-            global.location.href = 'doctor.html';
-          }
-        }).catch(function (err) {
-          console.log('Profile check:', err);
-          // Continue with setup if check fails
-        });
-      }
+        }
+      }, 500);
     }
 
-    checkExistingProfile();
+    ensureProfileExists();
   }
 
   if (document.readyState === 'loading') {
