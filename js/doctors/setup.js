@@ -81,20 +81,39 @@
   }
 
   function validateHospitalCode(code) {
-    if (!code || !code.trim()) return Promise.resolve(null);
+    if (!code || !code.trim()) {
+      console.log('validateHospitalCode: empty code');
+      return Promise.resolve(null);
+    }
     code = code.trim().toUpperCase();
-    return fetch(API_BASE + '/hospitals/by-code/' + encodeURIComponent(code))
+    
+    // Validate code format - should be alphanumeric, no special chars
+    if (!/^[A-Z0-9]+$/.test(code)) {
+      console.log('validateHospitalCode: invalid code format', code);
+      return Promise.resolve({ error: 'Invalid code format. Use only letters and numbers.' });
+    }
+    
+    var url = API_BASE + '/hospitals/by-code/' + encodeURIComponent(code);
+    console.log('Validating hospital code:', code, 'URL:', url);
+    
+    return fetch(url)
       .then(function (r) {
+        console.log('Hospital code validation response:', r.status);
         if (!r.ok) {
           if (r.status === 404) {
             return { error: 'Hospital code not found or inactive' };
           }
-          return null;
+          return r.text().then(function(text) {
+            console.error('Hospital code validation error:', text);
+            return { error: 'Failed to validate hospital code' };
+          });
         }
         return r.json();
       })
       .then(function (data) {
+        console.log('Hospital code validation result:', data);
         if (data.status === 'ok' && data.hospital) {
+          console.log('Hospital found:', data.hospital.name);
           return data.hospital;
         }
         if (data.error) {
@@ -102,8 +121,9 @@
         }
         return null;
       })
-      .catch(function () {
-        return null;
+      .catch(function (err) {
+        console.error('Hospital code validation exception:', err);
+        return { error: 'Failed to validate hospital code' };
       });
   }
 
