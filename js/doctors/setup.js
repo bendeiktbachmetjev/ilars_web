@@ -165,24 +165,39 @@
     if (!global.ILARS_AUTH) {
       showError('Authentication service not available. Please refresh the page.');
       setLoading(false);
+      setTimeout(function() {
+        global.location.href = 'login.html';
+      }, 2000);
       return;
     }
 
     if (!global.ILARS_AUTH.auth) {
-      if (global.ILARS_AUTH.init && !global.ILARS_AUTH.init()) {
-        showError('Failed to initialize authentication. Please refresh the page.');
+      if (global.ILARS_AUTH.init) {
+        if (!global.ILARS_AUTH.init()) {
+          showError('Failed to initialize authentication. Please refresh the page.');
+          setLoading(false);
+          setTimeout(function() {
+            global.location.href = 'login.html';
+          }, 2000);
+          return;
+        }
+      } else {
+        showError('Authentication not initialized. Please refresh the page.');
         setLoading(false);
+        setTimeout(function() {
+          global.location.href = 'login.html';
+        }, 2000);
         return;
       }
     }
 
     // Check if user is signed in
     if (!global.ILARS_AUTH.auth || !global.ILARS_AUTH.auth.currentUser) {
-      showError('You are not signed in. Please go back and sign in with Google.');
+      showError('You are not signed in. Redirecting to login...');
       setLoading(false);
       setTimeout(function() {
         global.location.href = 'login.html';
-      }, 2000);
+      }, 1500);
       return;
     }
 
@@ -190,7 +205,7 @@
     global.ILARS_AUTH.getIdToken(true)
       .then(function (token) {
         if (!token) {
-          throw new Error('Failed to get authentication token. Please try signing in again.');
+          throw new Error('Failed to get authentication token. Your session may have expired. Please sign in again.');
         }
 
         var body = {
@@ -236,9 +251,19 @@
       .catch(function (err) {
         console.error('Save profile error:', err);
         var errorMsg = err.message || 'Failed to save. Please try again.';
-        if (errorMsg.includes('token') || errorMsg.includes('expired') || errorMsg.includes('401')) {
-          errorMsg = 'Your session has expired. Please refresh the page and sign in again.';
+        
+        // Handle token-related errors
+        if (errorMsg.includes('token') || errorMsg.includes('expired') || errorMsg.includes('401') || 
+            errorMsg.includes('No user signed in') || errorMsg.includes('session')) {
+          errorMsg = 'Your session has expired. Redirecting to login...';
+          showError(errorMsg);
+          setLoading(false);
+          setTimeout(function() {
+            global.location.href = 'login.html';
+          }, 2000);
+          return;
         }
+        
         showError(errorMsg);
         setLoading(false);
       });
