@@ -7,9 +7,26 @@ class App {
     }
 
     init() {
-        // Handle hash changes for routing
-        window.addEventListener('hashchange', () => this.handleRoute());
-        this.handleRoute();
+        // Wait for Firebase auth to have a signed-in user before loading patients
+        const waitForAuth = () => {
+            try {
+                if (!window.ILARS_AUTH || !window.ILARS_AUTH.auth || !window.ILARS_AUTH.auth.currentUser) {
+                    // Auth not ready yet, retry shortly
+                    setTimeout(waitForAuth, 300);
+                    return;
+                }
+            } catch (e) {
+                // If something goes wrong, try again a bit later
+                setTimeout(waitForAuth, 300);
+                return;
+            }
+
+            // Auth is ready – set up routing and render initial view
+            window.addEventListener('hashchange', () => this.handleRoute());
+            this.handleRoute();
+        };
+
+        waitForAuth();
     }
 
     handleRoute() {
