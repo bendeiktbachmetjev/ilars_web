@@ -272,60 +272,37 @@
   <script src="js/components/nav.js"></script>
   <script src="js/doctors/setup.js"></script>
   <script>
-    // Check authentication and initialize Firebase Auth
+    // Initialize Firebase Auth (without strict verification on load)
     (function() {
       if (window.ILARS_NAV && typeof window.ILARS_NAV.init === 'function') {
         window.ILARS_NAV.init();
       }
 
-      // Check sessionStorage first
+      // Check sessionStorage - if no doctor session at all, redirect
       if (window.ILARS_AUTH_CHECK) {
-        if (!window.ILARS_AUTH_CHECK.requireAuth()) {
+        var userRole = window.sessionStorage.getItem('ilars_user_role');
+        var doctorEmail = window.sessionStorage.getItem('ilars_doctor_email');
+        if (!userRole || userRole !== 'doctor' || !doctorEmail) {
+          // No session at all - redirect
+          window.location.href = 'login.html';
           return;
         }
       }
 
-      // Initialize Firebase Auth and verify real authentication state
-      function verifyAuth() {
+      // Initialize Firebase Auth (but don't redirect on load - let setup.js handle it)
+      function initAuth() {
         if (!window.ILARS_AUTH) {
-          setTimeout(verifyAuth, 200);
+          setTimeout(initAuth, 200);
           return;
         }
 
         // Initialize Firebase Auth if not already done
         if (!window.ILARS_AUTH.auth && window.ILARS_AUTH.init) {
-          if (!window.ILARS_AUTH.init()) {
-            console.error('Failed to initialize Firebase Auth');
-            setTimeout(function() {
-              window.location.href = 'login.html';
-            }, 1000);
-            return;
-          }
+          window.ILARS_AUTH.init();
         }
-
-        // Wait a bit for auth state to settle
-        setTimeout(function() {
-          // Check if user is actually signed in
-          if (!window.ILARS_AUTH.auth || !window.ILARS_AUTH.auth.currentUser) {
-            console.log('No Firebase user found, redirecting to login');
-            window.location.href = 'login.html';
-            return;
-          }
-
-          // Verify token is valid by trying to get it
-          window.ILARS_AUTH.getIdToken(false).then(function(token) {
-            if (!token) {
-              console.log('No valid token, redirecting to login');
-              window.location.href = 'login.html';
-            }
-          }).catch(function(err) {
-            console.error('Token verification failed:', err);
-            window.location.href = 'login.html';
-          });
-        }, 500);
       }
 
-      verifyAuth();
+      initAuth();
 
       // Logout button
       var logoutBtn = document.getElementById('btn-logout');

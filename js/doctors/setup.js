@@ -191,82 +191,103 @@
       }
     }
 
-    // Check if user is signed in
-    if (!global.ILARS_AUTH.auth || !global.ILARS_AUTH.auth.currentUser) {
-      showError('You are not signed in. Redirecting to login...');
-      setLoading(false);
-      setTimeout(function() {
-        global.location.href = 'login.html';
-      }, 1500);
-      return;
-    }
-
-    // Get fresh token (force refresh)
-    global.ILARS_AUTH.getIdToken(true)
-      .then(function (token) {
-        if (!token) {
-          throw new Error('Failed to get authentication token. Your session may have expired. Please sign in again.');
+    // Check if user is signed in - wait a bit for auth to initialize
+    function attemptSave() {
+      if (!global.ILARS_AUTH.auth) {
+        // Try to initialize if not done yet
+        if (global.ILARS_AUTH.init) {
+          global.ILARS_AUTH.init();
         }
-
-        var body = {
-          email: global.sessionStorage.getItem('ilars_doctor_email') || '',
-          first_name: firstName || null,
-          last_name: lastName || null,
-          hospital_code: hospitalCode, // Only code is sent - API resolves hospital_id
-          date_of_birth: dob || null
-        };
-
-        return fetch(API_BASE + '/doctors', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token
-          },
-          body: JSON.stringify(body)
-        });
-      })
-      .then(function (r) {
-        return r.json().then(function (data) {
-          if (!r.ok) {
-            var errorMsg = data.detail || 'Failed to save profile';
-            if (r.status === 401) {
-              errorMsg = 'Session expired. Please sign in again.';
-            }
-            throw new Error(errorMsg);
+        // Wait a bit and retry
+        setTimeout(function() {
+          if (!global.ILARS_AUTH.auth || !global.ILARS_AUTH.auth.currentUser) {
+            showError('Please wait while we verify your session...');
+            setTimeout(attemptSave, 500);
+            return;
           }
-          return data;
-        });
-      })
-      .then(function (data) {
-        global.sessionStorage.setItem('ilars_doctor_profile_completed', '1');
-        if (data.doctor_code) {
-          showSuccess(data.doctor_code);
-          setTimeout(function () {
+          attemptSave();
+        }, 500);
+        return;
+      }
+
+      if (!global.ILARS_AUTH.auth.currentUser) {
+        showError('You are not signed in. Please go back and sign in with Google.');
+        setLoading(false);
+        setTimeout(function() {
+          global.location.href = 'login.html';
+        }, 2000);
+        return;
+      }
+
+      // Get fresh token (force refresh)
+      global.ILARS_AUTH.getIdToken(true)
+        .then(function (token) {
+          if (!token) {
+            throw new Error('Failed to get authentication token. Your session may have expired. Please sign in again.');
+          }
+
+          var body = {
+            email: global.sessionStorage.getItem('ilars_doctor_email') || '',
+            first_name: firstName || null,
+            last_name: lastName || null,
+            hospital_code: hospitalCode, // Only code is sent - API resolves hospital_id
+            date_of_birth: dob || null
+          };
+
+          return fetch(API_BASE + '/doctors', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(body)
+          });
+        })
+        .then(function (r) {
+          return r.json().then(function (data) {
+            if (!r.ok) {
+              var errorMsg = data.detail || 'Failed to save profile';
+              if (r.status === 401) {
+                errorMsg = 'Session expired. Please sign in again.';
+              }
+              throw new Error(errorMsg);
+            }
+            return data;
+          });
+        })
+        .then(function (data) {
+          global.sessionStorage.setItem('ilars_doctor_profile_completed', '1');
+          if (data.doctor_code) {
+            showSuccess(data.doctor_code);
+            setTimeout(function () {
+              global.location.href = 'doctor.html';
+            }, 2000);
+          } else {
             global.location.href = 'doctor.html';
-          }, 2000);
-        } else {
-          global.location.href = 'doctor.html';
-        }
-      })
-      .catch(function (err) {
-        console.error('Save profile error:', err);
-        var errorMsg = err.message || 'Failed to save. Please try again.';
-        
-        // Handle token-related errors
-        if (errorMsg.includes('token') || errorMsg.includes('expired') || errorMsg.includes('401') || 
-            errorMsg.includes('No user signed in') || errorMsg.includes('session')) {
-          errorMsg = 'Your session has expired. Redirecting to login...';
+          }
+        })
+        .catch(function (err) {
+          console.error('Save profile error:', err);
+          var errorMsg = err.message || 'Failed to save. Please try again.';
+          
+          // Handle token-related errors
+          if (errorMsg.includes('token') || errorMsg.includes('expired') || errorMsg.includes('401') || 
+              errorMsg.includes('No user signed in') || errorMsg.includes('session')) {
+            errorMsg = 'Your session has expired. Please refresh the page and sign in again.';
+            showError(errorMsg);
+            setLoading(false);
+            setTimeout(function() {
+              global.location.href = 'login.html';
+            }, 3000);
+            return;
+          }
+          
           showError(errorMsg);
           setLoading(false);
-          setTimeout(function() {
-            global.location.href = 'login.html';
-          }, 2000);
-          return;
-        }
-        
-        showError(errorMsg);
-        setLoading(false);
-      });
+        });
+    }
+
+    attemptSave();
   }
 
   function init() {
