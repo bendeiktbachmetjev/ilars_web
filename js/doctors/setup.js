@@ -130,32 +130,45 @@
   function handleHospitalCodeInput() {
     if (!inputHospitalCode) return;
     var code = inputHospitalCode.value.trim().toUpperCase();
+    
+    // Validate code format before processing
+    if (code && !/^[A-Z0-9]+$/.test(code)) {
+      console.log('Invalid characters in hospital code:', code);
+      showError('Invalid code format. Use only letters and numbers.');
+      return;
+    }
+    
     inputHospitalCode.value = code;
     
     // Clear previous hospital selection
     if (hospitalNameGroup) hospitalNameGroup.style.display = 'none';
     if (inputHospitalId) inputHospitalId.value = '';
     if (hospitalNameDisplay) hospitalNameDisplay.value = '';
+    showError(''); // Clear errors when user types
     
     if (code.length >= 8) { // Complex codes are at least 8 characters
+      console.log('Validating hospital code:', code);
       validateHospitalCode(code).then(function (result) {
         if (result && result.error) {
+          console.log('Hospital code validation error:', result.error);
           showError(result.error);
           return;
         }
         if (result && result.id && result.name) {
           // Show hospital name and save ID
+          console.log('Hospital code validated successfully:', result.name);
           if (inputHospitalId) inputHospitalId.value = result.id;
           if (hospitalNameDisplay) hospitalNameDisplay.value = result.name;
           if (hospitalNameGroup) hospitalNameGroup.style.display = 'block';
-          showError('');
+          showError(''); // Clear any previous errors
         } else if (code.length >= 12) {
           // Only show error if code is complete (12 chars)
+          console.log('Hospital code not found after full validation');
           showError('Hospital code not found or inactive. Please check your code and try again.');
         }
       });
-    } else {
-      showError('');
+    } else if (code.length > 0) {
+      console.log('Hospital code too short:', code.length);
     }
   }
 
