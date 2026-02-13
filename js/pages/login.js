@@ -172,59 +172,61 @@
             global.sessionStorage.setItem('ilars_doctor_email', userData.email || '');
             global.sessionStorage.setItem('ilars_doctor_name', userData.displayName || '');
             global.sessionStorage.setItem('ilars_doctor_uid', userData.uid || '');
-            if (userData.idToken) {
-              global.sessionStorage.setItem('ilars_doctor_id_token', userData.idToken);
-            }
           }
         } catch (err) {}
         
-        // Auto-create profile and check if hospital is assigned
-        var apiBase = (CONFIG.API_BASE_URL || '').replace(/\/$/, '');
-        var token = userData.idToken || '';
-        
-        if (!token) {
-          console.error('No token after Google sign-in');
-          global.location.href = 'doctor-setup.html';
-          return;
-        }
-        
-        console.log('Calling /doctors/me after Google sign-in...', apiBase + '/doctors/me');
-        
-        return fetch(apiBase + '/doctors/me', {
-          method: 'GET',
-          headers: { 
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json'
-          }
-        }).then(function(r) {
-          console.log('Response status:', r.status);
-          if (!r.ok) {
-            console.error('API error:', r.status, r.statusText);
-            return r.text().then(function(text) {
-              console.error('Error response:', text);
-              throw new Error('API error: ' + r.status);
-            });
-          }
-          return r.json();
-        }).then(function(data) {
-          console.log('Profile check result:', data);
-          // Profile is auto-created, needs_profile means no hospital assigned
-          if (data.status === 'ok' && data.needs_profile) {
-            // Profile exists but no hospital - go to setup
-            console.log('Profile created, hospital needed - redirecting to setup');
+        // Get fresh token after sign-in
+        return global.ILARS_AUTH.getIdToken(true).then(function(token) {
+          if (!token) {
+            console.error('No token after Google sign-in');
             global.location.href = 'doctor-setup.html';
-          } else if (data.status === 'ok' && !data.needs_profile) {
-            // Profile complete with hospital - go to dashboard
-            console.log('Profile complete - redirecting to dashboard');
-            global.location.href = 'doctor.html';
-          } else {
-            // Fallback to setup
-            console.log('Unknown response, redirecting to setup');
-            global.location.href = 'doctor-setup.html';
+            return;
           }
+          
+          // Auto-create profile and check if hospital is assigned
+          var apiBase = (CONFIG.API_BASE_URL || '').replace(/\/$/, '');
+          
+          console.log('Calling /doctors/me after Google sign-in...', apiBase + '/doctors/me');
+          
+          return fetch(apiBase + '/doctors/me', {
+            method: 'GET',
+            headers: { 
+              'Authorization': 'Bearer ' + token,
+              'Content-Type': 'application/json'
+            }
+          }).then(function(r) {
+            console.log('Response status:', r.status);
+            if (!r.ok) {
+              console.error('API error:', r.status, r.statusText);
+              return r.text().then(function(text) {
+                console.error('Error response:', text);
+                throw new Error('API error: ' + r.status);
+              });
+            }
+            return r.json();
+          }).then(function(data) {
+            console.log('Profile check result:', data);
+            // Profile is auto-created, needs_profile means no hospital assigned
+            if (data.status === 'ok' && data.needs_profile) {
+              // Profile exists but no hospital - go to setup
+              console.log('Profile created, hospital needed - redirecting to setup');
+              global.location.href = 'doctor-setup.html';
+            } else if (data.status === 'ok' && !data.needs_profile) {
+              // Profile complete with hospital - go to dashboard
+              console.log('Profile complete - redirecting to dashboard');
+              global.location.href = 'doctor.html';
+            } else {
+              // Fallback to setup
+              console.log('Unknown response, redirecting to setup');
+              global.location.href = 'doctor-setup.html';
+            }
+          }).catch(function(err) {
+            console.error('Profile check error:', err);
+            // On error, redirect to setup page
+            global.location.href = 'doctor-setup.html';
+          });
         }).catch(function(err) {
-          console.error('Profile check error:', err);
-          // On error, redirect to setup page
+          console.error('Token error:', err);
           global.location.href = 'doctor-setup.html';
         });
       })

@@ -314,7 +314,8 @@
           }
 
           // Call /doctors/me to auto-create profile if needed
-          window.ILARS_AUTH.getIdToken(false).then(function(token) {
+          // Use forceRefresh to get fresh token
+          window.ILARS_AUTH.getIdToken(true).then(function(token) {
             if (!token) {
               console.error('No token available - cannot create profile');
               return;
