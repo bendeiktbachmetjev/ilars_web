@@ -29,6 +29,22 @@ class ApiService {
         return await response.json();
     }
 
+    async createPatient() {
+        const token = await this.getAuthToken();
+        const response = await fetch(`${this.baseUrl}/createPatient`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to create patient. HTTP ${response.status}: ${response.statusText}. ${errorText}`);
+        }
+        return await response.json();
+    }
+
     async getPatientDetail(patientCode) {
         const token = await this.getAuthToken();
         const url = `${this.baseUrl}/getPatientDetail?patient_code=${encodeURIComponent(patientCode)}`;

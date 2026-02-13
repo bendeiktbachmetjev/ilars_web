@@ -49,7 +49,8 @@
 
     .container {
       max-width: 1400px;
-      margin: 0 auto;
+      /* Center horizontally with soft outer margin */
+      margin: 20px auto;
       background: rgba(255, 255, 255, 0.45);
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -59,7 +60,6 @@
                   inset 0 1px 0 rgba(255, 255, 255, 0.5);
       padding: 48px;
       animation: fadeIn 0.6s ease-out;
-      margin: 20px;
     }
 
     @keyframes fadeIn {
@@ -81,6 +81,51 @@
       font-weight: 700;
       letter-spacing: -0.5px;
       line-height: 1.2;
+    }
+
+    .patient-list-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .patient-list-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-left: auto;
+    }
+
+    .create-patient-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.55rem 1.4rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #ffffff;
+      background-image: linear-gradient(135deg, #667eea 0%, #764ba2 30%, #f093fb 100%);
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(102, 126, 234, 0.45);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .create-patient-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.6);
+      opacity: 0.96;
+    }
+
+    .create-patient-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+      box-shadow: none;
     }
 
     .loading {
@@ -661,7 +706,14 @@
   <!-- Patient List View -->
   <div id="patient-list-view" class="view active">
     <div class="container">
-      <h1>Patient List</h1>
+      <div class="patient-list-header">
+        <h1>Patient List</h1>
+        <div class="patient-list-actions">
+          <button id="btn-create-patient" type="button" class="create-patient-btn">
+            Create patient
+          </button>
+        </div>
+      </div>
       <div id="patient-list-error" class="error" style="display: none;"></div>
       <table id="patients-table" style="display: none;">
         <thead>

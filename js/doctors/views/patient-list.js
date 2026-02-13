@@ -4,6 +4,8 @@ class PatientListView {
         this.api = api;
         this.isLoaded = false;
         this.cachedData = null;
+        this.createButton = document.getElementById('btn-create-patient');
+        this.bindCreateButton();
     }
 
     async load(forceReload = false) {
@@ -42,6 +44,58 @@ class PatientListView {
             const errorMsg = error.message || 'Unknown error';
             this.showError('Error loading patients: ' + errorMsg);
             console.error('Full error:', error);
+        }
+    }
+
+    bindCreateButton() {
+        if (!this.createButton || this.createButton._ilarsBound) {
+            return;
+        }
+        this.createButton._ilarsBound = true;
+        this.createButton.addEventListener('click', () => {
+            this.handleCreatePatient();
+        });
+    }
+
+    async handleCreatePatient() {
+        if (!this.api || !this.api.createPatient) {
+            this.showError('Create patient API not available.');
+            return;
+        }
+
+        const errorEl = document.getElementById('patient-list-error');
+        if (errorEl) {
+            errorEl.style.display = 'none';
+            errorEl.textContent = '';
+        }
+
+        const btn = this.createButton;
+        const originalText = btn ? btn.textContent : '';
+
+        try {
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Creating...';
+            }
+
+            const data = await this.api.createPatient();
+
+            const code = data && data.patient_code ? data.patient_code : 'Unknown';
+            // Simple, clear feedback with patient code
+            alert('New patient created. Patient code: ' + code);
+
+            // Force reload list to include new patient
+            this.isLoaded = false;
+            await this.load(true);
+        } catch (error) {
+            const msg = error.message || 'Failed to create patient.';
+            this.showError(msg);
+            console.error('Create patient error:', error);
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = originalText || 'Create patient';
+            }
         }
     }
 
