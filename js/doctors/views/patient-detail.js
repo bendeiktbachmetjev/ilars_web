@@ -30,6 +30,8 @@ class PatientDetailView {
             if (contentEl) contentEl.style.display = 'block';
 
             if (data.status === 'ok') {
+                this.currentStatus = data.patient_status || 'active';
+                this.updateStatusUI(this.currentStatus);
                 this.renderCharts(data);
             } else {
                 this.showError('Failed to load patient data: ' + (data.detail || 'Unknown error'));
@@ -42,62 +44,45 @@ class PatientDetailView {
     }
 
     bindActions() {
-        const archiveBtn = document.getElementById('patient-archive-btn');
-        const deleteBtn = document.getElementById('patient-delete-btn');
-
-        if (archiveBtn && !archiveBtn._ilarsBound) {
-            archiveBtn._ilarsBound = true;
-            archiveBtn.addEventListener('click', () => {
-                this.archiveCurrentPatient();
-            });
-        }
-
-        if (deleteBtn && !deleteBtn._ilarsBound) {
-            deleteBtn._ilarsBound = true;
-            deleteBtn.addEventListener('click', () => {
-                this.deleteCurrentPatient();
-            });
+        const changeStatusBtn = document.getElementById('patient-change-status-btn');
+        if (changeStatusBtn && !changeStatusBtn._ilarsBound) {
+            changeStatusBtn._ilarsBound = true;
+            changeStatusBtn.addEventListener('click', () => this.togglePatientStatus());
         }
     }
 
-    archiveCurrentPatient() {
-        if (!this.currentCode) return;
-        this.updatePatientStatus(this.currentCode, 'archived');
-        alert('Patient has been archived.');
-        this.navigateBackToList();
+    updateStatusUI(patientStatus) {
+        const indicator = document.getElementById('patient-status-indicator');
+        const btn = document.getElementById('patient-change-status-btn');
+        if (!indicator || !btn) return;
+        const isActive = (patientStatus || 'active') === 'active';
+        indicator.textContent = isActive ? 'Active' : 'Inactive';
+        indicator.className = 'patient-status-badge ' + (isActive ? 'active' : 'inactive');
+        btn.textContent = isActive ? 'Set inactive' : 'Set active';
     }
 
-    deleteCurrentPatient() {
-        if (!this.currentCode) return;
-        this.updatePatientStatus(this.currentCode, 'deleted');
-        alert('Patient has been removed from the list.');
-        this.navigateBackToList();
-    }
-
-    updatePatientStatus(code, action) {
+    async togglePatientStatus() {
+        if (!this.currentCode || !this.api || !this.api.updatePatientStatus) return;
+        const newStatus = this.currentStatus === 'active' ? 'inactive' : 'active';
+        const btn = document.getElementById('patient-change-status-btn');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Updating...';
+        }
         try {
-            const archivedRaw = window.localStorage.getItem('ilars_archived_patients') || '[]';
-            const deletedRaw = window.localStorage.getItem('ilars_deleted_patients') || '[]';
-            let archived = [];
-            let deleted = [];
-            try { archived = JSON.parse(archivedRaw) || []; } catch (_) { archived = []; }
-            try { deleted = JSON.parse(deletedRaw) || []; } catch (_) { deleted = []; }
-
-            const setArchived = new Set(archived);
-            const setDeleted = new Set(deleted);
-
-            if (action === 'archived') {
-                setArchived.add(code);
-                setDeleted.delete(code);
-            } else if (action === 'deleted') {
-                setDeleted.add(code);
-                setArchived.delete(code);
-            }
-
-            window.localStorage.setItem('ilars_archived_patients', JSON.stringify(Array.from(setArchived)));
-            window.localStorage.setItem('ilars_deleted_patients', JSON.stringify(Array.from(setDeleted)));
+            await this.api.updatePatientStatus(this.currentCode, newStatus);
+            this.currentStatus = newStatus;
+            this.updateStatusUI(newStatus);
+            alert(newStatus === 'inactive' ? 'Patient has been set to inactive.' : 'Patient has been set to active.');
+            this.navigateBackToList();
         } catch (e) {
-            console.error('Failed to update patient status in localStorage:', e);
+            alert('Failed to update status: ' + (e.message || 'Unknown error'));
+            console.error('Update status error:', e);
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = this.currentStatus === 'active' ? 'Set inactive' : 'Set active';
+            }
         }
     }
 

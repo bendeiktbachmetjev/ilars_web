@@ -14,9 +14,10 @@ class ApiService {
         return await window.ILARS_AUTH.getIdToken(true);
     }
 
-    async getPatients() {
+    async getPatients(status = 'active') {
         const token = await this.getAuthToken();
-        const response = await fetch(`${this.baseUrl}/getPatients`, {
+        const url = status ? `${this.baseUrl}/getPatients?status=${encodeURIComponent(status)}` : `${this.baseUrl}/getPatients`;
+        const response = await fetch(url, {
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json'
@@ -41,6 +42,27 @@ class ApiService {
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`Failed to create patient. HTTP ${response.status}: ${response.statusText}. ${errorText}`);
+        }
+        return await response.json();
+    }
+
+    async updatePatientStatus(patientCode, status, statusReason = null) {
+        const token = await this.getAuthToken();
+        const response = await fetch(`${this.baseUrl}/updatePatientStatus`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                patient_code: patientCode,
+                status: status,
+                status_reason: statusReason
+            })
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to update status. HTTP ${response.status}: ${response.statusText}. ${errorText}`);
         }
         return await response.json();
     }

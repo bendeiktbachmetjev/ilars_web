@@ -15,9 +15,8 @@ class PatientListView {
 
         // If already loaded and not forcing reload, use cached data
         if (this.isLoaded && !forceReload && this.cachedData) {
-            // Hide loading immediately, show table from cache
             if (errorEl) errorEl.style.display = 'none';
-            this.renderTable(this.cachedData, tbodyEl, tableEl);
+            this.renderTables(this.cachedData, tbodyEl, tableEl);
             return;
         }
 
@@ -28,17 +27,22 @@ class PatientListView {
         if (errorEl) errorEl.style.display = 'none';
 
         try {
-            const data = await this.api.getPatients();
+            const [activeData, inactiveData] = await Promise.all([
+                this.api.getPatients('active'),
+                this.api.getPatients('inactive')
+            ]);
 
             if (errorEl) errorEl.style.display = 'none';
 
-            if (data.status === 'ok' && data.patients) {
-                // Cache the data
-                this.cachedData = data;
+            if (activeData.status === 'ok' && activeData.patients) {
+                this.cachedData = {
+                    patients: activeData.patients,
+                    inactivePatients: (inactiveData.status === 'ok' && inactiveData.patients) ? inactiveData.patients : []
+                };
                 this.isLoaded = true;
-                this.renderTable(data, tbodyEl, tableEl);
+                this.renderTables(this.cachedData, tbodyEl, tableEl);
             } else {
-                this.showError('Failed to load patients: ' + (data.detail || 'Unknown error'));
+                this.showError('Failed to load patients: ' + (activeData.detail || 'Unknown error'));
             }
         } catch (error) {
             const errorMsg = error.message || 'Unknown error';
@@ -114,12 +118,29 @@ class PatientListView {
         `).join('');
     }
 
-    renderTable(data, tbodyEl, tableEl) {
-        if (data.patients.length === 0) {
+    renderTables(data, tbodyEl, tableEl) {
+        const inactiveTbodyEl = document.getElementById('patients-inactive-tbody');
+        const inactiveTableEl = document.getElementById('patients-inactive-table');
+        const inactiveSectionEl = document.getElementById('patients-inactive-section');
+
+        this.renderTable(data.patients, tbodyEl, tableEl, true);
+        if (inactiveTbodyEl && inactiveTableEl && inactiveSectionEl) {
+            const inactiveList = data.inactivePatients || [];
+            if (inactiveList.length > 0) {
+                inactiveSectionEl.style.display = 'block';
+                this.renderTable(inactiveList, inactiveTbodyEl, inactiveTableEl, false);
+            } else {
+                inactiveSectionEl.style.display = 'none';
+            }
+        }
+    }
+
+    renderTable(patients, tbodyEl, tableEl, isActive) {
+        if (!patients || patients.length === 0) {
             tbodyEl.innerHTML = '<tr><td colspan="7" class="empty">No patients found</td></tr>';
             tableEl.style.display = 'table';
         } else {
-            tbodyEl.innerHTML = data.patients.map(patient => {
+            tbodyEl.innerHTML = patients.map(patient => {
                 // Format LARS score with date and color class
                 let larsDisplay = '-';
                 let larsClass = '';

@@ -309,6 +309,25 @@
       white-space: nowrap;
     }
 
+    .patient-status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.4rem 1rem;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .patient-status-badge.active {
+      background: rgba(74, 222, 128, 0.25);
+      color: #166534;
+      border: 1px solid rgba(74, 222, 128, 0.5);
+    }
+    .patient-status-badge.inactive {
+      background: rgba(248, 113, 113, 0.2);
+      color: #991b1b;
+      border: 1px solid rgba(248, 113, 113, 0.5);
+    }
+
     .empty {
       text-align: center;
       padding: 60px 40px;
@@ -737,6 +756,25 @@
         <tbody id="patients-tbody">
         </tbody>
       </table>
+
+      <div id="patients-inactive-section" style="display: none; margin-top: 48px;">
+        <h2 style="font-size: 1.5rem; font-weight: 600; color: rgba(30, 30, 50, 0.9); margin-bottom: 16px;">Inactive patients</h2>
+        <table id="patients-inactive-table" style="display: none;">
+          <thead>
+            <tr>
+              <th>Patient Code</th>
+              <th>Created</th>
+              <th>Weekly</th>
+              <th>Monthly</th>
+              <th>Last LARS</th>
+              <th>EQ-5D-5L</th>
+              <th>Doctor</th>
+            </tr>
+          </thead>
+          <tbody id="patients-inactive-tbody">
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -748,12 +786,10 @@
       <div id="patient-detail-loading" class="loading">Loading patient data...</div>
       <div id="patient-detail-error" class="error" style="display: none;"></div>
       <div id="patient-detail-content" style="display: none;">
-        <div style="margin-bottom: 1.5rem; display: flex; gap: 12px; flex-wrap: wrap;">
-          <button id="patient-archive-btn" type="button" class="create-patient-btn" style="background-image: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); box-shadow: 0 6px 18px rgba(129, 140, 248, 0.45);">
-            Archive patient
-          </button>
-          <button id="patient-delete-btn" type="button" class="create-patient-btn" style="background-image: linear-gradient(135deg, #f97373 0%, #fb7185 100%); box-shadow: 0 6px 18px rgba(248, 113, 113, 0.45);">
-            Remove from list
+        <div id="patient-status-bar" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+          <span id="patient-status-indicator" class="patient-status-badge">—</span>
+          <button id="patient-change-status-btn" type="button" class="create-patient-btn" style="background-image: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); box-shadow: 0 6px 18px rgba(129, 140, 248, 0.45);">
+            Set inactive
           </button>
         </div>
         <div class="charts-grid">
