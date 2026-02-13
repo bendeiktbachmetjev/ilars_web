@@ -68,8 +68,10 @@ class PatientListView {
         const btnConfirm = document.getElementById('create-patient-modal-confirm');
         const btnCancel = document.getElementById('create-patient-modal-cancel');
         const btnClose = document.getElementById('create-patient-modal-close');
+        const btnDone = document.getElementById('create-patient-modal-done');
 
         const hideModal = () => {
+            this.resetCreatePatientModal();
             if (modal) {
                 modal.classList.remove('is-visible');
                 modal.setAttribute('aria-hidden', 'true');
@@ -84,6 +86,9 @@ class PatientListView {
         if (btnCancel) {
             btnCancel.addEventListener('click', hideModal);
         }
+        if (btnDone) {
+            btnDone.addEventListener('click', hideModal);
+        }
         if (btnClose) {
             btnClose.addEventListener('click', hideModal);
         }
@@ -97,8 +102,16 @@ class PatientListView {
         }
     }
 
+    resetCreatePatientModal() {
+        const confirmState = document.getElementById('create-patient-modal-confirm-state');
+        const successState = document.getElementById('create-patient-modal-success-state');
+        if (confirmState) confirmState.style.display = '';
+        if (successState) successState.style.display = 'none';
+    }
+
     async showCreatePatientModal() {
         if (!this.api) return;
+        this.resetCreatePatientModal();
         const modal = document.getElementById('create-patient-modal');
         const doctorNameEl = document.getElementById('create-patient-modal-doctor-name');
         const dateEl = document.getElementById('create-patient-modal-date');
@@ -157,10 +170,14 @@ class PatientListView {
             }
 
             const data = await this.api.createPatient();
-            hideModal();
-
             const code = data && data.patient_code ? data.patient_code : 'Unknown';
-            alert('New patient created. Patient code: ' + code);
+
+            const confirmState = document.getElementById('create-patient-modal-confirm-state');
+            const successState = document.getElementById('create-patient-modal-success-state');
+            const codeEl = document.getElementById('create-patient-modal-code');
+            if (confirmState) confirmState.style.display = 'none';
+            if (successState) successState.style.display = 'block';
+            if (codeEl) codeEl.textContent = code;
 
             this.isLoaded = false;
             await this.load(true);
