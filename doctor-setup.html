@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complete Your Profile — iLARS</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/pages/login.css">
+  <style>
+    .setup-page {
+      min-height: 100vh;
+      padding-top: calc(80px + 2rem);
+      padding-bottom: 2rem;
+      background: var(--gradient-soft, linear-gradient(180deg, #f8f9ff 0%, #fff5f5 50%, #f0f4ff 100%));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .setup-window {
+      width: min(520px, calc(100vw - 2rem));
+      padding: 2rem;
+      background: var(--gradient-card, linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(248,250,255,0.99) 100%));
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(102, 126, 234, 0.12);
+      border: 1px solid rgba(102, 126, 234, 0.12);
+    }
+
+    .setup-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-align: center;
+      margin: 0 0 0.5rem;
+      letter-spacing: -0.02em;
+    }
+
+    .setup-subtitle {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      text-align: center;
+      margin: 0 0 1.75rem;
+      line-height: 1.5;
+    }
+
+    .setup-form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .setup-form-group label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 0.35rem;
+    }
+
+    .setup-form-group .required {
+      color: #e53935;
+    }
+
+    .setup-form-group input,
+    .setup-form-group select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 12px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    .setup-form-group input:focus,
+    .setup-form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .setup-form-group input:disabled {
+      background: #f5f5f5;
+      cursor: not-allowed;
+    }
+
+    .setup-code-hint {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    .setup-toggle {
+      margin-top: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .setup-toggle button {
+      background: none;
+      border: none;
+      padding: 0;
+      font-family: inherit;
+      font-size: inherit;
+      color: #667eea;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .setup-toggle button:hover {
+      color: #764ba2;
+    }
+
+    .setup-error {
+      color: #c62828;
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+      display: none;
+    }
+
+    .setup-error.is-visible {
+      display: block;
+    }
+
+    .setup-success {
+      background: rgba(76, 175, 80, 0.1);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      color: #2e7d32;
+      padding: 1rem;
+      border-radius: 12px;
+      margin-bottom: 1.25rem;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .setup-success.is-visible {
+      display: block;
+    }
+
+    .setup-success strong {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    .setup-btn {
+      width: 100%;
+      padding: 0.75rem 1.25rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #ffffff !important;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #ff9a56 100%);
+      background-size: 200% 200%;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .setup-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .setup-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .setup-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .setup-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(102, 126, 234, 0.2);
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: setup-spin 0.8s linear infinite;
+    }
+
+    @keyframes setup-spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-logo">
+        <img src="images/icon.png" alt="iLARS" class="navbar-icon" />
+        <span class="navbar-logo-text">iLARS</span>
+      </a>
+      <ul class="navbar-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="#" id="btn-logout" class="btn btn-login">Log out</a></li>
+      </ul>
+      <button class="navbar-toggle" aria-label="Toggle menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+
+  <main class="setup-page">
+    <div class="setup-window">
+      <h1 class="setup-title">Complete Your Profile</h1>
+      <p class="setup-subtitle">Please fill in your details to start using the doctor dashboard.</p>
+
+      <div id="setup-success" class="setup-success" role="alert">
+        <strong>Profile saved successfully!</strong>
+        <div>Your doctor code: <strong id="doctor-code-display"></strong></div>
+        <div style="margin-top: 0.5rem;">Redirecting to dashboard...</div>
+      </div>
+
+      <form id="setup-form" novalidate>
+        <div class="setup-form-group">
+          <label for="setup-first-name">First name</label>
+          <input type="text" id="setup-first-name" name="first_name" placeholder="First name" autocomplete="given-name">
+        </div>
+
+        <div class="setup-form-group">
+          <label for="setup-last-name">Last name</label>
+          <input type="text" id="setup-last-name" name="last_name" placeholder="Last name" autocomplete="family-name">
+        </div>
+
+        <div class="setup-form-group">
+          <label for="setup-hospital-code">Hospital code <span class="required">*</span></label>
+          <input type="text" id="setup-hospital-code" name="hospital_code" placeholder="Enter your hospital code" maxlength="20" required style="text-transform: uppercase; font-family: monospace; letter-spacing: 0.1em;">
+          <div class="setup-code-hint">Enter the 12-character code provided by your hospital. This is required to complete registration.</div>
+        </div>
+
+        <div class="setup-form-group" id="setup-hospital-name-group" style="display: none;">
+          <label>Hospital</label>
+          <input type="text" id="setup-hospital-name-display" readonly style="background: #f5f5f5; cursor: not-allowed;">
+          <input type="hidden" id="setup-hospital-id" name="hospital_id">
+        </div>
+
+        <div class="setup-form-group">
+          <label for="setup-dob">Date of birth</label>
+          <input type="date" id="setup-dob" name="date_of_birth" placeholder="YYYY-MM-DD">
+        </div>
+
+        <div id="setup-error" class="setup-error" role="alert"></div>
+
+        <button type="submit" id="setup-submit" class="setup-btn">
+          <span id="setup-btn-text">Save and Continue</span>
+          <span id="setup-btn-loading" class="setup-loading" style="display: none;">
+            <span class="setup-spinner"></span>
+            <span>Saving...</span>
+          </span>
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  
+  <script src="js/config.js"></script>
+  <script src="js/firebase/config.js"></script>
+  <script src="js/firebase/auth.js"></script>
+  <script src="js/auth-check.js"></script>
+  <script src="js/components/nav.js"></script>
+  <script src="js/doctors/setup.js"></script>
+  <script>
+    // Check authentication
+    (function() {
+      if (window.ILARS_NAV && typeof window.ILARS_NAV.init === 'function') {
+        window.ILARS_NAV.init();
+      }
+
+      if (window.ILARS_AUTH_CHECK) {
+        if (!window.ILARS_AUTH_CHECK.requireAuth()) {
+          return;
+        }
+      }
+
+      if (window.ILARS_AUTH && window.ILARS_AUTH.init) {
+        window.ILARS_AUTH.init();
+      }
+
+      // Logout button
+      var logoutBtn = document.getElementById('btn-logout');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (window.ILARS_AUTH_CHECK && window.ILARS_AUTH_CHECK.signOut) {
+            window.ILARS_AUTH_CHECK.signOut().then(function() {
+              window.location.href = 'login.html';
+            });
+          } else {
+            window.location.href = 'login.html';
+          }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -164,7 +164,7 @@
     if (btnGoogleSignIn) btnGoogleSignIn.disabled = true;
     if (doctorLoading) doctorLoading.style.display = 'flex';
 
-    global.ILARS_AUTH.signInWithGoogle()
+        global.ILARS_AUTH.signInWithGoogle()
       .then(function (userData) {
         try {
           if (CONFIG.STORAGE_KEYS) {
@@ -177,7 +177,23 @@
             }
           }
         } catch (err) {}
-        global.location.href = 'doctor.html';
+        
+        // Check if profile is complete before redirecting
+        var apiBase = (CONFIG.API_BASE_URL || '').replace(/\/$/, '');
+        return fetch(apiBase + '/doctors/me', {
+          headers: { 'Authorization': 'Bearer ' + (userData.idToken || '') }
+        }).then(function(r) {
+          return r.json();
+        }).then(function(data) {
+          if (data.status === 'ok' && data.needs_profile) {
+            global.location.href = 'doctor-setup.html';
+          } else {
+            global.location.href = 'doctor.html';
+          }
+        }).catch(function() {
+          // On error, redirect to setup page to be safe
+          global.location.href = 'doctor-setup.html';
+        });
       })
       .catch(function (error) {
         if (btnGoogleSignIn) btnGoogleSignIn.disabled = false;
