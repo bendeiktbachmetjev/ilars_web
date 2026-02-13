@@ -748,6 +748,14 @@
       <div id="patient-detail-loading" class="loading">Loading patient data...</div>
       <div id="patient-detail-error" class="error" style="display: none;"></div>
       <div id="patient-detail-content" style="display: none;">
+        <div style="margin-bottom: 1.5rem; display: flex; gap: 12px; flex-wrap: wrap;">
+          <button id="patient-archive-btn" type="button" class="create-patient-btn" style="background-image: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); box-shadow: 0 6px 18px rgba(129, 140, 248, 0.45);">
+            Archive patient
+          </button>
+          <button id="patient-delete-btn" type="button" class="create-patient-btn" style="background-image: linear-gradient(135deg, #f97373 0%, #fb7185 100%); box-shadow: 0 6px 18px rgba(248, 113, 113, 0.45);">
+            Remove from list
+          </button>
+        </div>
         <div class="charts-grid">
           <!-- LARS Score Chart -->
           <div class="chart-container">

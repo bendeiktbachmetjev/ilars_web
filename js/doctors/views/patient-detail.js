@@ -3,6 +3,8 @@ class PatientDetailView {
     constructor(api) {
         this.api = api;
         this.charts = {};
+        this.currentCode = null;
+        this.bindActions();
     }
 
     async load(patientCode) {
@@ -14,6 +16,7 @@ class PatientDetailView {
         if (patientCodeEl) {
             patientCodeEl.textContent = patientCode;
         }
+        this.currentCode = patientCode;
 
         if (loadingEl) loadingEl.style.display = 'block';
         if (errorEl) errorEl.style.display = 'none';
@@ -35,6 +38,80 @@ class PatientDetailView {
             if (loadingEl) loadingEl.style.display = 'none';
             this.showError('Error loading patient data: ' + error.message);
             console.error('Full error:', error);
+        }
+    }
+
+    bindActions() {
+        const archiveBtn = document.getElementById('patient-archive-btn');
+        const deleteBtn = document.getElementById('patient-delete-btn');
+
+        if (archiveBtn && !archiveBtn._ilarsBound) {
+            archiveBtn._ilarsBound = true;
+            archiveBtn.addEventListener('click', () => {
+                this.archiveCurrentPatient();
+            });
+        }
+
+        if (deleteBtn && !deleteBtn._ilarsBound) {
+            deleteBtn._ilarsBound = true;
+            deleteBtn.addEventListener('click', () => {
+                this.deleteCurrentPatient();
+            });
+        }
+    }
+
+    archiveCurrentPatient() {
+        if (!this.currentCode) return;
+        this.updatePatientStatus(this.currentCode, 'archived');
+        alert('Patient has been archived.');
+        this.navigateBackToList();
+    }
+
+    deleteCurrentPatient() {
+        if (!this.currentCode) return;
+        this.updatePatientStatus(this.currentCode, 'deleted');
+        alert('Patient has been removed from the list.');
+        this.navigateBackToList();
+    }
+
+    updatePatientStatus(code, action) {
+        try {
+            const archivedRaw = window.localStorage.getItem('ilars_archived_patients') || '[]';
+            const deletedRaw = window.localStorage.getItem('ilars_deleted_patients') || '[]';
+            let archived = [];
+            let deleted = [];
+            try { archived = JSON.parse(archivedRaw) || []; } catch (_) { archived = []; }
+            try { deleted = JSON.parse(deletedRaw) || []; } catch (_) { deleted = []; }
+
+            const setArchived = new Set(archived);
+            const setDeleted = new Set(deleted);
+
+            if (action === 'archived') {
+                setArchived.add(code);
+                setDeleted.delete(code);
+            } else if (action === 'deleted') {
+                setDeleted.add(code);
+                setArchived.delete(code);
+            }
+
+            window.localStorage.setItem('ilars_archived_patients', JSON.stringify(Array.from(setArchived)));
+            window.localStorage.setItem('ilars_deleted_patients', JSON.stringify(Array.from(setDeleted)));
+        } catch (e) {
+            console.error('Failed to update patient status in localStorage:', e);
+        }
+    }
+
+    navigateBackToList() {
+        try {
+            if (window.app && typeof window.app.navigate === 'function') {
+                window.app.navigate('list');
+            }
+            if (window.PatientListView && typeof window.PatientListView.load === 'function') {
+                window.PatientListView.isLoaded = false;
+                window.PatientListView.load(true);
+            }
+        } catch (e) {
+            console.error('Failed to navigate back to list:', e);
         }
     }
 
