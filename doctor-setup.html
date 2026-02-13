@@ -290,22 +290,55 @@
       }
 
       // Auto-create profile if needed (profile is created automatically in /doctors/me)
-      // Just ensure Firebase Auth is initialized
-
-      // Initialize Firebase Auth (but don't redirect on load - let setup.js handle it)
-      function initAuth() {
-        if (!window.ILARS_AUTH) {
-          setTimeout(initAuth, 200);
+      // Initialize Firebase Auth and ensure profile exists
+      function initAuthAndProfile() {
+        if (!window.ILARS_AUTH || !window.ILARS_CONFIG) {
+          setTimeout(initAuthAndProfile, 200);
           return;
         }
 
         // Initialize Firebase Auth if not already done
         if (!window.ILARS_AUTH.auth && window.ILARS_AUTH.init) {
-          window.ILARS_AUTH.init();
+          if (!window.ILARS_AUTH.init()) {
+            setTimeout(initAuthAndProfile, 200);
+            return;
+          }
         }
+
+        // Wait for auth state to settle
+        setTimeout(function() {
+          if (!window.ILARS_AUTH.auth || !window.ILARS_AUTH.auth.currentUser) {
+            console.log('No Firebase user, waiting...');
+            setTimeout(initAuthAndProfile, 500);
+            return;
+          }
+
+          // Call /doctors/me to auto-create profile if needed
+          window.ILARS_AUTH.getIdToken(false).then(function(token) {
+            if (!token) {
+              console.log('No token available');
+              return;
+            }
+
+            var apiBase = (window.ILARS_CONFIG.API_BASE_URL || '').replace(/\/$/, '');
+            console.log('Calling /doctors/me to ensure profile exists...');
+            return fetch(apiBase + '/doctors/me', {
+              headers: { 'Authorization': 'Bearer ' + token }
+            }).then(function(r) {
+              return r.json();
+            }).then(function(data) {
+              console.log('Profile check result:', data);
+              // Profile is now created/verified, page can continue
+            }).catch(function(err) {
+              console.error('Profile check error:', err);
+            });
+          }).catch(function(err) {
+            console.error('Token error:', err);
+          });
+        }, 500);
       }
 
-      initAuth();
+      initAuthAndProfile();
 
       // Logout button
       var logoutBtn = document.getElementById('btn-logout');
