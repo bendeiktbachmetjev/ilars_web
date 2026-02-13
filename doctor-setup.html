@@ -321,6 +321,7 @@
               return;
             }
 
+            console.log('Got token for /doctors/me, length:', token.length, 'First 20 chars:', token.substring(0, 20));
             var apiBase = (window.ILARS_CONFIG.API_BASE_URL || '').replace(/\/$/, '');
             console.log('Calling /doctors/me to ensure profile exists...', apiBase + '/doctors/me');
             

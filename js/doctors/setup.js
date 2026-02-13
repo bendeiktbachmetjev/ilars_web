@@ -224,8 +224,11 @@
       global.ILARS_AUTH.getIdToken(true)
         .then(function (token) {
           if (!token) {
+            console.error('No token received from getIdToken');
             throw new Error('Failed to get authentication token. Your session may have expired. Please sign in again.');
           }
+          
+          console.log('Got token, length:', token.length, 'First 20 chars:', token.substring(0, 20));
 
           // Profile already exists (auto-created on login), we're just updating it with hospital
           var body = {
@@ -384,6 +387,7 @@
               return;
             }
             
+            console.log('Got token for /doctors/me, length:', token.length, 'First 20 chars:', token.substring(0, 20));
             console.log('Calling /doctors/me to ensure profile exists...', API_BASE + '/doctors/me');
             
             return fetch(API_BASE + '/doctors/me', {
