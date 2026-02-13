@@ -116,7 +116,7 @@ class PatientListView {
 
     renderTable(data, tbodyEl, tableEl) {
         if (data.patients.length === 0) {
-            tbodyEl.innerHTML = '<tr><td colspan="6" class="empty">No patients found</td></tr>';
+            tbodyEl.innerHTML = '<tr><td colspan="7" class="empty">No patients found</td></tr>';
             tableEl.style.display = 'table';
         } else {
             tbodyEl.innerHTML = data.patients.map(patient => {
@@ -155,6 +155,17 @@ class PatientListView {
                     
                     eq5d5lDisplay = `${eq5d5lScore}${eq5d5lDate ? ` <span class="date-part">(${eq5d5lDate})</span>` : ''}`;
                 }
+
+                // Format doctor display name: first initial + last name, or fallback to doctor_code
+                let doctorDisplay = '-';
+                const firstName = (patient.doctor_first_name || '').trim();
+                const lastName = (patient.doctor_last_name || '').trim();
+                if (lastName || firstName) {
+                    const initial = firstName ? (firstName.charAt(0).toUpperCase() + '.') : '';
+                    doctorDisplay = (initial ? initial + ' ' : '') + lastName;
+                } else if (patient.doctor_code) {
+                    doctorDisplay = patient.doctor_code;
+                }
                 
                 return `
                     <tr onclick="window.app.navigate('patient/${this.escapeHtml(patient.patient_code)}')">
@@ -164,6 +175,7 @@ class PatientListView {
                         <td class="count">${patient.monthly_count}</td>
                         <td class="score ${larsClass}">${larsDisplay}</td>
                         <td class="score ${eq5d5lClass}">${eq5d5lDisplay}</td>
+                        <td class="doctor-cell">${this.escapeHtml(doctorDisplay)}</td>
                     </tr>
                 `;
             }).join('');
