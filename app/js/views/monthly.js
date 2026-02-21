@@ -9,6 +9,10 @@
 
   var opts = {};
 
+  function _t(key) {
+    return global.ILARS_I18N && global.ILARS_I18N.t ? global.ILARS_I18N.t(key) : key;
+  }
+
   function todayStr() {
     var d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -16,81 +20,81 @@
 
   function buildForm() {
     return (
-      '<a href="#" class="app-back-link" id="monthly-back">← Back to dashboard</a>' +
+      '<a href="#" class="app-back-link" id="monthly-back">' + _t('app.back_to_dashboard') + '</a>' +
       '<div class="app-section">' +
-      '<h1 class="app-form-title">Monthly quality of life</h1>' +
+      '<h1 class="app-form-title">' + _t('app.monthly_title') + '</h1>' +
       '<form id="monthly-form">' +
       '<div class="app-form-group app-form-group-with-icon">' +
         '<div class="app-slider-head">' +
-          '<div class="app-form-label-wrap"><span class="app-form-icon">✈️</span><label for="monthly-avoid-travel">Avoid traveling</label></div>' +
+          '<div class="app-form-label-wrap"><span class="app-form-icon">✈️</span><label for="monthly-avoid-travel">' + _t('app.avoid_traveling') + '</label></div>' +
           '<span class="app-value-chip" id="monthly-avoid-travel-v">1</span>' +
         '</div>' +
         '<input class="app-range" type="range" id="monthly-avoid-travel" min="1" max="4" value="1">' +
-        '<p class="app-question-desc">1 = not at all, 4 = very much</p>' +
+        '<p class="app-question-desc">' + _t('app.desc_1_4') + '</p>' +
       '</div>' +
 
       '<div class="app-form-group app-form-group-with-icon">' +
         '<div class="app-slider-head">' +
-          '<div class="app-form-label-wrap"><span class="app-form-icon">🧑‍🤝‍🧑</span><label for="monthly-avoid-social">Avoid social activities</label></div>' +
+          '<div class="app-form-label-wrap"><span class="app-form-icon">🧑‍🤝‍🧑</span><label for="monthly-avoid-social">' + _t('app.avoid_social') + '</label></div>' +
           '<span class="app-value-chip" id="monthly-avoid-social-v">1</span>' +
         '</div>' +
         '<input class="app-range" type="range" id="monthly-avoid-social" min="1" max="4" value="1">' +
-        '<p class="app-question-desc">1 = not at all, 4 = very much</p>' +
+        '<p class="app-question-desc">' + _t('app.desc_1_4') + '</p>' +
       '</div>' +
 
       '<div class="app-form-group app-form-group-with-icon">' +
         '<div class="app-slider-head">' +
-          '<div class="app-form-label-wrap"><span class="app-form-icon">😳</span><label for="monthly-embarrassed">Feel embarrassed</label></div>' +
+          '<div class="app-form-label-wrap"><span class="app-form-icon">😳</span><label for="monthly-embarrassed">' + _t('app.feel_embarrassed') + '</label></div>' +
           '<span class="app-value-chip" id="monthly-embarrassed-v">1</span>' +
         '</div>' +
         '<input class="app-range" type="range" id="monthly-embarrassed" min="1" max="4" value="1">' +
-        '<p class="app-question-desc">1 = not at all, 4 = very much</p>' +
+        '<p class="app-question-desc">' + _t('app.desc_1_4') + '</p>' +
       '</div>' +
 
       '<div class="app-form-group app-form-group-with-icon">' +
         '<div class="app-slider-head">' +
-          '<div class="app-form-label-wrap"><span class="app-form-icon">👀</span><label for="monthly-worry">Worry others notice</label></div>' +
+          '<div class="app-form-label-wrap"><span class="app-form-icon">👀</span><label for="monthly-worry">' + _t('app.worry_others_notice') + '</label></div>' +
           '<span class="app-value-chip" id="monthly-worry-v">1</span>' +
         '</div>' +
         '<input class="app-range" type="range" id="monthly-worry" min="1" max="4" value="1">' +
-        '<p class="app-question-desc">1 = not at all, 4 = very much</p>' +
+        '<p class="app-question-desc">' + _t('app.desc_1_4') + '</p>' +
       '</div>' +
 
       '<div class="app-form-group app-form-group-with-icon">' +
         '<div class="app-slider-head">' +
-          '<div class="app-form-label-wrap"><span class="app-form-icon">😞</span><label for="monthly-depressed">Feel depressed</label></div>' +
+          '<div class="app-form-label-wrap"><span class="app-form-icon">😞</span><label for="monthly-depressed">' + _t('app.feel_depressed') + '</label></div>' +
           '<span class="app-value-chip" id="monthly-depressed-v">1</span>' +
         '</div>' +
         '<input class="app-range" type="range" id="monthly-depressed" min="1" max="4" value="1">' +
-        '<p class="app-question-desc">1 = not at all, 4 = very much</p>' +
+        '<p class="app-question-desc">' + _t('app.desc_1_4') + '</p>' +
       '</div>' +
 
       '<div class="app-form-group app-form-group-with-icon">' +
         '<div class="app-slider-head">' +
-          '<div class="app-form-label-wrap"><span class="app-form-icon">🎛️</span><label for="monthly-control">Feel in control</label></div>' +
+          '<div class="app-form-label-wrap"><span class="app-form-icon">🎛️</span><label for="monthly-control">' + _t('app.feel_in_control') + '</label></div>' +
           '<span class="app-value-chip" id="monthly-control-v">0</span>' +
         '</div>' +
         '<input class="app-range" type="range" id="monthly-control" min="0" max="10" value="0">' +
-        '<p class="app-question-desc">0 = not at all, 10 = completely</p>' +
+        '<p class="app-question-desc">' + _t('app.desc_0_10_control') + '</p>' +
       '</div>' +
 
       '<div class="app-form-group app-form-group-with-icon">' +
         '<div class="app-slider-head">' +
-          '<div class="app-form-label-wrap"><span class="app-form-icon">😊</span><label for="monthly-satisfaction">Satisfaction</label></div>' +
+          '<div class="app-form-label-wrap"><span class="app-form-icon">😊</span><label for="monthly-satisfaction">' + _t('app.satisfaction') + '</label></div>' +
           '<span class="app-value-chip" id="monthly-satisfaction-v">0</span>' +
         '</div>' +
         '<input class="app-range" type="range" id="monthly-satisfaction" min="0" max="10" value="0">' +
-        '<p class="app-question-desc">0 = very dissatisfied, 10 = very satisfied</p>' +
+        '<p class="app-question-desc">' + _t('app.desc_0_10_satisfaction') + '</p>' +
       '</div>' +
 
       '<div class="app-form-group app-form-score">' +
         '<div class="app-score-card">' +
-          '<p class="app-score-label">QoL score</p>' +
+          '<p class="app-score-label">' + _t('app.qol_score') + '</p>' +
           '<p class="app-score-value"><span id="monthly-qol-score">0</span></p>' +
         '</div>' +
       '</div>' +
 
-      '<div class="app-form-actions"><button type="submit" class="app-btn app-btn-primary">Submit</button></div>' +
+      '<div class="app-form-actions"><button type="submit" class="app-btn app-btn-primary">' + _t('app.submit') + '</button></div>' +
       '</form>' +
       '</div>'
     );
@@ -159,10 +163,10 @@
       };
       API.sendMonthly(null, payload, function (err) {
         if (err) {
-          if (opts.showToast) opts.showToast('Submit failed: ' + (err.message || 'error'));
+          if (opts.showToast) opts.showToast(_t('app.submit_failed') + ' ' + (err.message || 'error'));
           return;
         }
-        if (opts.showToast) opts.showToast('Submitted successfully.');
+        if (opts.showToast) opts.showToast(_t('app.submitted_successfully'));
         if (opts.showScreen) opts.showScreen('dashboard');
         if (global.ILARS_APP_DASHBOARD && global.ILARS_APP_DASHBOARD.refresh) {
           global.ILARS_APP_DASHBOARD.refresh();

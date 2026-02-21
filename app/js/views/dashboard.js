@@ -7,6 +7,10 @@
 
   var API = global.ILARS_APP_API;
 
+  function _t(key) {
+    return global.ILARS_I18N && global.ILARS_I18N.t ? global.ILARS_I18N.t(key) : key;
+  }
+
   var loadingEl = document.getElementById('dashboard-loading');
   var nextCard = document.getElementById('dashboard-next-card');
   var nextDone = document.getElementById('dashboard-next-done');
@@ -23,12 +27,15 @@
   var currentLarsPeriod = 'weekly';
   var opts = {};
 
-  var typeLabels = {
-    daily: 'Daily questionnaire',
-    weekly: 'Weekly LARS questionnaire',
-    monthly: 'Monthly quality of life',
-    eq5d5l: 'EQ-5D-5L quality of life'
-  };
+  function typeLabel(type) {
+    var map = {
+      daily: 'app.type_daily',
+      weekly: 'app.type_weekly',
+      monthly: 'app.type_monthly',
+      eq5d5l: 'app.type_eq5d5l'
+    };
+    return _t(map[type] || type);
+  }
 
   function setVisible(el, visible) {
     if (!el) return;
@@ -49,12 +56,12 @@
       setVisible(loadingEl, false);
       if (err) {
         setVisible(nextError, true);
-        if (errorText) errorText.textContent = err.message || 'Failed to load.';
+        if (errorText) errorText.textContent = err.message || _t('app.failed_to_load');
         return;
       }
       if (data.status !== 'ok') {
         setVisible(nextError, true);
-        if (errorText) errorText.textContent = data.detail || 'Failed to load.';
+        if (errorText) errorText.textContent = data.detail || _t('app.failed_to_load');
         return;
       }
 
@@ -64,7 +71,7 @@
         return;
       }
 
-      if (typeEl) typeEl.textContent = typeLabels[currentType] || currentType;
+      if (typeEl) typeEl.textContent = typeLabel(currentType);
       setVisible(nextCard, true);
       if (fillBtn) {
         fillBtn.onclick = function () {
@@ -80,7 +87,8 @@
     if (!str) return '';
     var d = new Date(str);
     if (isNaN(d.getTime())) return str;
-    return d.getMonth() + 1 + '/' + d.getDate();
+    var lang = (global.ILARS_I18N && global.ILARS_I18N.getLang) ? global.ILARS_I18N.getLang() : 'en';
+    return d.toLocaleDateString(lang, { month: 'short', day: 'numeric' });
   }
 
   function renderLarsChart(data) {
@@ -88,7 +96,7 @@
     var points = (data && data.data) || [];
     var hintEl = document.getElementById('dashboard-lars-hint');
     if (points.length === 0) {
-      larsChartEl.innerHTML = '<p class="app-chart-empty">Complete weekly questionnaires to see your LARS score over time.</p>';
+      larsChartEl.innerHTML = '<p class="app-chart-empty">' + _t('app.lars_hint') + '</p>';
       if (hintEl) hintEl.classList.remove('is-hidden');
       return;
     }
@@ -127,7 +135,7 @@
       var x = toX(i);
       var y = toY(score);
       var dateStr = points[i].date || '';
-      var title = dateStr + (dateStr ? ': ' : '') + 'Score ' + score;
+      var title = dateStr + (dateStr ? ': ' : '') + _t('app.score') + ' ' + score;
       return '<circle cx="' + x + '" cy="' + y + '" r="3.5" class="app-line-point"><title>' + title + '</title></circle>';
     }).join('');
 

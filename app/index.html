@@ -3,18 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>(function(){try{var l=localStorage.getItem('ilars_lang');if(l&&l!=='en')document.documentElement.className+=' i18n-loading'}catch(e){}})()</script>
   <title>iLARS — Patient</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
-<body>
+<body data-i18n-page="patient">
   <div class="app-header">
     <div class="app-header-inner">
       <a href="../index.html" class="app-logo">
         <span class="app-logo-text">iLARS</span>
       </a>
       <nav class="app-nav">
-        <a href="../index.html">Home</a>
-        <button type="button" class="app-logout" id="app-logout">Log out</button>
+        <a href="../index.html" data-i18n="app.home">Home</a>
+        <div class="lang-switcher" style="position:relative">
+          <button class="lang-btn" aria-label="Change language" aria-expanded="false">
+            <span class="lang-current">EN</span>
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <ul class="lang-dropdown">
+            <li><button data-lang="en">English</button></li>
+            <li><button data-lang="lt">Lietuvių</button></li>
+            <li><button data-lang="it">Italiano</button></li>
+            <li><button data-lang="es">Español</button></li>
+            <li><button data-lang="tr">Türkçe</button></li>
+          </ul>
+        </div>
+        <button type="button" class="app-logout" id="app-logout" data-i18n="app.log_out">Log out</button>
       </nav>
     </div>
   </div>
@@ -22,17 +36,17 @@
   <main class="app-main" id="app-main" role="main">
     <div id="app-screen-dashboard" class="app-screen" aria-hidden="false">
       <div class="app-dashboard">
-        <h1 class="app-page-title">Dashboard</h1>
+        <h1 class="app-page-title" data-i18n="app.dashboard">Dashboard</h1>
         <section class="app-section app-section-questionnaire">
-          <h2 class="app-section-title">Today's questionnaire</h2>
+          <h2 class="app-section-title" data-i18n="app.todays_questionnaire">Today's questionnaire</h2>
           <div id="dashboard-next-block">
-            <p class="app-loading" id="dashboard-loading">Loading…</p>
+            <p class="app-loading" id="dashboard-loading" data-i18n="app.loading">Loading…</p>
             <div class="app-next-card is-hidden" id="dashboard-next-card">
               <p class="app-next-type" id="dashboard-next-type"></p>
-              <button type="button" class="app-btn app-btn-primary" id="dashboard-fill-btn">Fill it now</button>
+              <button type="button" class="app-btn app-btn-primary" id="dashboard-fill-btn" data-i18n="app.fill_it_now">Fill it now</button>
             </div>
             <div class="app-next-done is-hidden" id="dashboard-next-done">
-              <p>All questionnaires up to date.</p>
+              <p data-i18n="app.all_up_to_date">All questionnaires up to date.</p>
             </div>
             <div class="app-next-error is-hidden" id="dashboard-next-error">
               <p id="dashboard-error-text"></p>
@@ -40,13 +54,13 @@
           </div>
         </section>
         <section class="app-section app-section-stats" id="dashboard-lars-section">
-          <h2 class="app-section-title">LARS score</h2>
-          <p class="app-section-hint is-hidden" id="dashboard-lars-hint">Complete weekly questionnaires to see your score over time.</p>
+          <h2 class="app-section-title" data-i18n="app.lars_score">LARS score</h2>
+          <p class="app-section-hint is-hidden" id="dashboard-lars-hint" data-i18n="app.lars_hint">Complete weekly questionnaires to see your score over time.</p>
           <div class="app-chart-wrap" id="dashboard-lars-chart"></div>
           <div class="app-chart-periods" id="dashboard-lars-periods" role="tablist" aria-label="Chart period">
-            <button type="button" class="app-period-btn is-active" data-period="weekly" role="tab" aria-selected="true">Week</button>
-            <button type="button" class="app-period-btn" data-period="monthly" role="tab" aria-selected="false">Month</button>
-            <button type="button" class="app-period-btn" data-period="yearly" role="tab" aria-selected="false">Year</button>
+            <button type="button" class="app-period-btn is-active" data-period="weekly" role="tab" aria-selected="true" data-i18n="app.period_week">Week</button>
+            <button type="button" class="app-period-btn" data-period="monthly" role="tab" aria-selected="false" data-i18n="app.period_month">Month</button>
+            <button type="button" class="app-period-btn" data-period="yearly" role="tab" aria-selected="false" data-i18n="app.period_year">Year</button>
           </div>
         </section>
       </div>
@@ -60,11 +74,12 @@
 
   <footer class="app-footer">
     <p class="app-footer-logo">iLARS</p>
-    <p>Your story after surgery. For informational and educational use only.</p>
+    <p data-i18n="app.footer_slogan">Your story after surgery. For informational and educational use only.</p>
   </footer>
 
   <div class="app-toast" id="app-toast" role="alert" aria-live="polite"></div>
 
+  <script src="../js/i18n.js"></script>
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
   <script src="js/views/dashboard.js"></script>

@@ -117,6 +117,15 @@
     init();
   }
 
+  if (global.ILARS_I18N) {
+    global.ILARS_I18N._onLangChange = function () {
+      if (global.ILARS_I18N.patchDOM) global.ILARS_I18N.patchDOM();
+      if (global.ILARS_APP_DASHBOARD && global.ILARS_APP_DASHBOARD.refresh) {
+        global.ILARS_APP_DASHBOARD.refresh();
+      }
+    };
+  }
+
   global.ILARS_APP = {
     showScreen: showScreen,
     showToast: showToast

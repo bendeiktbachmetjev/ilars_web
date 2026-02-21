@@ -9,13 +9,29 @@
 
   var opts = {};
 
-  var DIMENSIONS = [
-    { id: 'mobility', icon: '🚶', label: 'Mobility', options: ['No problems walking', 'Slight problems', 'Moderate problems', 'Severe problems', 'Unable to walk'] },
-    { id: 'self_care', icon: '🧼', label: 'Self-care', options: ['No problems washing/dressing', 'Slight problems', 'Moderate problems', 'Severe problems', 'Unable to wash/dress'] },
-    { id: 'usual', icon: '🏠', label: 'Usual activities', options: ['No problems', 'Slight problems', 'Moderate problems', 'Severe problems', 'Unable to do'] },
-    { id: 'pain', icon: '🤕', label: 'Pain / discomfort', options: ['None', 'Slight', 'Moderate', 'Severe', 'Extreme'] },
-    { id: 'anxiety', icon: '🧠', label: 'Anxiety / depression', options: ['Not anxious/depressed', 'Slightly', 'Moderately', 'Severely', 'Extremely'] }
-  ];
+  function _t(key) {
+    return global.ILARS_I18N && global.ILARS_I18N.t ? global.ILARS_I18N.t(key) : key;
+  }
+
+  function getDimensions() {
+    return [
+      { id: 'mobility', icon: '🚶', labelKey: 'app.eq_mobility', options: [
+        _t('app.eq_mob_no_problems'), _t('app.eq_mob_slight'), _t('app.eq_mob_moderate'), _t('app.eq_mob_severe'), _t('app.eq_mob_unable')
+      ]},
+      { id: 'self_care', icon: '🧼', labelKey: 'app.eq_self_care', options: [
+        _t('app.eq_sc_no_problems'), _t('app.eq_sc_slight'), _t('app.eq_sc_moderate'), _t('app.eq_sc_severe'), _t('app.eq_sc_unable')
+      ]},
+      { id: 'usual', icon: '🏠', labelKey: 'app.eq_usual_activities', options: [
+        _t('app.eq_ua_no_problems'), _t('app.eq_ua_slight'), _t('app.eq_ua_moderate'), _t('app.eq_ua_severe'), _t('app.eq_ua_unable')
+      ]},
+      { id: 'pain', icon: '🤕', labelKey: 'app.eq_pain_discomfort', options: [
+        _t('app.eq_pain_none'), _t('app.eq_pain_slight'), _t('app.eq_pain_moderate'), _t('app.eq_pain_severe'), _t('app.eq_pain_extreme')
+      ]},
+      { id: 'anxiety', icon: '🧠', labelKey: 'app.eq_anxiety_depression', options: [
+        _t('app.eq_anx_none'), _t('app.eq_anx_slight'), _t('app.eq_anx_moderate'), _t('app.eq_anx_severe'), _t('app.eq_anx_extreme')
+      ]}
+    ];
+  }
 
   function todayStr() {
     var d = new Date();
@@ -23,24 +39,25 @@
   }
 
   function buildForm() {
-    var html = '<a href="#" class="app-back-link" id="eq5d5l-back">← Back to dashboard</a><div class="app-section"><h1 class="app-form-title">EQ-5D-5L</h1><form id="eq5d5l-form">';
-    DIMENSIONS.forEach(function (dim, i) {
+    var dims = getDimensions();
+    var html = '<a href="#" class="app-back-link" id="eq5d5l-back">' + _t('app.back_to_dashboard') + '</a><div class="app-section"><h1 class="app-form-title">' + _t('app.eq5d5l_title') + '</h1><form id="eq5d5l-form">';
+    dims.forEach(function (dim) {
       html += ''
         + '<div class="app-form-group app-form-group-with-icon">'
-        +   '<div class="app-form-label-wrap"><span class="app-form-icon">' + dim.icon + '</span><label>' + dim.label + '</label></div>'
+        +   '<div class="app-form-label-wrap"><span class="app-form-icon">' + dim.icon + '</span><label>' + _t(dim.labelKey) + '</label></div>'
         +   '<div class="app-form-options" id="eq5d5l-' + dim.id + '"></div>'
         + '</div>';
     });
     html += ''
       + '<div class="app-form-group app-form-group-with-icon">'
       +   '<div class="app-slider-head">'
-      +     '<div class="app-form-label-wrap"><span class="app-form-icon">❤️</span><label for="eq5d5l-vas">Your health today</label></div>'
+      +     '<div class="app-form-label-wrap"><span class="app-form-icon">❤️</span><label for="eq5d5l-vas">' + _t('app.eq_health_today') + '</label></div>'
       +     '<span class="app-value-chip" id="eq5d5l-vas-v">50</span>'
       +   '</div>'
       +   '<input class="app-range" type="range" id="eq5d5l-vas" min="0" max="100" value="50">'
-      +   '<p class="app-question-desc">0 = worst imaginable health, 100 = best imaginable health</p>'
+      +   '<p class="app-question-desc">' + _t('app.eq_health_desc') + '</p>'
       + '</div>';
-    html += '<div class="app-form-actions"><button type="submit" class="app-btn app-btn-primary">Submit</button></div></form></div>';
+    html += '<div class="app-form-actions"><button type="submit" class="app-btn app-btn-primary">' + _t('app.submit') + '</button></div></form></div>';
     return html;
   }
 
@@ -74,7 +91,8 @@
     if (!container) return;
     container.innerHTML = buildForm();
 
-    DIMENSIONS.forEach(function (dim) {
+    var dims = getDimensions();
+    dims.forEach(function (dim) {
       renderOptions('eq5d5l-' + dim.id, dim.options);
     });
 
@@ -108,10 +126,10 @@
       };
       API.sendEq5d5l(null, payload, function (err) {
         if (err) {
-          if (opts.showToast) opts.showToast('Submit failed: ' + (err.message || 'error'));
+          if (opts.showToast) opts.showToast(_t('app.submit_failed') + ' ' + (err.message || 'error'));
           return;
         }
-        if (opts.showToast) opts.showToast('Submitted successfully.');
+        if (opts.showToast) opts.showToast(_t('app.submitted_successfully'));
         if (opts.showScreen) opts.showScreen('dashboard');
         if (global.ILARS_APP_DASHBOARD && global.ILARS_APP_DASHBOARD.refresh) {
           global.ILARS_APP_DASHBOARD.refresh();

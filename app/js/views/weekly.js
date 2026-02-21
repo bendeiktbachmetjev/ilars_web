@@ -7,16 +7,22 @@
 
   var API = global.ILARS_APP_API;
 
+  function _t(key) {
+    return global.ILARS_I18N && global.ILARS_I18N.t ? global.ILARS_I18N.t(key) : key;
+  }
+
   var container = null;
   var opts = {};
 
-  var LARS_OPTIONS = {
-    flatus: ['No never', 'Yes, less than once per week', 'Yes, at least once per week'],
-    liquid: ['No never', 'Yes, less than once per week', 'Yes, at least once per week'],
-    frequency: ['More than 7 times per day', '4–7 times per day', '1–3 times per day', 'Less than once per day'],
-    repeat: ['No never', 'Yes, less than once per week', 'Yes, at least once per week'],
-    urgency: ['No never', 'Yes, less than once per week', 'Yes, at least once per week']
-  };
+  function larsOptions() {
+    return {
+      flatus: [_t('app.lars_no_never'), _t('app.lars_yes_less_once_week'), _t('app.lars_yes_at_least_once_week')],
+      liquid: [_t('app.lars_no_never'), _t('app.lars_yes_less_once_week'), _t('app.lars_yes_at_least_once_week')],
+      frequency: [_t('app.lars_more_7_times_day'), _t('app.lars_4_7_times_day'), _t('app.lars_1_3_times_day'), _t('app.lars_less_once_day')],
+      repeat: [_t('app.lars_no_never'), _t('app.lars_yes_less_once_week'), _t('app.lars_yes_at_least_once_week')],
+      urgency: [_t('app.lars_no_never'), _t('app.lars_yes_less_once_week'), _t('app.lars_yes_at_least_once_week')]
+    };
+  }
 
   var LARS_SCORES = [
     [0, 4, 7],
@@ -37,37 +43,37 @@
 
   function buildForm() {
     return (
-      '<a href="#" class="app-back-link" id="weekly-back">← Back to dashboard</a>' +
+      '<a href="#" class="app-back-link" id="weekly-back">' + _t('app.back_to_dashboard') + '</a>' +
       '<div class="app-section">' +
-      '<h1 class="app-form-title">Weekly LARS questionnaire</h1>' +
+      '<h1 class="app-form-title">' + _t('app.weekly_title') + '</h1>' +
       '<form id="weekly-form">' +
       '<div class="app-form-group app-form-group-with-icon">' +
-      '<div class="app-form-label-wrap"><span class="app-form-icon">💨</span><label>Flatus (gas) control</label></div>' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">💨</span><label>' + _t('app.flatus_control') + '</label></div>' +
       '<div class="app-form-options" id="weekly-flatus"></div>' +
       '</div>' +
       '<div class="app-form-group app-form-group-with-icon">' +
-      '<div class="app-form-label-wrap"><span class="app-form-icon">💧</span><label>Liquid stool leakage</label></div>' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">💧</span><label>' + _t('app.liquid_stool_leakage') + '</label></div>' +
       '<div class="app-form-options" id="weekly-liquid"></div>' +
       '</div>' +
       '<div class="app-form-group app-form-group-with-icon">' +
-      '<div class="app-form-label-wrap"><span class="app-form-icon">📊</span><label>Bowel frequency</label></div>' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">📊</span><label>' + _t('app.bowel_frequency') + '</label></div>' +
       '<div class="app-form-options" id="weekly-frequency"></div>' +
       '</div>' +
       '<div class="app-form-group app-form-group-with-icon">' +
-      '<div class="app-form-label-wrap"><span class="app-form-icon">🔄</span><label>Repeat bowel opening</label></div>' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">🔄</span><label>' + _t('app.repeat_bowel_opening') + '</label></div>' +
       '<div class="app-form-options" id="weekly-repeat"></div>' +
       '</div>' +
       '<div class="app-form-group app-form-group-with-icon">' +
-      '<div class="app-form-label-wrap"><span class="app-form-icon">⚡</span><label>Urgency to toilet</label></div>' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">⚡</span><label>' + _t('app.urgency_to_toilet') + '</label></div>' +
       '<div class="app-form-options" id="weekly-urgency"></div>' +
       '</div>' +
       '<div class="app-form-group app-form-score">' +
       '<div class="app-score-card">' +
-      '<p class="app-score-label">Total LARS score</p>' +
+      '<p class="app-score-label">' + _t('app.total_lars_score') + '</p>' +
       '<p class="app-score-value"><span id="weekly-total">0</span></p>' +
       '</div>' +
       '</div>' +
-      '<div class="app-form-actions"><button type="submit" class="app-btn app-btn-primary">Submit</button></div>' +
+      '<div class="app-form-actions"><button type="submit" class="app-btn app-btn-primary">' + _t('app.submit') + '</button></div>' +
       '</form>' +
       '</div>'
     );
@@ -116,11 +122,12 @@
     if (!container) return;
     container.innerHTML = buildForm();
 
-    renderOptions('weekly-flatus', LARS_OPTIONS.flatus);
-    renderOptions('weekly-liquid', LARS_OPTIONS.liquid);
-    renderOptions('weekly-frequency', LARS_OPTIONS.frequency);
-    renderOptions('weekly-repeat', LARS_OPTIONS.repeat);
-    renderOptions('weekly-urgency', LARS_OPTIONS.urgency);
+    var opts_ = larsOptions();
+    renderOptions('weekly-flatus', opts_.flatus);
+    renderOptions('weekly-liquid', opts_.liquid);
+    renderOptions('weekly-frequency', opts_.frequency);
+    renderOptions('weekly-repeat', opts_.repeat);
+    renderOptions('weekly-urgency', opts_.urgency);
     updateTotal();
 
     document.getElementById('weekly-back').addEventListener('click', function (e) {
@@ -146,10 +153,10 @@
       };
       API.sendWeekly(null, payload, function (err) {
         if (err) {
-          if (opts.showToast) opts.showToast('Submit failed: ' + (err.message || 'error'));
+          if (opts.showToast) opts.showToast(_t('app.submit_failed') + ' ' + (err.message || 'error'));
           return;
         }
-        if (opts.showToast) opts.showToast('Submitted successfully.');
+        if (opts.showToast) opts.showToast(_t('app.submitted_successfully'));
         if (opts.showScreen) opts.showScreen('dashboard');
         if (global.ILARS_APP_DASHBOARD && global.ILARS_APP_DASHBOARD.refresh) {
           global.ILARS_APP_DASHBOARD.refresh();

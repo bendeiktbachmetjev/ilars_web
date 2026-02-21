@@ -7,6 +7,10 @@
 
   var API = global.ILARS_APP_API;
 
+  function _t(key) {
+    return global.ILARS_I18N && global.ILARS_I18N.t ? global.ILARS_I18N.t(key) : key;
+  }
+
   var FOOD_KEYS = [
     'vegetables_all_types', 'root_vegetables', 'whole_grains', 'whole_grain_bread',
     'nuts_and_seeds', 'legumes', 'fruits_with_skin', 'berries_any',
@@ -26,64 +30,64 @@
 
   function buildForm() {
     return (
-      '<a href="#" class="app-back-link" id="daily-back">← Back to dashboard</a>' +
+      '<a href="#" class="app-back-link" id="daily-back">' + _t('app.back_to_dashboard') + '</a>' +
       '<div class="app-section">' +
-      '<h1 class="app-form-title">Daily questionnaire</h1>' +
+      '<h1 class="app-form-title">' + _t('app.daily_title') + '</h1>' +
       '<form id="daily-form">' +
       '<div class="app-form-group">' +
-      '<label>Stool per day</label>' +
+      '<label>' + _t('app.stool_per_day') + '</label>' +
       '<input type="number" id="daily-stool" min="0" max="100" value="0">' +
       '</div>' +
       '<div class="app-form-group">' +
-      '<label>Pads used</label>' +
+      '<label>' + _t('app.pads_used') + '</label>' +
       '<input type="number" id="daily-pads" min="0" max="100" value="0">' +
       '</div>' +
       '<div class="app-form-group">' +
-      '<label>Urgent need to defecate?</label>' +
+      '<label>' + _t('app.urgent_need') + '</label>' +
       '<div class="app-form-options" id="daily-urgency"></div>' +
       '</div>' +
       '<div class="app-form-group">' +
-      '<label>Stools at night?</label>' +
+      '<label>' + _t('app.stools_at_night') + '</label>' +
       '<div class="app-form-options" id="daily-night"></div>' +
       '</div>' +
       '<div class="app-form-group">' +
-      '<label>Leakage</label>' +
+      '<label>' + _t('app.leakage') + '</label>' +
       '<div class="app-form-options" id="daily-leakage"></div>' +
       '</div>' +
       '<div class="app-form-group">' +
-      '<label>Incomplete evacuation?</label>' +
+      '<label>' + _t('app.incomplete_evacuation') + '</label>' +
       '<div class="app-form-options" id="daily-incomplete"></div>' +
       '</div>' +
       '<div class="app-form-group">' +
-      '<label>Bloating (0–10)</label>' +
+      '<label>' + _t('app.bloating') + ' (0–10)</label>' +
       '<div class="app-form-slider-wrap"><input type="range" id="daily-bloating" min="0" max="10" value="0"></div>' +
       '<span id="daily-bloating-val">0</span>' +
       '</div>' +
       '<div class="app-form-group">' +
-      '<label>Impact score (0–10)</label>' +
+      '<label>' + _t('app.impact_score') + ' (0–10)</label>' +
       '<div class="app-form-slider-wrap"><input type="range" id="daily-impact" min="0" max="10" value="0"></div>' +
       '<span id="daily-impact-val">0</span>' +
       '</div>' +
       '<div class="app-form-group">' +
-      '<label>Activity interference (0–10)</label>' +
+      '<label>' + _t('app.activity_interference') + ' (0–10)</label>' +
       '<div class="app-form-slider-wrap"><input type="range" id="daily-activity" min="0" max="10" value="0"></div>' +
       '<span id="daily-activity-val">0</span>' +
       '</div>' +
       '<div class="app-form-group">' +
-      '<label>Food consumption (servings per item, 0–10)</label>' +
+      '<label>' + _t('app.food_consumption') + '</label>' +
       '<div id="daily-food"></div>' +
       '</div>' +
       '<div class="app-form-group">' +
-      '<label>Drink consumption</label>' +
+      '<label>' + _t('app.drink_consumption') + '</label>' +
       '<div id="daily-drink"></div>' +
       '</div>' +
       '<div class="app-form-group">' +
-      '<label>Bristol scale (1–7)</label>' +
+      '<label>' + _t('app.bristol_scale') + ' (1–7)</label>' +
       '<div class="app-bristol-scale" id="daily-bristol-scale"></div>' +
       '<input type="number" id="daily-bristol" min="1" max="7" value="1" style="display:none;">' +
       '</div>' +
       '<div class="app-form-actions">' +
-      '<button type="submit" class="app-btn app-btn-primary">Submit</button>' +
+      '<button type="submit" class="app-btn app-btn-primary">' + _t('app.submit') + '</button>' +
       '</div>' +
       '</form>' +
       '</div>'
@@ -163,7 +167,7 @@
     if (foodEl) {
       foodEl.innerHTML = '<div class="app-food-grid">' + FOOD_KEYS.map(function (k) {
         var icon = FOOD_ICONS[k] || '🍽️';
-        var label = k.replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+        var label = _t('app.food_' + k);
         return '<div class="app-food-item">' +
           '<div class="app-food-icon">' + icon + '</div>' +
           '<label class="app-food-label">' + label + '</label>' +
@@ -174,7 +178,7 @@
     if (drinkEl) {
       drinkEl.innerHTML = '<div class="app-drink-grid">' + DRINK_KEYS.map(function (k) {
         var icon = DRINK_ICONS[k] || '🥤';
-        var label = k.replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+        var label = _t('app.drink_' + k);
         return '<div class="app-drink-item">' +
           '<div class="app-drink-icon">' + icon + '</div>' +
           '<label class="app-drink-label">' + label + '</label>' +
@@ -218,10 +222,10 @@
     container = document.getElementById('app-screen-daily');
     if (!container) return;
     container.innerHTML = buildForm();
-    renderOptions('daily-urgency', [{ value: 'Yes', label: 'Yes' }, { value: 'No', label: 'No' }], 'No');
-    renderOptions('daily-night', [{ value: 'Yes', label: 'Yes' }, { value: 'No', label: 'No' }], 'No');
-    renderOptions('daily-leakage', [{ value: 'None', label: 'None' }, { value: 'Liquid', label: 'Liquid' }, { value: 'Solid', label: 'Solid' }], 'None');
-    renderOptions('daily-incomplete', [{ value: 'Yes', label: 'Yes' }, { value: 'No', label: 'No' }], 'No');
+    renderOptions('daily-urgency', [{ value: 'Yes', label: _t('app.yes') }, { value: 'No', label: _t('app.no') }], 'No');
+    renderOptions('daily-night', [{ value: 'Yes', label: _t('app.yes') }, { value: 'No', label: _t('app.no') }], 'No');
+    renderOptions('daily-leakage', [{ value: 'None', label: _t('app.none') }, { value: 'Liquid', label: _t('app.liquid') }, { value: 'Solid', label: _t('app.solid') }], 'None');
+    renderOptions('daily-incomplete', [{ value: 'Yes', label: _t('app.yes') }, { value: 'No', label: _t('app.no') }], 'No');
     renderBristolScale();
     renderFoodDrink();
 
@@ -257,10 +261,10 @@
       var payload = collectPayload();
       API.sendDaily(null, payload, function (err) {
         if (err) {
-          if (opts.showToast) opts.showToast('Submit failed: ' + (err.message || 'error'));
+          if (opts.showToast) opts.showToast(_t('app.submit_failed') + ' ' + (err.message || 'error'));
           return;
         }
-        if (opts.showToast) opts.showToast('Submitted successfully.');
+        if (opts.showToast) opts.showToast(_t('app.submitted_successfully'));
         if (opts.showScreen) opts.showScreen('dashboard');
         if (global.ILARS_APP_DASHBOARD && global.ILARS_APP_DASHBOARD.refresh) {
           global.ILARS_APP_DASHBOARD.refresh();
