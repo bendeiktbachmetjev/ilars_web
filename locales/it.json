@@ -151,6 +151,8 @@
     "chart_lars_symptoms": "Punteggio LARS vs sintomi giornalieri",
     "chart_food": "Consumo alimentare (ultimi 30 giorni)",
     "chart_drink": "Consumo bevande (ultimi 30 giorni)",
+    "chart_steps": "Passi giornalieri (ultimi 90 giorni)",
+    "chart_steps_label": "Passi",
     "modal_confirm_title": "Conferma creazione paziente",
     "modal_confirm_subtitle": "Verifica di essere sull'account corretto prima di creare un nuovo paziente.",
     "modal_doctor_label": "Medico",

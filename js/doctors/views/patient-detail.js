@@ -140,6 +140,15 @@ class PatientDetailView {
         if (data.daily_entries && data.daily_entries.length > 0) {
             this.renderDrinkChart(data.daily_entries);
         }
+
+        // Daily Steps Chart
+        const stepsContainer = document.getElementById('steps-chart-container');
+        if (data.daily_steps && data.daily_steps.length > 0) {
+            if (stepsContainer) stepsContainer.style.display = 'block';
+            this.renderStepsChart(data.daily_steps);
+        } else {
+            if (stepsContainer) stepsContainer.style.display = 'none';
+        }
     }
 
     renderLarsChart(data) {
@@ -798,6 +807,59 @@ class PatientDetailView {
                         grid: {
                             color: 'rgba(255, 255, 255, 0.1)'
                         }
+                    }
+                }
+            }
+        });
+    }
+
+    renderStepsChart(data) {
+        const ctx = document.getElementById('steps-chart');
+        if (!ctx) return;
+
+        const labels = data.map(d => this.formatDateShort(d.date));
+        const steps = data.map(d => d.steps);
+
+        this.charts.steps = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: this._t('doctor.chart_steps_label'),
+                    data: steps,
+                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                    borderColor: '#3b82f6',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: {
+                            color: 'rgba(255, 255, 255, 0.9)',
+                            font: { size: 14 }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            callback: function(value) {
+                                if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
+                                return value;
+                            }
+                        },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    x: {
+                        ticks: { color: 'rgba(255, 255, 255, 0.7)' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
                     }
                 }
             }
