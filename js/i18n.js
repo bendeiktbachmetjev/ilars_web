@@ -120,13 +120,6 @@
   // Translation loading
   // ------------------------------------------------------------------
   function load(lang, cb) {
-    if (lang === DEFAULT) {
-      translations = {};
-      currentLang = lang;
-      cb();
-      fireReady();
-      return;
-    }
     var url = localesBase() + lang + '.json?v=3';
     fetch(url)
       .then(function (r) {
@@ -182,6 +175,7 @@
     });
   }
 
+
   // ------------------------------------------------------------------
   // Switcher widget
   // ------------------------------------------------------------------
@@ -217,14 +211,7 @@
     var lang = detect();
     currentLang = lang;
     initSwitcher();
-
-    if (lang !== DEFAULT) {
-      load(lang, patchDOM);
-    } else {
-      refreshSwitcher();
-      document.documentElement.classList.remove('i18n-loading');
-      fireReady();
-    }
+    load(lang, patchDOM);
   }
 
   // Public API
