@@ -169,7 +169,7 @@
     }
   </style>
 </head>
-<body>
+<body data-i18n-page="doctor_setup">
   <!-- Navigation -->
   <nav class="navbar">
     <div class="navbar-inner">
@@ -178,13 +178,26 @@
         <span class="navbar-logo-text">iLARS</span>
       </a>
       <ul class="navbar-menu">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="about.html">About Us</a></li>
-        <li><a href="project.html">Our Project</a></li>
-        <li><a href="features.html">Features</a></li>
-        <li><a href="contact.html">Contact</a></li>
-        <li class="navbar-cta"><a href="#" id="btn-logout" class="btn btn-logout">Log out</a></li>
+        <li><a href="index.html" data-i18n="nav.home">Home</a></li>
+        <li><a href="about.html" data-i18n="nav.about">About Us</a></li>
+        <li><a href="project.html" data-i18n="nav.project">Our Project</a></li>
+        <li><a href="features.html" data-i18n="nav.features">Features</a></li>
+        <li><a href="contact.html" data-i18n="nav.contact">Contact</a></li>
+        <li class="navbar-cta"><a href="#" id="btn-logout" class="btn btn-logout" data-i18n="nav.logout">Log out</a></li>
       </ul>
+      <div class="navbar-lang">
+        <button class="lang-btn" aria-label="Change language" aria-expanded="false">
+          <span class="lang-current">EN</span>
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <ul class="lang-dropdown">
+          <li><button data-lang="en">English</button></li>
+          <li><button data-lang="lt">Lietuvių</button></li>
+          <li><button data-lang="it">Italiano</button></li>
+          <li><button data-lang="es">Español</button></li>
+          <li><button data-lang="tr">Türkçe</button></li>
+        </ul>
+      </div>
       <button class="navbar-toggle" aria-label="Toggle menu">
         <span></span>
         <span></span>
@@ -195,28 +208,28 @@
 
   <main class="setup-page">
     <div class="setup-window">
-      <h1 class="setup-title">Complete Your Profile</h1>
-      <p class="setup-subtitle">Please fill in your details to start using the doctor dashboard.</p>
+      <h1 class="setup-title" data-i18n="doctor_setup.title">Complete Your Profile</h1>
+      <p class="setup-subtitle" data-i18n="doctor_setup.subtitle">Please fill in your details to start using the doctor dashboard.</p>
 
       <form id="setup-form" novalidate>
         <div class="setup-form-group">
-          <label for="setup-first-name">First name</label>
-          <input type="text" id="setup-first-name" name="first_name" placeholder="First name" autocomplete="given-name">
+          <label for="setup-first-name" data-i18n="doctor_setup.first_name">First name</label>
+          <input type="text" id="setup-first-name" name="first_name" data-i18n-placeholder="doctor_setup.first_name" placeholder="First name" autocomplete="given-name">
         </div>
 
         <div class="setup-form-group">
-          <label for="setup-last-name">Last name</label>
-          <input type="text" id="setup-last-name" name="last_name" placeholder="Last name" autocomplete="family-name">
+          <label for="setup-last-name" data-i18n="doctor_setup.last_name">Last name</label>
+          <input type="text" id="setup-last-name" name="last_name" data-i18n-placeholder="doctor_setup.last_name" placeholder="Last name" autocomplete="family-name">
         </div>
 
         <div class="setup-form-group">
-          <label for="setup-hospital-code">Hospital code <span class="required">*</span></label>
-          <input type="text" id="setup-hospital-code" name="hospital_code" placeholder="Enter your hospital code" maxlength="20" required style="text-transform: uppercase; font-family: monospace; letter-spacing: 0.1em;">
-          <div class="setup-code-hint">Enter the 12-character code provided by your hospital. This is required to complete registration.</div>
+          <label for="setup-hospital-code" data-i18n-html="doctor_setup.hospital_code_label">Hospital code <span class="required">*</span></label>
+          <input type="text" id="setup-hospital-code" name="hospital_code" data-i18n-placeholder="doctor_setup.hospital_code_placeholder" placeholder="Enter your hospital code" maxlength="20" required style="text-transform: uppercase; font-family: monospace; letter-spacing: 0.1em;">
+          <div class="setup-code-hint" data-i18n="doctor_setup.hospital_code_hint">Enter the 12-character code provided by your hospital. This is required to complete registration.</div>
         </div>
 
         <div class="setup-form-group" id="setup-hospital-name-group" style="display: none;">
-          <label>Hospital</label>
+          <label data-i18n="doctor_setup.hospital_label">Hospital</label>
           <input type="text" id="setup-hospital-name-display" readonly style="background: #f5f5f5; cursor: not-allowed;">
           <input type="hidden" id="setup-hospital-id" name="hospital_id">
         </div>
@@ -224,10 +237,10 @@
         <div id="setup-error" class="setup-error" role="alert"></div>
 
         <button type="submit" id="setup-submit" class="setup-btn">
-          <span id="setup-btn-text">Save and Continue</span>
+          <span id="setup-btn-text" data-i18n="doctor_setup.save_btn">Save and Continue</span>
           <span id="setup-btn-loading" class="setup-loading" style="display: none;">
             <span class="setup-spinner"></span>
-            <span>Saving...</span>
+            <span data-i18n="doctor_setup.saving">Saving...</span>
           </span>
         </button>
       </form>
@@ -238,6 +251,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   
+  <script src="js/i18n.js"></script>
   <script src="js/config.js"></script>
   <script src="js/firebase/config.js"></script>
   <script src="js/firebase/auth.js"></script>

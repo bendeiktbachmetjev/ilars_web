@@ -865,7 +865,7 @@
     })();
   </script>
 </head>
-<body>
+<body data-i18n-page="doctor">
   <!-- Navigation -->
   <nav class="navbar">
     <div class="navbar-inner">
@@ -874,13 +874,26 @@
         <span class="navbar-logo-text">iLARS</span>
       </a>
       <ul class="navbar-menu">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="about.html">About Us</a></li>
-        <li><a href="project.html">Our Project</a></li>
-        <li><a href="features.html">Features</a></li>
-        <li><a href="contact.html">Contact</a></li>
-        <li class="navbar-cta"><a href="#" id="btn-logout" class="btn btn-logout">Log out</a></li>
+        <li><a href="index.html" data-i18n="nav.home">Home</a></li>
+        <li><a href="about.html" data-i18n="nav.about">About Us</a></li>
+        <li><a href="project.html" data-i18n="nav.project">Our Project</a></li>
+        <li><a href="features.html" data-i18n="nav.features">Features</a></li>
+        <li><a href="contact.html" data-i18n="nav.contact">Contact</a></li>
+        <li class="navbar-cta"><a href="#" id="btn-logout" class="btn btn-logout" data-i18n="nav.logout">Log out</a></li>
       </ul>
+      <div class="navbar-lang">
+        <button class="lang-btn" aria-label="Change language" aria-expanded="false">
+          <span class="lang-current">EN</span>
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <ul class="lang-dropdown">
+          <li><button data-lang="en">English</button></li>
+          <li><button data-lang="lt">Lietuvių</button></li>
+          <li><button data-lang="it">Italiano</button></li>
+          <li><button data-lang="es">Español</button></li>
+          <li><button data-lang="tr">Türkçe</button></li>
+        </ul>
+      </div>
       <button class="navbar-toggle" aria-label="Toggle menu">
         <span></span>
         <span></span>
@@ -893,9 +906,9 @@
   <div id="patient-list-view" class="view active">
     <div class="container">
       <div class="patient-list-header">
-        <h1>Patient List</h1>
+        <h1 data-i18n="doctor.patient_list">Patient List</h1>
         <div class="patient-list-actions">
-          <button id="btn-create-patient" type="button" class="create-patient-btn">
+          <button id="btn-create-patient" type="button" class="create-patient-btn" data-i18n="doctor.create_patient">
             Create patient
           </button>
         </div>
@@ -904,13 +917,13 @@
       <table id="patients-table" style="display: none;">
         <thead>
           <tr>
-            <th>Patient Code</th>
-            <th>Created</th>
-            <th>Weekly</th>
-            <th>Monthly</th>
-            <th>Last LARS</th>
-            <th>EQ-5D-5L</th>
-            <th>Doctor</th>
+            <th data-i18n="doctor.th_patient_code">Patient Code</th>
+            <th data-i18n="doctor.th_created">Created</th>
+            <th data-i18n="doctor.th_weekly">Weekly</th>
+            <th data-i18n="doctor.th_monthly">Monthly</th>
+            <th data-i18n="doctor.th_last_lars">Last LARS</th>
+            <th data-i18n="doctor.th_eq5d5l">EQ-5D-5L</th>
+            <th data-i18n="doctor.th_doctor">Doctor</th>
           </tr>
         </thead>
         <tbody id="patients-tbody">
@@ -918,17 +931,17 @@
       </table>
 
       <div id="patients-inactive-section" style="display: none; margin-top: 48px;">
-        <h2 style="font-size: 1.5rem; font-weight: 600; color: rgba(30, 30, 50, 0.9); margin-bottom: 16px;">Inactive patients</h2>
+        <h2 style="font-size: 1.5rem; font-weight: 600; color: rgba(30, 30, 50, 0.9); margin-bottom: 16px;" data-i18n="doctor.inactive_patients">Inactive patients</h2>
         <table id="patients-inactive-table" style="display: none;">
           <thead>
             <tr>
-              <th>Patient Code</th>
-              <th>Created</th>
-              <th>Weekly</th>
-              <th>Monthly</th>
-              <th>Last LARS</th>
-              <th>EQ-5D-5L</th>
-              <th>Doctor</th>
+              <th data-i18n="doctor.th_patient_code">Patient Code</th>
+              <th data-i18n="doctor.th_created">Created</th>
+              <th data-i18n="doctor.th_weekly">Weekly</th>
+              <th data-i18n="doctor.th_monthly">Monthly</th>
+              <th data-i18n="doctor.th_last_lars">Last LARS</th>
+              <th data-i18n="doctor.th_eq5d5l">EQ-5D-5L</th>
+              <th data-i18n="doctor.th_doctor">Doctor</th>
             </tr>
           </thead>
           <tbody id="patients-inactive-tbody">
@@ -941,21 +954,21 @@
   <!-- Patient Detail View -->
   <div id="patient-detail-view" class="view">
     <div class="container">
-      <button class="back-btn" onclick="window.app.navigate('list')">← Back to Patient List</button>
+      <button class="back-btn" onclick="window.app.navigate('list')" data-i18n="doctor.back_to_list">← Back to Patient List</button>
       <h1>Patient: <span id="patient-detail-code"></span></h1>
-      <div id="patient-detail-loading" class="loading">Loading patient data...</div>
+      <div id="patient-detail-loading" class="loading" data-i18n="doctor.loading_patient">Loading patient data...</div>
       <div id="patient-detail-error" class="error" style="display: none;"></div>
       <div id="patient-detail-content" style="display: none;">
         <div id="patient-status-bar" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
           <span id="patient-status-indicator" class="patient-status-badge">—</span>
-          <button id="patient-change-status-btn" type="button" class="create-patient-btn" style="background-image: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); box-shadow: 0 6px 18px rgba(129, 140, 248, 0.45);">
+          <button id="patient-change-status-btn" type="button" class="create-patient-btn" style="background-image: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); box-shadow: 0 6px 18px rgba(129, 140, 248, 0.45);" data-i18n="doctor.set_inactive">
             Set inactive
           </button>
         </div>
         <div class="charts-grid">
           <!-- LARS Score Chart -->
           <div class="chart-container">
-            <div class="chart-title">LARS Score Over Time</div>
+            <div class="chart-title" data-i18n="doctor.chart_lars">LARS Score Over Time</div>
             <div class="chart-wrapper">
               <canvas id="lars-chart"></canvas>
             </div>
@@ -963,7 +976,7 @@
 
           <!-- EQ-5D-5L Chart -->
           <div class="chart-container">
-            <div class="chart-title">EQ-5D-5L Health VAS</div>
+            <div class="chart-title" data-i18n="doctor.chart_eq5d5l">EQ-5D-5L Health VAS</div>
             <div class="chart-wrapper">
               <canvas id="eq5d5l-chart"></canvas>
             </div>
@@ -971,7 +984,7 @@
 
           <!-- LARS vs Food Consumption -->
           <div class="chart-container">
-            <div class="chart-title">LARS Score vs Food Consumption</div>
+            <div class="chart-title" data-i18n="doctor.chart_lars_food">LARS Score vs Food Consumption</div>
             <div class="chart-wrapper">
               <canvas id="lars-food-chart"></canvas>
             </div>
@@ -979,7 +992,7 @@
 
           <!-- LARS vs Daily Metrics -->
           <div class="chart-container">
-            <div class="chart-title">LARS Score vs Daily Symptoms</div>
+            <div class="chart-title" data-i18n="doctor.chart_lars_symptoms">LARS Score vs Daily Symptoms</div>
             <div class="chart-wrapper">
               <canvas id="lars-symptoms-chart"></canvas>
             </div>
@@ -987,7 +1000,7 @@
 
           <!-- Food Consumption -->
           <div class="chart-container">
-            <div class="chart-title">Food Consumption (Last 30 Days)</div>
+            <div class="chart-title" data-i18n="doctor.chart_food">Food Consumption (Last 30 Days)</div>
             <div class="chart-wrapper">
               <canvas id="food-chart"></canvas>
             </div>
@@ -995,7 +1008,7 @@
 
           <!-- Drink Consumption -->
           <div class="chart-container">
-            <div class="chart-title">Drink Consumption (Last 30 Days)</div>
+            <div class="chart-title" data-i18n="doctor.chart_drink">Drink Consumption (Last 30 Days)</div>
             <div class="chart-wrapper">
               <canvas id="drink-chart"></canvas>
             </div>
@@ -1011,30 +1024,30 @@
     <div class="create-patient-modal-content">
       <!-- Confirm state -->
       <div id="create-patient-modal-confirm-state">
-        <h2 id="create-patient-modal-title" class="create-patient-modal-title">Confirm create patient</h2>
-        <p class="create-patient-modal-subtitle">Please verify you are on the correct account before creating a new patient.</p>
+        <h2 id="create-patient-modal-title" class="create-patient-modal-title" data-i18n="doctor.modal_confirm_title">Confirm create patient</h2>
+        <p class="create-patient-modal-subtitle" data-i18n="doctor.modal_confirm_subtitle">Please verify you are on the correct account before creating a new patient.</p>
         <div class="create-patient-modal-row">
-          <span class="create-patient-modal-row-label">Doctor</span>
+          <span class="create-patient-modal-row-label" data-i18n="doctor.modal_doctor_label">Doctor</span>
           <span id="create-patient-modal-doctor-name" class="create-patient-modal-row-value">—</span>
         </div>
         <div class="create-patient-modal-row">
-          <span class="create-patient-modal-row-label">Date</span>
+          <span class="create-patient-modal-row-label" data-i18n="doctor.modal_date_label">Date</span>
           <span id="create-patient-modal-date" class="create-patient-modal-row-value">—</span>
         </div>
         <div class="create-patient-modal-actions">
-          <button type="button" id="create-patient-modal-confirm" class="create-patient-modal-btn create-patient-modal-btn-confirm">Create patient</button>
-          <button type="button" id="create-patient-modal-cancel" class="create-patient-modal-btn create-patient-modal-btn-cancel">Cancel</button>
+          <button type="button" id="create-patient-modal-confirm" class="create-patient-modal-btn create-patient-modal-btn-confirm" data-i18n="doctor.modal_confirm_btn">Create patient</button>
+          <button type="button" id="create-patient-modal-cancel" class="create-patient-modal-btn create-patient-modal-btn-cancel" data-i18n="doctor.modal_cancel_btn">Cancel</button>
         </div>
       </div>
       <!-- Success state: patient code -->
       <div id="create-patient-modal-success-state" style="display: none;">
-        <h2 class="create-patient-modal-title">Patient created</h2>
-        <p class="create-patient-modal-subtitle">Share this code with the patient to link their app.</p>
+        <h2 class="create-patient-modal-title" data-i18n="doctor.modal_success_title">Patient created</h2>
+        <p class="create-patient-modal-subtitle" data-i18n="doctor.modal_success_subtitle">Share this code with the patient to link their app.</p>
         <div class="create-patient-modal-code-block">
           <span id="create-patient-modal-code" class="create-patient-modal-code-value"></span>
         </div>
         <div class="create-patient-modal-actions" style="margin-top: 1.5rem;">
-          <button type="button" id="create-patient-modal-done" class="create-patient-modal-btn create-patient-modal-btn-confirm">Done</button>
+          <button type="button" id="create-patient-modal-done" class="create-patient-modal-btn create-patient-modal-btn-confirm" data-i18n="doctor.modal_done_btn">Done</button>
         </div>
       </div>
       <button type="button" id="create-patient-modal-close" class="create-patient-modal-close" aria-label="Close">×</button>
@@ -1045,19 +1058,19 @@
   <div id="doctor-profile-modal" class="doctor-profile-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="doctor-profile-title">
     <div class="doctor-profile-modal-backdrop"></div>
     <div class="doctor-profile-modal-content">
-      <h2 id="doctor-profile-title" class="doctor-profile-title">Complete your profile</h2>
-      <p class="doctor-profile-subtitle">Please fill in your details to use the doctor dashboard.</p>
+      <h2 id="doctor-profile-title" class="doctor-profile-title" data-i18n="doctor.profile_title">Complete your profile</h2>
+      <p class="doctor-profile-subtitle" data-i18n="doctor.profile_subtitle">Please fill in your details to use the doctor dashboard.</p>
       <form id="doctor-profile-form" class="doctor-profile-form">
-        <label for="doctor-profile-first-name">First name</label>
+        <label for="doctor-profile-first-name" data-i18n="doctor.first_name">First name</label>
         <input type="text" id="doctor-profile-first-name" name="first_name" placeholder="First name" autocomplete="given-name">
-        <label for="doctor-profile-last-name">Last name</label>
+        <label for="doctor-profile-last-name" data-i18n="doctor.last_name">Last name</label>
         <input type="text" id="doctor-profile-last-name" name="last_name" placeholder="Last name" autocomplete="family-name">
         <label for="doctor-profile-hospital">Hospital <span class="required">*</span></label>
         <select id="doctor-profile-hospital" name="hospital_id" required>
           <option value="">Select hospital</option>
         </select>
         <p id="doctor-profile-error" class="doctor-profile-error" role="alert" style="display: none;"></p>
-        <button type="submit" id="doctor-profile-save" class="doctor-profile-save">Save</button>
+        <button type="submit" id="doctor-profile-save" class="doctor-profile-save" data-i18n="doctor.save">Save</button>
       </form>
       <button type="button" id="doctor-profile-close" class="doctor-profile-close" aria-label="Close">×</button>
     </div>
@@ -1067,6 +1080,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   
+  <script src="js/i18n.js"></script>
   <script src="js/config.js"></script>
   <script src="js/firebase/config.js"></script>
   <script src="js/firebase/auth.js"></script>
