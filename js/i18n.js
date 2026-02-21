@@ -127,7 +127,7 @@
       fireReady();
       return;
     }
-    var url = localesBase() + lang + '.json?v=2';
+    var url = localesBase() + lang + '.json?v=3';
     fetch(url)
       .then(function (r) {
         if (!r.ok) throw new Error(r.status);
