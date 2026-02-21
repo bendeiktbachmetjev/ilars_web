@@ -146,7 +146,7 @@ class PatientDetailView {
         if (stepsContainer) {
             stepsContainer.style.display = 'block';
             if (data.daily_steps && data.daily_steps.length > 0) {
-                this.renderStepsChart(data.daily_steps);
+                this.renderStepsChart(data.daily_steps, data.lars_scores || []);
             } else {
                 const ctx = document.getElementById('steps-chart');
                 if (ctx) {
@@ -819,26 +819,83 @@ class PatientDetailView {
         });
     }
 
-    renderStepsChart(data) {
+    renderStepsChart(stepsData, larsData) {
         const ctx = document.getElementById('steps-chart');
         if (!ctx) return;
 
-        const labels = data.map(d => this.formatDateShort(d.date));
-        const steps = data.map(d => d.steps);
+        const labels = stepsData.map(d => this.formatDateShort(d.date));
+        const steps = stepsData.map(d => d.steps);
+
+        const larsMap = {};
+        (larsData || []).forEach(d => { larsMap[d.date] = d.score; });
+        const larsLine = stepsData.map(d => larsMap[d.date] !== undefined ? larsMap[d.date] : null);
+        const hasLars = larsLine.some(v => v !== null);
+
+        const datasets = [{
+            label: this._t('doctor.chart_steps_label'),
+            data: steps,
+            backgroundColor: 'rgba(59, 130, 246, 0.5)',
+            borderColor: '#3b82f6',
+            borderWidth: 1,
+            borderRadius: 4,
+            yAxisID: 'ySteps',
+            order: 2,
+        }];
+
+        if (hasLars) {
+            datasets.push({
+                label: 'LARS Score',
+                data: larsLine,
+                type: 'line',
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                borderWidth: 2,
+                pointRadius: 5,
+                pointBackgroundColor: '#f59e0b',
+                tension: 0.3,
+                spanGaps: true,
+                yAxisID: 'yLars',
+                order: 1,
+            });
+        }
+
+        const scales = {
+            ySteps: {
+                position: 'left',
+                beginAtZero: true,
+                ticks: {
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    callback: function(value) {
+                        if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
+                        return value;
+                    }
+                },
+                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+            },
+            x: {
+                ticks: { color: 'rgba(255, 255, 255, 0.7)' },
+                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+            },
+        };
+
+        if (hasLars) {
+            scales.yLars = {
+                position: 'right',
+                min: 0,
+                max: 42,
+                ticks: { color: '#f59e0b' },
+                grid: { drawOnChartArea: false },
+                title: {
+                    display: true,
+                    text: 'LARS',
+                    color: '#f59e0b',
+                },
+            };
+        }
 
         this.charts.steps = new Chart(ctx, {
             type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: this._t('doctor.chart_steps_label'),
-                    data: steps,
-                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                    borderColor: '#3b82f6',
-                    borderWidth: 1,
-                    borderRadius: 4,
-                }]
-            },
+            data: { labels, datasets },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -847,28 +904,12 @@ class PatientDetailView {
                         display: true,
                         labels: {
                             color: 'rgba(255, 255, 255, 0.9)',
-                            font: { size: 14 }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            color: 'rgba(255, 255, 255, 0.7)',
-                            callback: function(value) {
-                                if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
-                                return value;
-                            }
+                            font: { size: 14 },
                         },
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
                     },
-                    x: {
-                        ticks: { color: 'rgba(255, 255, 255, 0.7)' },
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                    }
-                }
-            }
+                },
+                scales,
+            },
         });
     }
 
