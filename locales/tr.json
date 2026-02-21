@@ -151,7 +151,7 @@
     "chart_lars_symptoms": "LARS skoru vs günlük semptomlar",
     "chart_food": "Gıda tüketimi (son 30 gün)",
     "chart_drink": "İçecek tüketimi (son 30 gün)",
-    "chart_steps": "Günlük adımlar (son 90 gün)",
+    "chart_steps": "Günlük adımlar",
     "chart_steps_label": "Adımlar",
     "no_steps_data": "Henüz adım verisi yok",
     "modal_confirm_title": "Hasta oluşturmayı onayla",

@@ -151,7 +151,7 @@
     "chart_lars_symptoms": "LARS balas vs kasdieniai simptomai",
     "chart_food": "Maisto vartojimas (paskutinės 30 dienų)",
     "chart_drink": "Gėrimų vartojimas (paskutinės 30 dienų)",
-    "chart_steps": "Dienos žingsniai (paskutinės 90 dienų)",
+    "chart_steps": "Dienos žingsniai",
     "chart_steps_label": "Žingsniai",
     "no_steps_data": "Žingsnių duomenų dar nėra",
     "modal_confirm_title": "Patvirtinti paciento sukūrimą",
