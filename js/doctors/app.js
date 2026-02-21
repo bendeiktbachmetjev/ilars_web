@@ -93,5 +93,14 @@ class App {
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new App();
+
+    // Re-render dynamic content when language changes (no extra API call)
+    if (window.ILARS_I18N) {
+        window.ILARS_I18N._onLangChange = function () {
+            if (window.PatientListView && window.PatientListView.cachedData) {
+                window.PatientListView.load();
+            }
+        };
+    }
 });
 

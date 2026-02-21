@@ -1,5 +1,11 @@
 /* iLARS Landing — Apple-inspired minimal, gradient purple/blue/orange */
 
+/* Anti-flash: hide body until i18n translations are applied */
+html.i18n-loading body {
+  opacity: 0 !important;
+  transition: none !important;
+}
+
 :root {
   --gradient-hero: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #ff9a56 100%);
   --gradient-soft: linear-gradient(180deg, #f8f9ff 0%, #fff5f5 50%, #f0f4ff 100%);

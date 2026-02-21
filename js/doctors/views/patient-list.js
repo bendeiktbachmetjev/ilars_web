@@ -117,7 +117,7 @@ class PatientListView {
         const dateEl = document.getElementById('create-patient-modal-date');
 
         if (doctorNameEl) doctorNameEl.textContent = '—';
-        if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        if (dateEl) dateEl.textContent = new Date().toLocaleDateString(this._dateLang(), { year: 'numeric', month: 'long', day: 'numeric' });
 
         try {
             if (this.api.getDoctorProfile) {
@@ -166,7 +166,7 @@ class PatientListView {
         try {
             if (btnConfirm) {
                 btnConfirm.disabled = true;
-                btnConfirm.textContent = 'Creating...';
+                btnConfirm.textContent = this._t('doctor.creating');
             }
 
             const data = await this.api.createPatient();
@@ -188,7 +188,7 @@ class PatientListView {
         } finally {
             if (btnConfirm) {
                 btnConfirm.disabled = false;
-                btnConfirm.textContent = originalText || 'Create patient';
+                btnConfirm.textContent = originalText || this._t('doctor.modal_confirm_btn');
             }
         }
     }
@@ -225,9 +225,17 @@ class PatientListView {
         }
     }
 
+    _t(key) {
+        return (window.ILARS_I18N && window.ILARS_I18N.t) ? window.ILARS_I18N.t(key) : key;
+    }
+
+    _dateLang() {
+        return (window.ILARS_I18N && window.ILARS_I18N.getLang) ? window.ILARS_I18N.getLang() : 'en';
+    }
+
     renderTable(patients, tbodyEl, tableEl, isActive) {
         if (!patients || patients.length === 0) {
-            tbodyEl.innerHTML = '<tr><td colspan="7" class="empty">No patients found</td></tr>';
+            tbodyEl.innerHTML = '<tr><td colspan="7" class="empty">' + this._t('doctor.no_patients') + '</td></tr>';
             tableEl.style.display = 'table';
         } else {
             tbodyEl.innerHTML = patients.map(patient => {
@@ -305,10 +313,10 @@ class PatientListView {
     formatDate(dateString) {
         if (!dateString) return null;
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
+        return date.toLocaleDateString(this._dateLang(), {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
         });
     }
 

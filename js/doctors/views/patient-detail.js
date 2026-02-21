@@ -51,14 +51,22 @@ class PatientDetailView {
         }
     }
 
+    _t(key) {
+        return (window.ILARS_I18N && window.ILARS_I18N.t) ? window.ILARS_I18N.t(key) : key;
+    }
+
+    _dateLang() {
+        return (window.ILARS_I18N && window.ILARS_I18N.getLang) ? window.ILARS_I18N.getLang() : 'en';
+    }
+
     updateStatusUI(patientStatus) {
         const indicator = document.getElementById('patient-status-indicator');
         const btn = document.getElementById('patient-change-status-btn');
         if (!indicator || !btn) return;
         const isActive = (patientStatus || 'active') === 'active';
-        indicator.textContent = isActive ? 'Active' : 'Inactive';
+        indicator.textContent = isActive ? this._t('doctor.status_active') : this._t('doctor.status_inactive');
         indicator.className = 'patient-status-badge ' + (isActive ? 'active' : 'inactive');
-        btn.textContent = isActive ? 'Set inactive' : 'Set active';
+        btn.textContent = isActive ? this._t('doctor.set_inactive') : this._t('doctor.set_active');
     }
 
     async togglePatientStatus() {
@@ -67,7 +75,7 @@ class PatientDetailView {
         const btn = document.getElementById('patient-change-status-btn');
         if (btn) {
             btn.disabled = true;
-            btn.textContent = 'Updating...';
+            btn.textContent = this._t('doctor.updating');
         }
         try {
             await this.api.updatePatientStatus(this.currentCode, newStatus);
@@ -807,7 +815,7 @@ class PatientDetailView {
     formatDateShort(dateString) {
         if (!dateString) return '';
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return date.toLocaleDateString(this._dateLang(), { month: 'short', day: 'numeric' });
     }
 }
 

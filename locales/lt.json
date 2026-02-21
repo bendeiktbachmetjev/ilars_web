@@ -167,7 +167,12 @@
     "hospital_label": "Ligoninė",
     "select_hospital": "Pasirinkite ligoninę",
     "save": "Išsaugoti",
-    "checking_access": "Tikrinama prieiga..."
+    "checking_access": "Tikrinama prieiga...",
+    "no_patients": "Pacientų nerasta",
+    "creating": "Kuriama...",
+    "updating": "Atnaujinama...",
+    "status_active": "Aktyvus",
+    "status_inactive": "Neaktyvus"
   },
   "doctor_setup": {
     "title": "Užpildykite savo profilį",

@@ -167,7 +167,12 @@
     "hospital_label": "Hastane",
     "select_hospital": "Hastane seçin",
     "save": "Kaydet",
-    "checking_access": "Erişim kontrol ediliyor..."
+    "checking_access": "Erişim kontrol ediliyor...",
+    "no_patients": "Hasta bulunamadı",
+    "creating": "Oluşturuluyor...",
+    "updating": "Güncelleniyor...",
+    "status_active": "Aktif",
+    "status_inactive": "Aktif değil"
   },
   "doctor_setup": {
     "title": "Profilinizi tamamlayın",

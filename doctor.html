@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>(function(){try{var l=localStorage.getItem('ilars_lang');if(l&&l!=='en')document.documentElement.className+=' i18n-loading'}catch(e){}})();</script>
   <title>Doctor Dashboard — iLARS</title>
   <script>
     // Hide page immediately - before any rendering
@@ -853,6 +854,16 @@
         }
         if (window.ILARS_DOCTOR_PROFILE && window.ILARS_DOCTOR_PROFILE.init) {
           window.ILARS_DOCTOR_PROFILE.init();
+        }
+        // Re-apply translations after dashboard is visible
+        if (window.ILARS_I18N) {
+          if (window.ILARS_I18N.patchDOM) {
+            window.ILARS_I18N.patchDOM();
+          } else {
+            window.ILARS_I18N.onReady(function() {
+              window.ILARS_I18N.patchDOM();
+            });
+          }
         }
       }
       

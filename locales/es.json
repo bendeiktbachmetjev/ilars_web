@@ -167,7 +167,12 @@
     "hospital_label": "Hospital",
     "select_hospital": "Seleccionar hospital",
     "save": "Guardar",
-    "checking_access": "Verificando acceso..."
+    "checking_access": "Verificando acceso...",
+    "no_patients": "No se encontraron pacientes",
+    "creating": "Creando...",
+    "updating": "Actualizando...",
+    "status_active": "Activo",
+    "status_inactive": "Inactivo"
   },
   "doctor_setup": {
     "title": "Completa tu perfil",
