@@ -18,7 +18,7 @@
     .navbar-menu a.btn-login::after { display: none !important; }
   </style>
 </head>
-<body>
+<body data-i18n-page="project">
   <!-- Navigation -->
   <nav class="navbar">
     <div class="navbar-inner">
@@ -27,13 +27,26 @@
         <span class="navbar-logo-text">iLARS</span>
       </a>
       <ul class="navbar-menu">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="about.html">About Us</a></li>
-        <li><a href="project.html">Our Project</a></li>
-        <li><a href="features.html">Features</a></li>
-        <li><a href="contact.html">Contact</a></li>
-        <li class="navbar-cta"><a href="login.html" class="btn btn-login">Log in</a></li>
+        <li><a href="index.html" data-i18n="nav.home">Home</a></li>
+        <li><a href="about.html" data-i18n="nav.about">About Us</a></li>
+        <li><a href="project.html" data-i18n="nav.project">Our Project</a></li>
+        <li><a href="features.html" data-i18n="nav.features">Features</a></li>
+        <li><a href="contact.html" data-i18n="nav.contact">Contact</a></li>
+        <li class="navbar-cta"><a href="login.html" class="btn btn-login" data-i18n="nav.login">Log in</a></li>
       </ul>
+      <div class="navbar-lang">
+        <button class="lang-btn" aria-label="Change language" aria-expanded="false">
+          <span class="lang-current">EN</span>
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <ul class="lang-dropdown">
+          <li><button data-lang="en">English</button></li>
+          <li><button data-lang="lt">Lietuvių</button></li>
+          <li><button data-lang="it">Italiano</button></li>
+          <li><button data-lang="es">Español</button></li>
+          <li><button data-lang="tr">Türkçe</button></li>
+        </ul>
+      </div>
       <button class="navbar-toggle" aria-label="Toggle menu">
         <span></span>
         <span></span>
@@ -45,28 +58,28 @@
   <main class="page-content">
     <section class="page-hero">
       <div class="page-hero-inner">
-        <h1 class="page-title">Our Project</h1>
-        <p class="page-subtitle">Understanding the problem and how iLARS provides a solution.</p>
+        <h1 class="page-title" data-i18n="project.title">Our Project</h1>
+        <p class="page-subtitle" data-i18n="project.subtitle">Understanding the problem and how iLARS provides a solution.</p>
       </div>
     </section>
 
     <section class="problem-solution">
-      <h2 class="section-title">The problem we solve</h2>
-      <p class="section-subtitle">After rectal cancer surgery, many people live with bowel changes (LARS). It's hard to track, explain to doctors, and know what helps.</p>
+      <h2 class="section-title" data-i18n="project.problem_title">The problem we solve</h2>
+      <p class="section-subtitle" data-i18n="project.problem_subtitle">After rectal cancer surgery, many people live with bowel changes (LARS). It's hard to track, explain to doctors, and know what helps.</p>
 
       <div class="project-layout">
         <div class="project-layout-text">
-          <h3 class="section-title" style="font-size: 1.35rem;">Life after surgery is different</h3>
-          <p>Low Anterior Resection Syndrome (LARS) can lead to urgency, clustering, incontinence and changes in stool consistency that strongly affect quality of life.</p>
-          <p>Many patients struggle to keep track of how they feel over weeks and months, and it is hard to describe these day‑to‑day changes clearly during short appointments.</p>
+          <h3 class="section-title" style="font-size: 1.35rem;" data-i18n="project.life_title">Life after surgery is different</h3>
+          <p data-i18n="project.life_p1">Low Anterior Resection Syndrome (LARS) can lead to urgency, clustering, incontinence and changes in stool consistency that strongly affect quality of life.</p>
+          <p data-i18n="project.life_p2">Many patients struggle to keep track of how they feel over weeks and months, and it is hard to describe these day‑to‑day changes clearly during short appointments.</p>
 
-          <h3 class="section-title" style="font-size: 1.35rem;">What iLARS does</h3>
-          <p>iLARS gives patients a simple, structured way to log symptoms, lifestyle factors and validated scores on a daily and weekly basis.</p>
-          <p>The app translates these entries into clean timelines and summaries, so both patients and clinicians can quickly see trends instead of scrolling through raw notes.</p>
+          <h3 class="section-title" style="font-size: 1.35rem;" data-i18n="project.what_title">What iLARS does</h3>
+          <p data-i18n="project.what_p1">iLARS gives patients a simple, structured way to log symptoms, lifestyle factors and validated scores on a daily and weekly basis.</p>
+          <p data-i18n="project.what_p2">The app translates these entries into clean timelines and summaries, so both patients and clinicians can quickly see trends instead of scrolling through raw notes.</p>
 
-          <h3 class="section-title" style="font-size: 1.35rem;">Why this matters</h3>
-          <p>With better data, conversations become more focused: patients feel heard, and doctors can make decisions based on objective history rather than memory alone.</p>
-          <p>Our goal is to support earlier interventions, more personalized management plans and, ultimately, better long‑term outcomes after rectal cancer surgery.</p>
+          <h3 class="section-title" style="font-size: 1.35rem;" data-i18n="project.why_title">Why this matters</h3>
+          <p data-i18n="project.why_p1">With better data, conversations become more focused: patients feel heard, and doctors can make decisions based on objective history rather than memory alone.</p>
+          <p data-i18n="project.why_p2">Our goal is to support earlier interventions, more personalized management plans and, ultimately, better long‑term outcomes after rectal cancer surgery.</p>
         </div>
 
         <div class="project-layout-image">
@@ -78,9 +91,10 @@
 
   <footer class="footer">
     <p class="logo-footer">iLARS</p>
-    <p>Your story after surgery. For informational and educational use only.</p>
+    <p data-i18n="footer.slogan">Your story after surgery. For informational and educational use only.</p>
   </footer>
 
+  <script src="js/i18n.js"></script>
   <script src="js/config.js"></script>
   <script src="js/components/nav.js"></script>
   <script src="js/main.js"></script>

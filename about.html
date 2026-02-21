@@ -18,7 +18,7 @@
     .navbar-menu a.btn-login::after { display: none !important; }
   </style>
 </head>
-<body>
+<body data-i18n-page="about">
   <!-- Navigation -->
   <nav class="navbar">
     <div class="navbar-inner">
@@ -27,13 +27,26 @@
         <span class="navbar-logo-text">iLARS</span>
       </a>
       <ul class="navbar-menu">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="about.html">About Us</a></li>
-        <li><a href="project.html">Our Project</a></li>
-        <li><a href="features.html">Features</a></li>
-        <li><a href="contact.html">Contact</a></li>
-        <li class="navbar-cta"><a href="login.html" class="btn btn-login">Log in</a></li>
+        <li><a href="index.html" data-i18n="nav.home">Home</a></li>
+        <li><a href="about.html" data-i18n="nav.about">About Us</a></li>
+        <li><a href="project.html" data-i18n="nav.project">Our Project</a></li>
+        <li><a href="features.html" data-i18n="nav.features">Features</a></li>
+        <li><a href="contact.html" data-i18n="nav.contact">Contact</a></li>
+        <li class="navbar-cta"><a href="login.html" class="btn btn-login" data-i18n="nav.login">Log in</a></li>
       </ul>
+      <div class="navbar-lang">
+        <button class="lang-btn" aria-label="Change language" aria-expanded="false">
+          <span class="lang-current">EN</span>
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <ul class="lang-dropdown">
+          <li><button data-lang="en">English</button></li>
+          <li><button data-lang="lt">Lietuvių</button></li>
+          <li><button data-lang="it">Italiano</button></li>
+          <li><button data-lang="es">Español</button></li>
+          <li><button data-lang="tr">Türkçe</button></li>
+        </ul>
+      </div>
       <button class="navbar-toggle" aria-label="Toggle menu">
         <span></span>
         <span></span>
@@ -45,35 +58,35 @@
   <main class="page-content">
     <section class="page-hero">
       <div class="page-hero-inner">
-        <h1 class="page-title">About Us</h1>
-        <p class="page-subtitle">We're a team dedicated to improving life after rectal cancer surgery through technology and care.</p>
+        <h1 class="page-title" data-i18n="about.title">About Us</h1>
+        <p class="page-subtitle" data-i18n="about.subtitle">We're a team dedicated to improving life after rectal cancer surgery through technology and care.</p>
       </div>
     </section>
 
     <section class="about">
       <div class="about-content">
-        <h2 class="section-title">Our Mission</h2>
-        <p>iLARS was created to help patients manage Low Anterior Resection Syndrome (LARS) — a common condition after rectal cancer surgery that affects bowel function and quality of life.</p>
-        <p>Our mission is to provide simple, effective tools for symptom tracking and to connect patients with their care teams for better outcomes.</p>
+        <h2 class="section-title" data-i18n="about.mission_title">Our Mission</h2>
+        <p data-i18n="about.mission_p1">iLARS was created to help patients manage Low Anterior Resection Syndrome (LARS) — a common condition after rectal cancer surgery that affects bowel function and quality of life.</p>
+        <p data-i18n="about.mission_p2">Our mission is to provide simple, effective tools for symptom tracking and to connect patients with their care teams for better outcomes.</p>
 
-        <h2 class="section-title" style="margin-top: 3rem;">Who We Are</h2>
-        <p>We are a multidisciplinary team of healthcare professionals, developers, and researchers working together to improve patient outcomes after colorectal surgery.</p>
-        <p>Our approach combines clinical expertise with user-centered design to create tools that are both medically sound and easy to use.</p>
+        <h2 class="section-title" style="margin-top: 3rem;" data-i18n="about.who_title">Who We Are</h2>
+        <p data-i18n="about.who_p1">We are a multidisciplinary team of healthcare professionals, developers, and researchers working together to improve patient outcomes after colorectal surgery.</p>
+        <p data-i18n="about.who_p2">Our approach combines clinical expertise with user-centered design to create tools that are both medically sound and easy to use.</p>
 
-        <h2 class="section-title" style="margin-top: 3rem;">Our Values</h2>
+        <h2 class="section-title" style="margin-top: 3rem;" data-i18n="about.values_title">Our Values</h2>
         <ul class="values-list">
-          <li><strong>Patient-centered:</strong> Every decision we make prioritizes patient well-being and quality of life.</li>
-          <li><strong>Evidence-based:</strong> Our tools are built on validated clinical measures and current medical guidelines.</li>
-          <li><strong>Privacy-first:</strong> We protect patient data with pseudonymous identifiers and secure storage.</li>
-          <li><strong>Accessible:</strong> We believe healthcare technology should be available to everyone who needs it.</li>
+          <li data-i18n-html="about.value1"><strong>Patient-centered:</strong> Every decision we make prioritizes patient well-being and quality of life.</li>
+          <li data-i18n-html="about.value2"><strong>Evidence-based:</strong> Our tools are built on validated clinical measures and current medical guidelines.</li>
+          <li data-i18n-html="about.value3"><strong>Privacy-first:</strong> We protect patient data with pseudonymous identifiers and secure storage.</li>
+          <li data-i18n-html="about.value4"><strong>Accessible:</strong> We believe healthcare technology should be available to everyone who needs it.</li>
         </ul>
       </div>
     </section>
 
     <section class="team">
       <div class="team-inner">
-        <h2 class="section-title">OUR TEAM</h2>
-        <p class="section-subtitle" style="max-width: 640px; margin: 0 auto 3rem;">
+        <h2 class="section-title" data-i18n="about.team_title">OUR TEAM</h2>
+        <p class="section-subtitle" style="max-width: 640px; margin: 0 auto 3rem;" data-i18n="about.team_subtitle">
           iLARS combines clinical experience and technical execution. Our core team brings together surgeons,
           clinicians and a full-stack developer working side by side.
         </p>
@@ -84,8 +97,8 @@
               <img src="images/Dovile.jpeg" alt="Dovile Cerkauskaite, M.D." class="team-photo" />
             </div>
             <h3 class="team-name">Dovile Cerkauskaite, M.D.</h3>
-            <p class="team-role">Clinical lead & content</p>
-            <p class="team-desc">
+            <p class="team-role" data-i18n="about.team1_role">Clinical lead & content</p>
+            <p class="team-desc" data-i18n="about.team1_desc">
               Project idea and clinical concept, symptom modules, educational content and app texts;
               coordination and collaboration with the developer.
             </p>
@@ -96,8 +109,8 @@
               <img src="images/Benedikt.jpg" alt="Benedikt Bachmetjev, M.D." class="team-photo" />
             </div>
             <h3 class="team-name">Benedikt Bachmetjev, M.D.</h3>
-            <p class="team-role">Technical lead</p>
-            <p class="team-desc">
+            <p class="team-role" data-i18n="about.team2_role">Technical lead</p>
+            <p class="team-desc" data-i18n="about.team2_desc">
               Software development: product design, full-stack implementation and infrastructure;
               turning clinical requirements into a polished patient app and backend.
             </p>
@@ -108,8 +121,8 @@
               <img src="images/Audrius.jpg" alt="Audrius Dulskas, M.D., PhD" class="team-photo" />
             </div>
             <h3 class="team-name">Audrius Dulskas, M.D., PhD</h3>
-            <p class="team-role">Clinical lead, Clinical advisor</p>
-            <p class="team-desc">
+            <p class="team-role" data-i18n="about.team3_role">Clinical lead, Clinical advisor</p>
+            <p class="team-desc" data-i18n="about.team3_desc">
               Clinical feedback and usability; assessed the interface from the physician’s perspective and
               contributed to logic, decision flow and safety of recommendations.
             </p>
@@ -121,9 +134,10 @@
 
   <footer class="footer">
     <p class="logo-footer">iLARS</p>
-    <p>Your story after surgery. For informational and educational use only.</p>
+    <p data-i18n="footer.slogan">Your story after surgery. For informational and educational use only.</p>
   </footer>
 
+  <script src="js/i18n.js"></script>
   <script src="js/config.js"></script>
   <script src="js/components/nav.js"></script>
   <script src="js/main.js"></script>

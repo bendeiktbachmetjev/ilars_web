@@ -18,7 +18,7 @@
     .navbar-menu a.btn-login::after { display: none !important; }
   </style>
 </head>
-<body>
+<body data-i18n-page="features">
   <!-- Navigation -->
   <nav class="navbar">
     <div class="navbar-inner">
@@ -27,13 +27,26 @@
         <span class="navbar-logo-text">iLARS</span>
       </a>
       <ul class="navbar-menu">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="about.html">About Us</a></li>
-        <li><a href="project.html">Our Project</a></li>
-        <li><a href="features.html">Features</a></li>
-        <li><a href="contact.html">Contact</a></li>
-        <li class="navbar-cta"><a href="login.html" class="btn btn-login">Log in</a></li>
+        <li><a href="index.html" data-i18n="nav.home">Home</a></li>
+        <li><a href="about.html" data-i18n="nav.about">About Us</a></li>
+        <li><a href="project.html" data-i18n="nav.project">Our Project</a></li>
+        <li><a href="features.html" data-i18n="nav.features">Features</a></li>
+        <li><a href="contact.html" data-i18n="nav.contact">Contact</a></li>
+        <li class="navbar-cta"><a href="login.html" class="btn btn-login" data-i18n="nav.login">Log in</a></li>
       </ul>
+      <div class="navbar-lang">
+        <button class="lang-btn" aria-label="Change language" aria-expanded="false">
+          <span class="lang-current">EN</span>
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <ul class="lang-dropdown">
+          <li><button data-lang="en">English</button></li>
+          <li><button data-lang="lt">Lietuvių</button></li>
+          <li><button data-lang="it">Italiano</button></li>
+          <li><button data-lang="es">Español</button></li>
+          <li><button data-lang="tr">Türkçe</button></li>
+        </ul>
+      </div>
       <button class="navbar-toggle" aria-label="Toggle menu">
         <span></span>
         <span></span>
@@ -45,47 +58,47 @@
   <main class="page-content">
     <section class="page-hero">
       <div class="page-hero-inner">
-        <h1 class="page-title">Features</h1>
-        <p class="page-subtitle">Daily and weekly tracking, doctor dashboard, and AI-driven suggestions — all in one place.</p>
+        <h1 class="page-title" data-i18n="features.title">Features</h1>
+        <p class="page-subtitle" data-i18n="features.subtitle">Daily and weekly tracking, doctor dashboard, and AI-driven suggestions — all in one place.</p>
       </div>
     </section>
 
     <section class="features">
-      <h2 class="section-title">Built for your recovery</h2>
-      <p class="section-subtitle">Comprehensive tools to support your journey after surgery.</p>
+      <h2 class="section-title" data-i18n="features.section_title">Built for your recovery</h2>
+      <p class="section-subtitle" data-i18n="features.section_subtitle">Comprehensive tools to support your journey after surgery.</p>
 
       <div class="features-grid">
         <article class="feature-card">
           <div class="feature-icon tracking" aria-hidden="true">📊</div>
-          <h3>Symptom tracking</h3>
-          <p>Log bowel habits, urgency, and how you feel every day. Weekly LARS and quality-of-life questionnaires help you and your doctor spot trends.</p>
+          <h3 data-i18n="features.tracking_title">Symptom tracking</h3>
+          <p data-i18n="features.tracking_desc">Log bowel habits, urgency, and how you feel every day. Weekly LARS and quality-of-life questionnaires help you and your doctor spot trends.</p>
           <ul class="feature-details">
-            <li>Daily symptom logging</li>
-            <li>Weekly LARS questionnaire</li>
-            <li>Monthly quality-of-life assessments</li>
-            <li>Visual charts and trends</li>
+            <li data-i18n="features.tracking_detail1">Daily symptom logging</li>
+            <li data-i18n="features.tracking_detail2">Weekly LARS questionnaire</li>
+            <li data-i18n="features.tracking_detail3">Monthly quality-of-life assessments</li>
+            <li data-i18n="features.tracking_detail4">Visual charts and trends</li>
           </ul>
         </article>
         <article class="feature-card">
           <div class="feature-icon doctor" aria-hidden="true">👩‍⚕️</div>
-          <h3>Doctor dashboard</h3>
-          <p>Your care team gets a clear view of your progress. Share summaries and scores so appointments are more informed and efficient.</p>
+          <h3 data-i18n="features.doctor_title">Doctor dashboard</h3>
+          <p data-i18n="features.doctor_desc">Your care team gets a clear view of your progress. Share summaries and scores so appointments are more informed and efficient.</p>
           <ul class="feature-details">
-            <li>Secure data sharing</li>
-            <li>Summary reports</li>
-            <li>Score visualization</li>
-            <li>Progress tracking</li>
+            <li data-i18n="features.doctor_detail1">Secure data sharing</li>
+            <li data-i18n="features.doctor_detail2">Summary reports</li>
+            <li data-i18n="features.doctor_detail3">Score visualization</li>
+            <li data-i18n="features.doctor_detail4">Progress tracking</li>
           </ul>
         </article>
         <article class="feature-card">
           <div class="feature-icon ml" aria-hidden="true">✨</div>
-          <h3>AI-powered insights</h3>
-          <p>Get personalized, guideline-based suggestions to support self-management. Not medical advice — extra support alongside your doctor's care.</p>
+          <h3 data-i18n="features.ai_title">AI-powered insights</h3>
+          <p data-i18n="features.ai_desc">Get personalized, guideline-based suggestions to support self-management. Not medical advice — extra support alongside your doctor's care.</p>
           <ul class="feature-details">
-            <li>Personalized recommendations</li>
-            <li>Evidence-based guidelines</li>
-            <li>Educational content</li>
-            <li>Self-management tips</li>
+            <li data-i18n="features.ai_detail1">Personalized recommendations</li>
+            <li data-i18n="features.ai_detail2">Evidence-based guidelines</li>
+            <li data-i18n="features.ai_detail3">Educational content</li>
+            <li data-i18n="features.ai_detail4">Self-management tips</li>
           </ul>
         </article>
       </div>
@@ -94,9 +107,10 @@
 
   <footer class="footer">
     <p class="logo-footer">iLARS</p>
-    <p>Your story after surgery. For informational and educational use only.</p>
+    <p data-i18n="footer.slogan">Your story after surgery. For informational and educational use only.</p>
   </footer>
 
+  <script src="js/i18n.js"></script>
   <script src="js/config.js"></script>
   <script src="js/components/nav.js"></script>
   <script src="js/main.js"></script>

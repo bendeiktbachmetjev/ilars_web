@@ -19,7 +19,7 @@
     .navbar-menu a.btn-login::after { display: none !important; }
   </style>
 </head>
-<body>
+<body data-i18n-page="login">
   <!-- Navigation -->
   <nav class="navbar">
     <div class="navbar-inner">
@@ -28,13 +28,26 @@
         <span class="navbar-logo-text">iLARS</span>
       </a>
       <ul class="navbar-menu">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="about.html">About Us</a></li>
-        <li><a href="project.html">Our Project</a></li>
-        <li><a href="features.html">Features</a></li>
-        <li><a href="contact.html">Contact</a></li>
-        <li class="navbar-cta"><a href="login.html" class="btn btn-login">Log in</a></li>
+        <li><a href="index.html" data-i18n="nav.home">Home</a></li>
+        <li><a href="about.html" data-i18n="nav.about">About Us</a></li>
+        <li><a href="project.html" data-i18n="nav.project">Our Project</a></li>
+        <li><a href="features.html" data-i18n="nav.features">Features</a></li>
+        <li><a href="contact.html" data-i18n="nav.contact">Contact</a></li>
+        <li class="navbar-cta"><a href="login.html" class="btn btn-login" data-i18n="nav.login">Log in</a></li>
       </ul>
+      <div class="navbar-lang">
+        <button class="lang-btn" aria-label="Change language" aria-expanded="false">
+          <span class="lang-current">EN</span>
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <ul class="lang-dropdown">
+          <li><button data-lang="en">English</button></li>
+          <li><button data-lang="lt">Lietuvių</button></li>
+          <li><button data-lang="it">Italiano</button></li>
+          <li><button data-lang="es">Español</button></li>
+          <li><button data-lang="tr">Türkçe</button></li>
+        </ul>
+      </div>
       <button class="navbar-toggle" aria-label="Toggle menu">
         <span></span>
         <span></span>
@@ -45,47 +58,47 @@
 
   <main class="login-page">
     <div class="login-centering">
-      <h1 class="login-heading">Log in to iLARS</h1>
-      <p class="login-subheading">Choose how you want to continue — as a patient or as a doctor.</p>
+      <h1 class="login-heading" data-i18n="login.title">Log in to iLARS</h1>
+      <p class="login-subheading" data-i18n="login.subtitle">Choose how you want to continue — as a patient or as a doctor.</p>
 
       <!-- Single slot: all three windows stack in the same position -->
       <div class="login-window-slot">
         <!-- Window 1: Role selection -->
         <div class="login-window login-window--role is-visible" id="login-role-modal" role="group" aria-label="Choose login type">
           <button type="button" class="login-window__close" id="role-modal-close" aria-label="Close">×</button>
-          <h2 class="login-window__title">Continue as</h2>
+          <h2 class="login-window__title" data-i18n="login.continue_as">Continue as</h2>
           <div class="login-role-cards" id="login-role-cards">
             <button type="button" class="login-role-card" data-role="patient" aria-label="Log in as patient">
               <span class="login-role-card__icon" aria-hidden="true">👤</span>
-              <h3 class="login-role-card__title">Patient</h3>
-              <p class="login-role-card__desc">Enter your patient code to fill questionnaires and track your symptoms.</p>
+              <h3 class="login-role-card__title" data-i18n="login.patient_title">Patient</h3>
+              <p class="login-role-card__desc" data-i18n="login.patient_desc">Enter your patient code to fill questionnaires and track your symptoms.</p>
             </button>
             <button type="button" class="login-role-card" data-role="doctor" aria-label="Log in as doctor">
               <span class="login-role-card__icon" aria-hidden="true">🩺</span>
-              <h3 class="login-role-card__title">Doctor</h3>
-              <p class="login-role-card__desc">Sign in with your Google account to access the doctor dashboard.</p>
+              <h3 class="login-role-card__title" data-i18n="login.doctor_title">Doctor</h3>
+              <p class="login-role-card__desc" data-i18n="login.doctor_desc">Sign in with your Google account to access the doctor dashboard.</p>
             </button>
           </div>
         </div>
 
         <!-- Window 2: Patient code -->
         <div class="login-window login-window--form" id="login-form-patient" aria-hidden="true">
-          <h2 class="login-window__title">Enter your patient code</h2>
+          <h2 class="login-window__title" data-i18n="login.enter_code">Enter your patient code</h2>
           <form id="form-patient" novalidate class="login-window__form">
-            <label for="patient-code">Patient code</label>
-            <input type="text" id="patient-code" name="patient_code" placeholder="e.g. ABC123" required autocomplete="off">
+            <label for="patient-code" data-i18n="login.patient_code_label">Patient code</label>
+            <input type="text" id="patient-code" name="patient_code" data-i18n-placeholder="login.patient_code_placeholder" placeholder="e.g. ABC123" required autocomplete="off">
             <p class="login-window__error" id="patient-form-error" role="alert"></p>
-            <button type="submit" class="login-window__btn">Continue</button>
+            <button type="submit" class="login-window__btn" data-i18n="login.continue_btn">Continue</button>
           </form>
           <p class="login-window__change-role">
-            <button type="button" class="login-window__change-role-btn" id="login-change-role-patient" aria-label="Change role">Change role</button>
+            <button type="button" class="login-window__change-role-btn" id="login-change-role-patient" aria-label="Change role" data-i18n="login.change_role">Change role</button>
           </p>
         </div>
 
         <!-- Window 3: Doctor Google sign-in -->
         <div class="login-window login-window--form" id="login-form-doctor" aria-hidden="true">
-          <h2 class="login-window__title">Doctor sign in</h2>
-          <p class="login-window__subtitle">Sign in with your Google account to access the doctor dashboard.</p>
+          <h2 class="login-window__title" data-i18n="login.doctor_signin">Doctor sign in</h2>
+          <p class="login-window__subtitle" data-i18n="login.doctor_signin_desc">Sign in with your Google account to access the doctor dashboard.</p>
           <div id="doctor-signin-container" class="login-window__google-wrap">
             <button type="button" id="btn-google-signin" class="login-window__google-btn" aria-label="Sign in with Google">
               <svg class="login-window__google-icon" width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
@@ -96,16 +109,16 @@
                   <path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.83-2.2c-.76.53-1.78.9-3.13.9-2.38 0-4.4-1.57-5.12-3.74L.96 13.04C2.45 15.98 5.48 18 9 18z" fill="#34A853"/>
                 </g>
               </svg>
-              <span>Sign in with Google</span>
+              <span data-i18n="login.google_btn">Sign in with Google</span>
             </button>
             <p class="login-window__error" id="doctor-form-error" role="alert"></p>
             <div id="doctor-loading" class="login-window__loading" style="display: none;">
               <div class="login-window__spinner"></div>
-              <span>Signing in...</span>
+              <span data-i18n="login.signing_in">Signing in...</span>
             </div>
           </div>
           <p class="login-window__change-role">
-            <button type="button" class="login-window__change-role-btn" id="login-back-doctor" aria-label="Change role">Change role</button>
+            <button type="button" class="login-window__change-role-btn" id="login-back-doctor" aria-label="Change role" data-i18n="login.change_role">Change role</button>
           </p>
         </div>
       </div>
@@ -114,13 +127,14 @@
 
   <footer class="footer">
     <p class="logo-footer">iLARS</p>
-    <p>Your story after surgery. For informational and educational use only.</p>
+    <p data-i18n="footer.slogan">Your story after surgery. For informational and educational use only.</p>
   </footer>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   
+  <script src="js/i18n.js"></script>
   <script src="js/config.js"></script>
   <script src="js/firebase/config.js"></script>
   <script src="js/firebase/auth.js"></script>

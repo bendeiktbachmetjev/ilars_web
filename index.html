@@ -27,7 +27,7 @@
     }
   </style>
 </head>
-<body>
+<body data-i18n-page="index">
   <!-- Navigation -->
   <nav class="navbar">
     <div class="navbar-inner">
@@ -36,13 +36,26 @@
         <span class="navbar-logo-text">iLARS</span>
       </a>
       <ul class="navbar-menu">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="about.html">About Us</a></li>
-        <li><a href="project.html">Our Project</a></li>
-        <li><a href="features.html">Features</a></li>
-        <li><a href="contact.html">Contact</a></li>
-        <li class="navbar-cta"><a href="login.html" class="btn btn-login">Log in</a></li>
+        <li><a href="index.html" data-i18n="nav.home">Home</a></li>
+        <li><a href="about.html" data-i18n="nav.about">About Us</a></li>
+        <li><a href="project.html" data-i18n="nav.project">Our Project</a></li>
+        <li><a href="features.html" data-i18n="nav.features">Features</a></li>
+        <li><a href="contact.html" data-i18n="nav.contact">Contact</a></li>
+        <li class="navbar-cta"><a href="login.html" class="btn btn-login" data-i18n="nav.login">Log in</a></li>
       </ul>
+      <div class="navbar-lang">
+        <button class="lang-btn" aria-label="Change language" aria-expanded="false">
+          <span class="lang-current">EN</span>
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <ul class="lang-dropdown">
+          <li><button data-lang="en">English</button></li>
+          <li><button data-lang="lt">Lietuvių</button></li>
+          <li><button data-lang="it">Italiano</button></li>
+          <li><button data-lang="es">Español</button></li>
+          <li><button data-lang="tr">Türkçe</button></li>
+        </ul>
+      </div>
       <button class="navbar-toggle" aria-label="Toggle menu">
         <span></span>
         <span></span>
@@ -59,11 +72,11 @@
       </div>
       <div class="hero-content">
         <h1 class="logo">iLARS</h1>
-        <p class="slogan">Your story after surgery. Track symptoms, stay in touch with your doctor, and get personalized insights.</p>
+        <p class="slogan" data-i18n="index.hero_slogan">Your story after surgery. Track symptoms, stay in touch with your doctor, and get personalized insights.</p>
         <form class="email-form hero-email" action="#" method="post" aria-label="Get notified">
           <label for="hero-email" class="visually-hidden">Email</label>
-          <input type="email" id="hero-email" name="email" placeholder="Your email" required>
-          <button type="submit">Learn more</button>
+          <input type="email" id="hero-email" name="email" placeholder="Your email" data-i18n-placeholder="index.hero_email_placeholder" required>
+          <button type="submit" data-i18n="index.hero_learn_more">Learn more</button>
         </form>
       </div>
       <div class="hero-visual">
@@ -76,10 +89,10 @@
   <section class="showcase">
     <div class="intro-split">
       <div class="intro-text">
-        <p class="intro-kicker">The first app for life after rectal cancer surgery</p>
+        <p class="intro-kicker" data-i18n="index.showcase_kicker">The first app for life after rectal cancer surgery</p>
         <div class="intro-text-card">
-          <h2 class="intro-title">Unique AI-powered support<br>for a global problem</h2>
-          <p class="intro-body">
+          <h2 class="intro-title" data-i18n-html="index.showcase_title">Unique AI-powered support<br>for a global problem</h2>
+          <p class="intro-body" data-i18n="index.showcase_body">
             iLARS helps patients track bowel symptoms, understand patterns, and share clear summaries
             with their care team. Built with clinicians to support recovery and daily life after surgery.
           </p>
@@ -97,12 +110,12 @@
   <section class="ai-section">
     <div class="ai-inner">
       <div class="ai-text">
-        <p class="ai-kicker">To track the most important parameters</p>
-        <p class="ai-metrics">Fiber, sitting time, hydration, trigger foods</p>
+        <p class="ai-kicker" data-i18n="index.ai_kicker">To track the most important parameters</p>
+        <p class="ai-metrics" data-i18n="index.ai_metrics">Fiber, sitting time, hydration, trigger foods</p>
 
         <div class="ai-text-block">
-          <h2 class="ai-title">AI for symptom<br>detection & patterns</h2>
-          <p class="ai-body">
+          <h2 class="ai-title" data-i18n-html="index.ai_title">AI for symptom<br>detection & patterns</h2>
+          <p class="ai-body" data-i18n="index.ai_body">
             We combine validated scores with daily data to help you see how lifestyle, food and routines
             affect your bowel symptoms. iLARS summarizes trends so you and your doctor can act earlier.
           </p>
@@ -129,16 +142,16 @@
 
       <!-- Top-right: title -->
       <div class="doctor-text doctor-text--top-right">
-        <h2 class="doctor-title">Doctor dashboard for tracking patients</h2>
+        <h2 class="doctor-title" data-i18n="index.doctor_title">Doctor dashboard for tracking patients</h2>
       </div>
 
       <!-- Bottom-left: description text -->
       <div class="doctor-text doctor-text--bottom-left">
-        <p class="doctor-body">
+        <p class="doctor-body" data-i18n="index.doctor_body1">
           iLARS comes with a secure web dashboard so clinicians can follow their patients over time.
           Doctors see symptom trends, LARS scores and daily entries in one place.
         </p>
-        <p class="doctor-body">
+        <p class="doctor-body" data-i18n="index.doctor_body2">
           This makes it easier to identify who needs attention, prepare for visits and adjust treatment
           based on real data instead of fragmented notes.
         </p>
@@ -155,9 +168,10 @@
 
   <footer class="footer">
     <p class="logo-footer">iLARS</p>
-    <p>Your story after surgery. For informational and educational use only.</p>
+    <p data-i18n="footer.slogan">Your story after surgery. For informational and educational use only.</p>
   </footer>
 
+  <script src="js/i18n.js"></script>
   <script src="js/config.js"></script>
   <script src="js/components/nav.js"></script>
   <script src="js/main.js"></script>
