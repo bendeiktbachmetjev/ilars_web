@@ -141,13 +141,19 @@ class PatientDetailView {
             this.renderDrinkChart(data.daily_entries);
         }
 
-        // Daily Steps Chart
+        // Daily Steps Chart — always show, with empty state if no data
         const stepsContainer = document.getElementById('steps-chart-container');
-        if (data.daily_steps && data.daily_steps.length > 0) {
-            if (stepsContainer) stepsContainer.style.display = 'block';
-            this.renderStepsChart(data.daily_steps);
-        } else {
-            if (stepsContainer) stepsContainer.style.display = 'none';
+        if (stepsContainer) {
+            stepsContainer.style.display = 'block';
+            if (data.daily_steps && data.daily_steps.length > 0) {
+                this.renderStepsChart(data.daily_steps);
+            } else {
+                const ctx = document.getElementById('steps-chart');
+                if (ctx) {
+                    const parent = ctx.parentNode;
+                    parent.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.5);font-size:15px;">' + this._t('doctor.no_steps_data') + '</div>';
+                }
+            }
         }
     }
 

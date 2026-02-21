@@ -153,6 +153,7 @@
     "chart_drink": "Consumo de bebidas (últimos 30 días)",
     "chart_steps": "Pasos diarios (últimos 90 días)",
     "chart_steps_label": "Pasos",
+    "no_steps_data": "Aún no hay datos de pasos",
     "modal_confirm_title": "Confirmar creación de paciente",
     "modal_confirm_subtitle": "Verifica que estás en la cuenta correcta antes de crear un nuevo paciente.",
     "modal_doctor_label": "Médico",

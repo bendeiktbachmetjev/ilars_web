@@ -153,6 +153,7 @@
     "chart_drink": "Gėrimų vartojimas (paskutinės 30 dienų)",
     "chart_steps": "Dienos žingsniai (paskutinės 90 dienų)",
     "chart_steps_label": "Žingsniai",
+    "no_steps_data": "Žingsnių duomenų dar nėra",
     "modal_confirm_title": "Patvirtinti paciento sukūrimą",
     "modal_confirm_subtitle": "Prašome patikrinti, ar esate prisijungę prie teisingos paskyros prieš kuriant naują pacientą.",
     "modal_doctor_label": "Gydytojas",

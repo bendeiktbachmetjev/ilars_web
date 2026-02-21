@@ -153,6 +153,7 @@
     "chart_drink": "İçecek tüketimi (son 30 gün)",
     "chart_steps": "Günlük adımlar (son 90 gün)",
     "chart_steps_label": "Adımlar",
+    "no_steps_data": "Henüz adım verisi yok",
     "modal_confirm_title": "Hasta oluşturmayı onayla",
     "modal_confirm_subtitle": "Yeni bir hasta oluşturmadan önce doğru hesapta olduğunuzu doğrulayın.",
     "modal_doctor_label": "Doktor",
