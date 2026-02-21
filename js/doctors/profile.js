@@ -13,7 +13,6 @@
   var selectHospital = null;
   var inputFirstName = null;
   var inputLastName = null;
-  var inputDob = null;
   var btnSave = null;
   var errorEl = null;
 
@@ -23,7 +22,6 @@
     selectHospital = document.getElementById('doctor-profile-hospital');
     inputFirstName = document.getElementById('doctor-profile-first-name');
     inputLastName = document.getElementById('doctor-profile-last-name');
-    inputDob = document.getElementById('doctor-profile-dob');
     btnSave = document.getElementById('doctor-profile-save');
     errorEl = document.getElementById('doctor-profile-error');
   }
@@ -96,7 +94,6 @@
     var hospitalId = selectHospital && selectHospital.value ? selectHospital.value.trim() : '';
     var firstName = inputFirstName && inputFirstName.value ? inputFirstName.value.trim() : '';
     var lastName = inputLastName && inputLastName.value ? inputLastName.value.trim() : '';
-    var dob = inputDob && inputDob.value ? inputDob.value.trim() : '';
 
     if (!hospitalId) {
       showError('Please select your hospital.');
@@ -111,8 +108,7 @@
           email: global.sessionStorage.getItem('ilars_doctor_email') || '',
           first_name: firstName || null,
           last_name: lastName || null,
-          hospital_id: hospitalId || null,
-          date_of_birth: dob || null
+          hospital_id: hospitalId || null
         };
 
         return fetch(API_BASE + '/doctors', {

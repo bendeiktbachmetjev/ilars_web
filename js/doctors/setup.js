@@ -20,7 +20,6 @@
   var inputHospitalId = null;
   var hospitalNameDisplay = null;
   var hospitalNameGroup = null;
-  var inputDob = null;
   var btnSubmit = null;
   var btnText = null;
   var btnLoading = null;
@@ -36,7 +35,6 @@
     inputHospitalId = document.getElementById('setup-hospital-id');
     hospitalNameDisplay = document.getElementById('setup-hospital-name-display');
     hospitalNameGroup = document.getElementById('setup-hospital-name-group');
-    inputDob = document.getElementById('setup-dob');
     btnSubmit = document.getElementById('setup-submit');
     btnText = document.getElementById('setup-btn-text');
     btnLoading = document.getElementById('setup-btn-loading');
@@ -180,7 +178,6 @@
     var lastName = inputLastName && inputLastName.value ? inputLastName.value.trim() : '';
     var hospitalCode = inputHospitalCode && inputHospitalCode.value ? inputHospitalCode.value.trim().toUpperCase() : '';
     var hospitalId = inputHospitalId && inputHospitalId.value ? inputHospitalId.value.trim() : '';
-    var dob = inputDob && inputDob.value ? inputDob.value.trim() : '';
 
     if (!hospitalCode) {
       showError('Please enter your hospital code.');
@@ -267,8 +264,7 @@
           var body = {
             first_name: firstName || null,
             last_name: lastName || null,
-            hospital_code: hospitalCode, // Required - API resolves hospital_id
-            date_of_birth: dob || null
+            hospital_code: hospitalCode
           };
 
           return fetch(API_BASE + '/doctors', {
