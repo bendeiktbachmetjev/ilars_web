@@ -98,5 +98,21 @@ class ApiService {
         }
         return await response.json();
     }
+
+    async getPatientStatusHistory(patientCode) {
+        const token = await this.getAuthToken();
+        const url = `${this.baseUrl}/getPatientStatusHistory?patient_code=${encodeURIComponent(patientCode)}`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${response.statusText}. ${errorText}`);
+        }
+        return await response.json();
+    }
 }
 

@@ -972,6 +972,26 @@
             Set inactive
           </button>
         </div>
+        
+        <!-- Status History Table -->
+        <div id="patient-status-history-container" style="display: none; margin-bottom: 2rem;">
+          <h3 style="color: rgba(255, 255, 255, 0.85); font-size: 16px; font-weight: 600; margin-bottom: 12px;" data-i18n="doctor.status_history_title">Status History</h3>
+          <div style="background: rgba(255, 255, 255, 0.05); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden;">
+            <table style="margin-top: 0; box-shadow: none; border: none; border-radius: 0;">
+              <thead>
+                <tr>
+                  <th data-i18n="doctor.th_date">Date</th>
+                  <th data-i18n="doctor.th_previous_status">Previous Status</th>
+                  <th data-i18n="doctor.th_new_status">New Status</th>
+                  <th data-i18n="doctor.th_reason">Reason</th>
+                </tr>
+              </thead>
+              <tbody id="patient-status-history-tbody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="charts-grid">
           <!-- LARS Score Chart -->
           <div class="chart-container">

@@ -33,6 +33,7 @@ class PatientDetailView {
                 this.currentStatus = data.patient_status || 'active';
                 this.updateStatusUI(this.currentStatus);
                 this.renderCharts(data);
+                this.loadStatusHistory(patientCode);
             } else {
                 this.showError('Failed to load patient data: ' + (data.detail || 'Unknown error'));
             }
@@ -82,7 +83,7 @@ class PatientDetailView {
             this.currentStatus = newStatus;
             this.updateStatusUI(newStatus);
             alert(newStatus === 'inactive' ? 'Patient has been set to inactive.' : 'Patient has been set to active.');
-            this.navigateBackToList();
+            this.loadStatusHistory(this.currentCode);
         } catch (e) {
             alert('Failed to update status: ' + (e.message || 'Unknown error'));
             console.error('Update status error:', e);
@@ -105,6 +106,61 @@ class PatientDetailView {
             }
         } catch (e) {
             console.error('Failed to navigate back to list:', e);
+        }
+    }
+
+    async loadStatusHistory(patientCode) {
+        const container = document.getElementById('patient-status-history-container');
+        const tbody = document.getElementById('patient-status-history-tbody');
+        if (!container || !tbody || !this.api.getPatientStatusHistory) return;
+
+        try {
+            const result = await this.api.getPatientStatusHistory(patientCode);
+            if (result.status === 'ok' && result.history && result.history.length > 0) {
+                tbody.innerHTML = '';
+                result.history.forEach(item => {
+                    const tr = document.createElement('tr');
+
+                    const tdDate = document.createElement('td');
+                    tdDate.className = 'date';
+                    tdDate.textContent = item.changed_at ? new Date(item.changed_at).toLocaleString(this._dateLang()) : '-';
+
+                    const tdPrev = document.createElement('td');
+                    tdPrev.className = 'patient-status-badge ' + (item.previous_status === 'active' ? 'active' : 'inactive');
+                    tdPrev.style.display = 'inline-block';
+                    tdPrev.style.margin = '16px 24px';
+                    tdPrev.textContent = item.previous_status === 'active' ? this._t('doctor.status_active') : (item.previous_status === 'inactive' ? this._t('doctor.status_inactive') : '-');
+
+                    const tdNew = document.createElement('td');
+                    tdNew.className = 'patient-status-badge ' + (item.new_status === 'active' ? 'active' : 'inactive');
+                    tdNew.style.display = 'inline-block';
+                    tdNew.style.margin = '16px 24px';
+                    tdNew.textContent = item.new_status === 'active' ? this._t('doctor.status_active') : this._t('doctor.status_inactive');
+
+                    const tdReason = document.createElement('td');
+                    tdReason.textContent = item.reason || '-';
+
+                    tr.appendChild(tdDate);
+                    // Wrap spans in table cells so they align
+                    const tdPrevWrap = document.createElement('td');
+                    tdPrevWrap.appendChild(tdPrev);
+                    tr.appendChild(tdPrevWrap);
+
+                    const tdNewWrap = document.createElement('td');
+                    tdNewWrap.appendChild(tdNew);
+                    tr.appendChild(tdNewWrap);
+
+                    tr.appendChild(tdReason);
+
+                    tbody.appendChild(tr);
+                });
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
+        } catch (e) {
+            console.error('Failed to load status history:', e);
+            container.style.display = 'none';
         }
     }
 
@@ -168,18 +224,18 @@ class PatientDetailView {
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [                    {
-                        label: 'LARS Score',
-                        data: scores,
-                        borderColor: '#667eea',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                        spanGaps: true,
-                    }]
+                datasets: [{
+                    label: 'LARS Score',
+                    data: scores,
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    spanGaps: true,
+                }]
             },
             options: {
                 responsive: true,
@@ -228,18 +284,18 @@ class PatientDetailView {
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [                    {
-                        label: 'EQ-5D-5L Health VAS',
-                        data: scores,
-                        borderColor: '#f093fb',
-                        backgroundColor: 'rgba(240, 147, 251, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                        spanGaps: true,
-                    }]
+                datasets: [{
+                    label: 'EQ-5D-5L Health VAS',
+                    data: scores,
+                    borderColor: '#f093fb',
+                    backgroundColor: 'rgba(240, 147, 251, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    spanGaps: true,
+                }]
             },
             options: {
                 responsive: true,
@@ -601,7 +657,7 @@ class PatientDetailView {
                     },
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 let label = context.dataset.label || '';
                                 if (label) {
                                     label += ': ';
@@ -865,7 +921,7 @@ class PatientDetailView {
                 beginAtZero: true,
                 ticks: {
                     color: 'rgba(255, 255, 255, 0.7)',
-                    callback: function(value) {
+                    callback: function (value) {
                         if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
                         return value;
                     }
