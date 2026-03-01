@@ -33,6 +33,10 @@
       '<a href="#" class="app-back-link" id="daily-back">' + _t('app.back_to_dashboard') + '</a>' +
       '<div class="app-section">' +
       '<h1 class="app-form-title">' + _t('app.daily_title') + '</h1>' +
+      '<div class="app-warning-box">' +
+      '<span class="app-warning-icon">⚠️</span>' +
+      '<p class="app-warning-text">' + _t('app.daily_warning') + '</p>' +
+      '</div>' +
       '<form id="daily-form">' +
       '<div class="app-form-group">' +
       '<label>' + _t('app.stool_per_day') + '</label>' +

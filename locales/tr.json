@@ -310,6 +310,8 @@
     "eq_anx_slight": "Hafif endişeli veya depresifim",
     "eq_anx_moderate": "Orta derecede endişeli veya depresifim",
     "eq_anx_severe": "Ciddi derecede endişeli veya depresifim",
-    "eq_anx_extreme": "Aşırı derecede endişeli veya depresifim"
+    "eq_anx_extreme": "Aşırı derecede endişeli veya depresifim",
+    "daily_warning": "Lütfen dikkat: bu anket BUGÜN nasıl hissettiğinizi ifade eder.",
+    "weekly_warning": "Lütfen dikkat: bu anket GEÇEN HAFTA boyunca durumunuzu ifade eder."
   }
 }

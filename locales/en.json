@@ -120,7 +120,9 @@
     "eq_anx_slight": "Slightly anxious or depressed",
     "eq_anx_moderate": "Moderately anxious or depressed",
     "eq_anx_severe": "Severely anxious or depressed",
-    "eq_anx_extreme": "Extremely anxious or depressed"
+    "eq_anx_extreme": "Extremely anxious or depressed",
+    "daily_warning": "Please note: this questionnaire refers to how you feel TODAY.",
+    "weekly_warning": "Please note: this questionnaire refers to your condition over the PAST WEEK."
   },
   "doctor": {
     "status_dead": "Dead",

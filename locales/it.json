@@ -310,6 +310,8 @@
     "eq_anx_slight": "Sono leggermente ansioso/a o depresso/a",
     "eq_anx_moderate": "Sono moderatamente ansioso/a o depresso/a",
     "eq_anx_severe": "Sono gravemente ansioso/a o depresso/a",
-    "eq_anx_extreme": "Sono estremamente ansioso/a o depresso/a"
+    "eq_anx_extreme": "Sono estremamente ansioso/a o depresso/a",
+    "daily_warning": "Attenzione: questo questionario si riferisce a come ti senti OGGI.",
+    "weekly_warning": "Attenzione: questo questionario si riferisce alle tue condizioni durante la SETTIMANA PASSATA."
   }
 }

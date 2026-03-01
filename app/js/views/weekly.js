@@ -46,6 +46,10 @@
       '<a href="#" class="app-back-link" id="weekly-back">' + _t('app.back_to_dashboard') + '</a>' +
       '<div class="app-section">' +
       '<h1 class="app-form-title">' + _t('app.weekly_title') + '</h1>' +
+      '<div class="app-warning-box">' +
+      '<span class="app-warning-icon">⚠️</span>' +
+      '<p class="app-warning-text">' + _t('app.weekly_warning') + '</p>' +
+      '</div>' +
       '<form id="weekly-form">' +
       '<div class="app-form-group app-form-group-with-icon">' +
       '<div class="app-form-label-wrap"><span class="app-form-icon">💨</span><label>' + _t('app.flatus_control') + '</label></div>' +
