@@ -123,6 +123,7 @@
     "eq_anx_extreme": "Extremely anxious or depressed"
   },
   "doctor": {
-    "status_dead": "Dead"
+    "status_dead": "Dead",
+    "confirm_status_change": "Are you sure that starting from {date} the patient will have status \"{status}\"?"
   }
 }

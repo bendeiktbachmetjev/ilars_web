@@ -177,7 +177,8 @@
     "updating": "Güncelleniyor...",
     "status_active": "Aktif",
     "status_inactive": "Aktif değil",
-    "status_dead": "Ölü"
+    "status_dead": "Ölü",
+    "confirm_status_change": "Bugünden itibaren hastanın \"{status}\" durumunda olacağından emin misiniz?"
   },
   "doctor_setup": {
     "title": "Profilinizi tamamlayın",

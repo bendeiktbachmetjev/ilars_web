@@ -90,6 +90,26 @@ class PatientDetailView {
         if (!this.currentCode || !this.api || !this.api.updatePatientStatus || !newStatus) return;
 
         const select = document.getElementById('patient-change-status-select');
+
+        // Use translated status name for the confirmation message
+        let statusName = newStatus;
+        if (newStatus === 'active') statusName = this._t('doctor.status_active');
+        if (newStatus === 'inactive') statusName = this._t('doctor.status_inactive');
+        if (newStatus === 'dead') statusName = this._t('doctor.status_dead') || 'Dead';
+
+        const today = new Date().toLocaleDateString(this._dateLang());
+        let confirmMsg = this._t('doctor.confirm_status_change');
+        if (confirmMsg && confirmMsg !== 'doctor.confirm_status_change') {
+            confirmMsg = confirmMsg.replace('{date}', today).replace('{status}', statusName);
+        } else {
+            confirmMsg = `Are you sure that starting from ${today} the patient will have status "${statusName}"?`;
+        }
+
+        if (!confirm(confirmMsg)) {
+            if (select) select.value = ''; // Reset select on cancel
+            return;
+        }
+
         if (select) select.disabled = true;
 
         try {

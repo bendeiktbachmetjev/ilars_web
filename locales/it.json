@@ -177,7 +177,8 @@
     "updating": "Aggiornamento...",
     "status_active": "Attivo",
     "status_inactive": "Inattivo",
-    "status_dead": "Deceduto"
+    "status_dead": "Deceduto",
+    "confirm_status_change": "Sei sicuro che da oggi il paziente avrà lo stato \"{status}\"?"
   },
   "doctor_setup": {
     "title": "Completa il tuo profilo",
