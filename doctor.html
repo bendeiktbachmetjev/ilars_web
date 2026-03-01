@@ -1044,26 +1044,30 @@
           </button>
         </div>
       </div>
-      <div id="patient-list-error" class="error" style="display: none;"></div>
-      <table id="patients-table" style="display: none;">
-        <thead>
-          <tr>
-            <th data-i18n="doctor.th_patient_code">Patient Code</th>
-            <th data-i18n="doctor.th_created">Created</th>
-            <th data-i18n="doctor.th_weekly">Weekly</th>
-            <th data-i18n="doctor.th_monthly">Monthly</th>
-            <th data-i18n="doctor.th_last_lars">Last LARS</th>
-            <th data-i18n="doctor.th_eq5d5l">EQ-5D-5L</th>
-            <th data-i18n="doctor.th_doctor">Doctor</th>
-          </tr>
-        </thead>
-        <tbody id="patients-tbody">
-        </tbody>
-      </table>
+      <div id="patients-active-section" style="display: none; margin-top: 16px;">
+        <h2
+          style="font-size: 1.35rem; font-weight: 600; color: #4ade80; margin-bottom: 16px; letter-spacing: -0.3px; display: inline-block; padding: 4px 12px; background: rgba(74, 222, 128, 0.1); border-radius: 8px;"
+          data-i18n="doctor.active_patients">Active patients</h2>
+        <table id="patients-table" style="display: none;">
+          <thead>
+            <tr>
+              <th data-i18n="doctor.th_patient_code">Patient Code</th>
+              <th data-i18n="doctor.th_created">Created</th>
+              <th data-i18n="doctor.th_weekly">Weekly</th>
+              <th data-i18n="doctor.th_monthly">Monthly</th>
+              <th data-i18n="doctor.th_last_lars">Last LARS</th>
+              <th data-i18n="doctor.th_eq5d5l">EQ-5D-5L</th>
+              <th data-i18n="doctor.th_doctor">Doctor</th>
+            </tr>
+          </thead>
+          <tbody id="patients-tbody">
+          </tbody>
+        </table>
+      </div>
 
       <div id="patients-inactive-section" style="display: none; margin-top: 48px;">
         <h2
-          style="font-size: 1.35rem; font-weight: 600; color: rgba(255, 255, 255, 0.7); margin-bottom: 16px; letter-spacing: -0.3px;"
+          style="font-size: 1.35rem; font-weight: 600; color: #fb923c; margin-bottom: 16px; letter-spacing: -0.3px; display: inline-block; padding: 4px 12px; background: rgba(251, 146, 60, 0.1); border-radius: 8px;"
           data-i18n="doctor.inactive_patients">Inactive patients</h2>
         <table id="patients-inactive-table" style="display: none;">
           <thead>
@@ -1078,6 +1082,27 @@
             </tr>
           </thead>
           <tbody id="patients-inactive-tbody">
+          </tbody>
+        </table>
+      </div>
+
+      <div id="patients-dead-section" style="display: none; margin-top: 48px;">
+        <h2
+          style="font-size: 1.35rem; font-weight: 600; color: #f87171; margin-bottom: 16px; letter-spacing: -0.3px; display: inline-block; padding: 4px 12px; background: rgba(248, 113, 113, 0.1); border-radius: 8px;"
+          data-i18n="doctor.dead_patients">Dead patients</h2>
+        <table id="patients-dead-table" style="display: none;">
+          <thead>
+            <tr>
+              <th data-i18n="doctor.th_patient_code">Patient Code</th>
+              <th data-i18n="doctor.th_created">Created</th>
+              <th data-i18n="doctor.th_weekly">Weekly</th>
+              <th data-i18n="doctor.th_monthly">Monthly</th>
+              <th data-i18n="doctor.th_last_lars">Last LARS</th>
+              <th data-i18n="doctor.th_eq5d5l">EQ-5D-5L</th>
+              <th data-i18n="doctor.th_doctor">Doctor</th>
+            </tr>
+          </thead>
+          <tbody id="patients-dead-tbody">
           </tbody>
         </table>
       </div>

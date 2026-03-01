@@ -195,6 +195,7 @@ class PatientListView {
 
     showSkeletonLoader(tbodyEl, tableEl) {
         // Show table with skeleton rows
+        document.getElementById('patients-active-section').style.display = 'block';
         tableEl.style.display = 'table';
         tbodyEl.innerHTML = Array(5).fill(0).map(() => `
             <tr class="skeleton-row">
@@ -209,25 +210,35 @@ class PatientListView {
     }
 
     renderTables(data, tbodyEl, tableEl) {
+        const activeSectionEl = document.getElementById('patients-active-section');
         const inactiveTbodyEl = document.getElementById('patients-inactive-tbody');
         const inactiveTableEl = document.getElementById('patients-inactive-table');
         const inactiveSectionEl = document.getElementById('patients-inactive-section');
+        const deadTbodyEl = document.getElementById('patients-dead-tbody');
+        const deadTableEl = document.getElementById('patients-dead-table');
+        const deadSectionEl = document.getElementById('patients-dead-section');
 
+        if (activeSectionEl) activeSectionEl.style.display = 'block';
         this.renderTable(data.patients, tbodyEl, tableEl, true);
-        if (inactiveTbodyEl && inactiveTableEl && inactiveSectionEl) {
-            const inactiveList = data.inactivePatients || [];
-            if (inactiveList.length > 0) {
-                inactiveList.sort((a, b) => {
-                    const statusA = a.status || 'inactive';
-                    const statusB = b.status || 'inactive';
-                    if (statusA === 'inactive' && statusB === 'dead') return -1;
-                    if (statusA === 'dead' && statusB === 'inactive') return 1;
-                    return 0;
-                });
+
+        if (inactiveTbodyEl && inactiveTableEl && inactiveSectionEl && deadTbodyEl && deadTableEl && deadSectionEl) {
+            const allInactive = data.inactivePatients || [];
+
+            const justInactive = allInactive.filter(p => p.status === 'inactive');
+            const justDead = allInactive.filter(p => p.status === 'dead');
+
+            if (justInactive.length > 0) {
                 inactiveSectionEl.style.display = 'block';
-                this.renderTable(inactiveList, inactiveTbodyEl, inactiveTableEl, false);
+                this.renderTable(justInactive, inactiveTbodyEl, inactiveTableEl, false);
             } else {
                 inactiveSectionEl.style.display = 'none';
+            }
+
+            if (justDead.length > 0) {
+                deadSectionEl.style.display = 'block';
+                this.renderTable(justDead, deadTbodyEl, deadTableEl, false);
+            } else {
+                deadSectionEl.style.display = 'none';
             }
         }
     }
