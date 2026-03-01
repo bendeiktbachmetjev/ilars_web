@@ -217,6 +217,13 @@ class PatientListView {
         if (inactiveTbodyEl && inactiveTableEl && inactiveSectionEl) {
             const inactiveList = data.inactivePatients || [];
             if (inactiveList.length > 0) {
+                inactiveList.sort((a, b) => {
+                    const statusA = a.status || 'inactive';
+                    const statusB = b.status || 'inactive';
+                    if (statusA === 'inactive' && statusB === 'dead') return -1;
+                    if (statusA === 'dead' && statusB === 'inactive') return 1;
+                    return 0;
+                });
                 inactiveSectionEl.style.display = 'block';
                 this.renderTable(inactiveList, inactiveTbodyEl, inactiveTableEl, false);
             } else {
@@ -245,7 +252,7 @@ class PatientListView {
                 if (patient.last_lars_score !== null && patient.last_lars_score !== undefined) {
                     const larsScore = patient.last_lars_score;
                     const larsDate = this.formatDate(patient.last_lars_date);
-                    
+
                     if (larsScore <= 20) {
                         larsClass = 'good';
                     } else if (larsScore <= 29) {
@@ -253,17 +260,17 @@ class PatientListView {
                     } else {
                         larsClass = 'bad';
                     }
-                    
+
                     larsDisplay = `${larsScore}${larsDate ? ` <span class="date-part">(${larsDate})</span>` : ''}`;
                 }
-                
+
                 // Format EQ-5D-5L score with date and color class
                 let eq5d5lDisplay = '-';
                 let eq5d5lClass = '';
                 if (patient.last_eq5d5l_score !== null && patient.last_eq5d5l_score !== undefined) {
                     const eq5d5lScore = patient.last_eq5d5l_score;
                     const eq5d5lDate = this.formatDate(patient.last_eq5d5l_date);
-                    
+
                     if (eq5d5lScore >= 70) {
                         eq5d5lClass = 'good';
                     } else if (eq5d5lScore >= 50) {
@@ -271,7 +278,7 @@ class PatientListView {
                     } else {
                         eq5d5lClass = 'bad';
                     }
-                    
+
                     eq5d5lDisplay = `${eq5d5lScore}${eq5d5lDate ? ` <span class="date-part">(${eq5d5lDate})</span>` : ''}`;
                 }
 
@@ -285,7 +292,7 @@ class PatientListView {
                 } else if (patient.doctor_code) {
                     doctorDisplay = patient.doctor_code;
                 }
-                
+
                 return `
                     <tr onclick="window.app.navigate('patient/${this.escapeHtml(patient.patient_code)}')">
                         <td class="patient-code">${this.escapeHtml(patient.patient_code)}</td>

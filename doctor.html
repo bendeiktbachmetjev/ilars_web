@@ -1185,6 +1185,27 @@
     </div>
   </div>
 
+  <!-- Confirm Status Change Modal -->
+  <div id="confirm-status-modal" class="create-patient-modal" aria-hidden="true" role="dialog" aria-modal="true"
+    aria-labelledby="confirm-status-modal-title">
+    <div class="create-patient-modal-backdrop" id="confirm-status-modal-backdrop"></div>
+    <div class="create-patient-modal-content">
+      <h2 id="confirm-status-modal-title" class="create-patient-modal-title">Confirm Status Change</h2>
+      <p id="confirm-status-modal-message" class="create-patient-modal-subtitle"
+        style="margin-bottom: 2rem; font-size: 1.1rem; color: rgba(255, 255, 255, 0.9);">Are you sure?</p>
+
+      <div class="create-patient-modal-actions">
+        <button type="button" id="confirm-status-modal-confirm"
+          class="create-patient-modal-btn create-patient-modal-btn-confirm"
+          style="background-image: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);">Confirm</button>
+        <button type="button" id="confirm-status-modal-cancel"
+          class="create-patient-modal-btn create-patient-modal-btn-cancel">Cancel</button>
+      </div>
+      <button type="button" id="confirm-status-modal-close" class="create-patient-modal-close"
+        aria-label="Close">×</button>
+    </div>
+  </div>
+
   <!-- Create patient confirmation modal -->
   <div id="create-patient-modal" class="create-patient-modal" aria-hidden="true" role="dialog" aria-modal="true"
     aria-labelledby="create-patient-modal-title">

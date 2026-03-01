@@ -18,13 +18,13 @@
   'use strict';
 
   var SUPPORTED = ['en', 'lt', 'it', 'es', 'tr'];
-  var DEFAULT   = 'en';
+  var DEFAULT = 'en';
   var STORAGE_KEY = 'ilars_lang';
 
   var translations = {};
-  var currentLang  = DEFAULT;
-  var ready        = false;
-  var readyQueue   = [];
+  var currentLang = DEFAULT;
+  var ready = false;
+  var readyQueue = [];
 
   // ------------------------------------------------------------------
   // Anti-flash: run synchronously at parse time (before first paint)
@@ -120,7 +120,7 @@
   // Translation loading
   // ------------------------------------------------------------------
   function load(lang, cb) {
-    var url = localesBase() + lang + '.json?v=3';
+    var url = localesBase() + lang + '.json?v=4';
     fetch(url)
       .then(function (r) {
         if (!r.ok) throw new Error(r.status);

@@ -105,11 +105,65 @@ class PatientDetailView {
             confirmMsg = `Are you sure that starting from ${today} the patient will have status "${statusName}"?`;
         }
 
-        if (!confirm(confirmMsg)) {
-            if (select) select.value = ''; // Reset select on cancel
+        this.showConfirmStatusModal(confirmMsg, newStatus, select);
+    }
+
+    showConfirmStatusModal(message, newStatus, selectElement) {
+        const modal = document.getElementById('confirm-status-modal');
+        const msgEl = document.getElementById('confirm-status-modal-message');
+        const btnConfirm = document.getElementById('confirm-status-modal-confirm');
+        const btnCancel = document.getElementById('confirm-status-modal-cancel');
+        const btnClose = document.getElementById('confirm-status-modal-close');
+        const backdrop = document.getElementById('confirm-status-modal-backdrop');
+
+        if (!modal) {
+            // fallback
+            if (confirm(message)) {
+                this.executeStatusChange(newStatus, selectElement);
+            } else {
+                if (selectElement) selectElement.value = '';
+            }
             return;
         }
 
+        msgEl.textContent = message;
+
+        const hideModal = () => {
+            modal.classList.remove('is-visible');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+        };
+
+        const cancelHandler = () => {
+            if (selectElement) selectElement.value = '';
+            hideModal();
+            cleanup();
+        };
+
+        const confirmHandler = () => {
+            hideModal();
+            cleanup();
+            this.executeStatusChange(newStatus, selectElement);
+        };
+
+        const cleanup = () => {
+            btnConfirm.removeEventListener('click', confirmHandler);
+            btnCancel.removeEventListener('click', cancelHandler);
+            if (btnClose) btnClose.removeEventListener('click', cancelHandler);
+            if (backdrop) backdrop.removeEventListener('click', cancelHandler);
+        };
+
+        btnConfirm.addEventListener('click', confirmHandler);
+        btnCancel.addEventListener('click', cancelHandler);
+        if (btnClose) btnClose.addEventListener('click', cancelHandler);
+        if (backdrop) backdrop.addEventListener('click', cancelHandler);
+
+        modal.classList.add('is-visible');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+    }
+
+    async executeStatusChange(newStatus, select) {
         if (select) select.disabled = true;
 
         try {
