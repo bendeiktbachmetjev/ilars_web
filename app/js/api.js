@@ -61,6 +61,33 @@
   }
 
   /**
+   * GET /validatePatientCode
+   * Returns { status, valid } or { status: "error", detail }
+   */
+  function validatePatientCode(patientCode, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', base + '/validatePatientCode', true);
+    xhr.setRequestHeader('X-Patient-Code', patientCode);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          var data = JSON.parse(xhr.responseText);
+          if (callback) callback(null, data);
+        } catch (e) {
+          if (callback) callback(e, null);
+        }
+      } else {
+        if (callback) callback(new Error('Server ' + xhr.status), null);
+      }
+    };
+    xhr.onerror = function () {
+      if (callback) callback(new Error('Network error'), null);
+    };
+    xhr.send();
+  }
+
+  /**
    * GET /getLarsData?period=weekly|monthly|yearly
    */
   function getLarsData(patientCode, period, callback) {

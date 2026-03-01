@@ -111,33 +111,59 @@
   }
 
   function validatePatientCode(code) {
-    var url = (CONFIG.API_BASE_URL || '').replace(/\/$/, '') + '/getNextQuestionnaire';
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.setRequestHeader('X-Patient-Code', code);
-    xhr.onreadystatechange = function () {
-      if (xhr.readyState !== 4) return;
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          var data = JSON.parse(xhr.responseText);
-          if (data && data.status === 'ok') {
-            if (CONFIG.STORAGE_KEYS && CONFIG.STORAGE_KEYS.PATIENT_CODE) {
-              try {
-                global.sessionStorage.setItem(CONFIG.STORAGE_KEYS.PATIENT_CODE, code);
-                global.sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_ROLE, CONFIG.ROLES.PATIENT);
-              } catch (err) {}
+    if (!global.ILARS_APP_API || !global.ILARS_APP_API.validatePatientCode) {
+      // Fallback if ILARS_APP_API is not loaded yet (just in case)
+      var url = (CONFIG.API_BASE_URL || '').replace(/\/$/, '') + '/validatePatientCode';
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.setRequestHeader('X-Patient-Code', code);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState !== 4) return;
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            var data = JSON.parse(xhr.responseText);
+            if (data && data.status === 'ok') {
+              if (CONFIG.STORAGE_KEYS && CONFIG.STORAGE_KEYS.PATIENT_CODE) {
+                try {
+                  global.sessionStorage.setItem(CONFIG.STORAGE_KEYS.PATIENT_CODE, code);
+                  global.sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_ROLE, CONFIG.ROLES.PATIENT);
+                } catch (err) { }
+              }
+              global.location.href = 'app/index.html';
+              return;
+            } else if (data && data.detail) {
+              showError(patientFormError, 'Error: ' + data.detail);
+              return;
             }
-            global.location.href = 'app/index.html';
-            return;
+          } catch (err) { }
+        }
+        showError(patientFormError, 'Invalid patient code. Please check and try again.');
+      };
+      xhr.onerror = function () {
+        showError(patientFormError, 'Unable to connect. Please try again later.');
+      };
+      xhr.send();
+    } else {
+      global.ILARS_APP_API.validatePatientCode(code, function (err, data) {
+        if (err) {
+          showError(patientFormError, 'Unable to connect. Please try again later.');
+          return;
+        }
+        if (data && data.status === 'ok') {
+          if (CONFIG.STORAGE_KEYS && CONFIG.STORAGE_KEYS.PATIENT_CODE) {
+            try {
+              global.sessionStorage.setItem(CONFIG.STORAGE_KEYS.PATIENT_CODE, code);
+              global.sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_ROLE, CONFIG.ROLES.PATIENT);
+            } catch (e) { }
           }
-        } catch (err) {}
-      }
-      showError(patientFormError, 'Invalid patient code. Please check and try again.');
-    };
-    xhr.onerror = function () {
-      showError(patientFormError, 'Unable to connect. Please try again later.');
-    };
-    xhr.send();
+          global.location.href = 'app/index.html';
+        } else if (data && data.detail) {
+          showError(patientFormError, 'Error: ' + data.detail);
+        } else {
+          showError(patientFormError, 'Invalid patient code. Please check and try again.');
+        }
+      });
+    }
   }
 
   function onGoogleSignIn() {
@@ -164,7 +190,7 @@
     if (btnGoogleSignIn) btnGoogleSignIn.disabled = true;
     if (doctorLoading) doctorLoading.style.display = 'flex';
 
-        global.ILARS_AUTH.signInWithGoogle()
+    global.ILARS_AUTH.signInWithGoogle()
       .then(function (userData) {
         try {
           if (CONFIG.STORAGE_KEYS) {
@@ -173,38 +199,38 @@
             global.sessionStorage.setItem('ilars_doctor_name', userData.displayName || '');
             global.sessionStorage.setItem('ilars_doctor_uid', userData.uid || '');
           }
-        } catch (err) {}
-        
+        } catch (err) { }
+
         // Get fresh token after sign-in
-        return global.ILARS_AUTH.getIdToken(true).then(function(token) {
+        return global.ILARS_AUTH.getIdToken(true).then(function (token) {
           if (!token) {
             console.error('No token after Google sign-in');
             global.location.href = 'doctor-setup.html';
             return;
           }
-          
+
           // Auto-create profile and check if hospital is assigned
           var apiBase = (CONFIG.API_BASE_URL || '').replace(/\/$/, '');
-          
+
           console.log('Calling /doctors/me after Google sign-in...', apiBase + '/doctors/me');
-          
+
           return fetch(apiBase + '/doctors/me', {
             method: 'GET',
-            headers: { 
+            headers: {
               'Authorization': 'Bearer ' + token,
               'Content-Type': 'application/json'
             }
-          }).then(function(r) {
+          }).then(function (r) {
             console.log('Response status:', r.status);
             if (!r.ok) {
               console.error('API error:', r.status, r.statusText);
-              return r.text().then(function(text) {
+              return r.text().then(function (text) {
                 console.error('Error response:', text);
                 throw new Error('API error: ' + r.status);
               });
             }
             return r.json();
-          }).then(function(data) {
+          }).then(function (data) {
             console.log('Profile check result:', data);
             // Profile is auto-created, needs_profile means no hospital assigned
             if (data.status === 'ok' && data.needs_profile) {
@@ -220,12 +246,12 @@
               console.log('Unknown response, redirecting to setup');
               global.location.href = 'doctor-setup.html';
             }
-          }).catch(function(err) {
+          }).catch(function (err) {
             console.error('Profile check error:', err);
             // On error, redirect to setup page
             global.location.href = 'doctor-setup.html';
           });
-        }).catch(function(err) {
+        }).catch(function (err) {
           console.error('Token error:', err);
           global.location.href = 'doctor-setup.html';
         });
@@ -304,7 +330,7 @@
       if (global.firebase && global.ILARS_AUTH && global.ILARS_FIREBASE_CONFIG) {
         try {
           global.ILARS_AUTH.init();
-        } catch (err) {}
+        } catch (err) { }
       } else {
         setTimeout(initFirebase, 200);
       }
