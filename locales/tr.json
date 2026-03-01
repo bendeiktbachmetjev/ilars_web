@@ -178,7 +178,7 @@
     "status_active": "Aktif",
     "status_inactive": "Aktif değil",
     "status_dead": "Ölü",
-    "confirm_status_change": "Bugünden itibaren hastanın \"{status}\" durumunda olacağından emin misiniz?"
+    "confirm_status_change": "Durumu {date} tarihinden itibaren '{old_status}' değerinden '{new_status}' değerine değiştirmek istediğinizden emin misiniz?"
   },
   "doctor_setup": {
     "title": "Profilinizi tamamlayın",

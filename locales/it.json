@@ -178,7 +178,7 @@
     "status_active": "Attivo",
     "status_inactive": "Inattivo",
     "status_dead": "Deceduto",
-    "confirm_status_change": "Sei sicuro che da oggi il paziente avrà lo stato \"{status}\"?"
+    "confirm_status_change": "Sei sicuro di voler cambiare lo stato da '{old_status}' a '{new_status}' a partire da {date}?"
   },
   "doctor_setup": {
     "title": "Completa il tuo profilo",

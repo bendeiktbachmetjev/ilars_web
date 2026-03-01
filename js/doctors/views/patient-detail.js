@@ -91,18 +91,28 @@ class PatientDetailView {
 
         const select = document.getElementById('patient-change-status-select');
 
-        // Use translated status name for the confirmation message
+        // Resolve translated status names
         let statusName = newStatus;
         if (newStatus === 'active') statusName = this._t('doctor.status_active');
         if (newStatus === 'inactive') statusName = this._t('doctor.status_inactive');
         if (newStatus === 'dead') statusName = this._t('doctor.status_dead') || 'Dead';
 
+        let oldStatusName = this.currentStatus || 'active';
+        if (oldStatusName === 'active') oldStatusName = this._t('doctor.status_active');
+        if (oldStatusName === 'inactive') oldStatusName = this._t('doctor.status_inactive');
+        if (oldStatusName === 'dead') oldStatusName = this._t('doctor.status_dead') || 'Dead';
+
         const today = new Date().toLocaleDateString(this._dateLang());
         let confirmMsg = this._t('doctor.confirm_status_change');
         if (confirmMsg && confirmMsg !== 'doctor.confirm_status_change') {
-            confirmMsg = confirmMsg.replace('{date}', today).replace('{status}', statusName);
+            confirmMsg = confirmMsg
+                .replace('{date}', today)
+                .replace('{new_status}', statusName)
+                .replace('{old_status}', oldStatusName)
+                // Fallback for older translations that only expected {status}
+                .replace('{status}', statusName);
         } else {
-            confirmMsg = `Are you sure that starting from ${today} the patient will have status "${statusName}"?`;
+            confirmMsg = `Are you sure you want to change the status from "${oldStatusName}" to "${statusName}" starting from ${today}?`;
         }
 
         this.showConfirmStatusModal(confirmMsg, newStatus, select);
@@ -203,9 +213,10 @@ class PatientDetailView {
             const result = await this.api.getPatientStatusHistory(patientCode);
             if (result.status === 'ok' && result.history && result.history.length > 0) {
                 tbody.innerHTML = '';
-                result.history.forEach(item => {
+                result.history.forEach((item, index) => {
                     const tr = document.createElement('tr');
 
+                    // Status Column
                     const tdNewWrap = document.createElement('td');
                     const tdNew = document.createElement('div');
                     tdNew.className = 'patient-status-badge ' + item.new_status;
@@ -224,10 +235,43 @@ class PatientDetailView {
                     tdNewWrap.appendChild(tdNew);
                     tr.appendChild(tdNewWrap);
 
+                    // Date Column
                     const tdDate = document.createElement('td');
                     tdDate.className = 'date';
                     tdDate.textContent = item.changed_at ? new Date(item.changed_at).toLocaleString(this._dateLang()) : '-';
                     tr.appendChild(tdDate);
+
+                    // Action Column (Delete button)
+                    const tdAction = document.createElement('td');
+                    tdAction.style.textAlign = 'right';
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerHTML = `
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    `;
+                    deleteBtn.style.cssText = 'background:transparent; border:none; color:#f87171; cursor:pointer; padding:6px; border-radius:6px; transition:all 0.2s;';
+                    deleteBtn.onmouseover = () => deleteBtn.style.background = 'rgba(248, 113, 113, 0.1)';
+                    deleteBtn.onmouseout = () => deleteBtn.style.background = 'transparent';
+
+                    deleteBtn.onclick = async () => {
+                        if (confirm('Are you sure you want to delete this status change?')) {
+                            deleteBtn.disabled = true;
+                            deleteBtn.style.opacity = '0.5';
+                            try {
+                                await this.api.deletePatientStatusChange(item.id);
+                                // Reload page data to reflect reverted status and history
+                                await this.load(this.currentCode);
+                            } catch (e) {
+                                alert('Failed to delete status: ' + (e.message || 'Unknown error'));
+                                deleteBtn.disabled = false;
+                                deleteBtn.style.opacity = '1';
+                            }
+                        }
+                    };
+                    tdAction.appendChild(deleteBtn);
+                    tr.appendChild(tdAction);
 
                     tbody.appendChild(tr);
                 });

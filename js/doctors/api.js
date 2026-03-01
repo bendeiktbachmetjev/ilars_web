@@ -114,5 +114,24 @@ class ApiService {
         }
         return await response.json();
     }
+
+    async deletePatientStatusChange(historyId) {
+        const token = await this.getAuthToken();
+        const response = await fetch(`${this.baseUrl}/deletePatientStatusChange`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                history_id: historyId
+            })
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to delete status. HTTP ${response.status}: ${response.statusText}. ${errorText}`);
+        }
+        return await response.json();
+    }
 }
 

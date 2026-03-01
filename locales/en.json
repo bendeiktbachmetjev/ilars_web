@@ -124,6 +124,6 @@
   },
   "doctor": {
     "status_dead": "Dead",
-    "confirm_status_change": "Are you sure that starting from {date} the patient will have status \"{status}\"?"
+    "confirm_status_change": "Are you sure you want to change the status from '{old_status}' to '{new_status}' starting from {date}?"
   }
 }

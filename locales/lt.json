@@ -178,7 +178,7 @@
     "status_active": "Aktyvus",
     "status_inactive": "Neaktyvus",
     "status_dead": "Miręs",
-    "confirm_status_change": "Ar tikrai nuo šiandien paciento statusas bus \"{status}\"?"
+    "confirm_status_change": "Ar tikrai norite pakeisti statusą iš '{old_status}' į '{new_status}' nuo {date}?"
   },
   "doctor_setup": {
     "title": "Užpildykite savo profilį",
