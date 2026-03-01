@@ -176,7 +176,8 @@
     "creating": "Oluşturuluyor...",
     "updating": "Güncelleniyor...",
     "status_active": "Aktif",
-    "status_inactive": "Aktif değil"
+    "status_inactive": "Aktif değil",
+    "status_dead": "Ölü"
   },
   "doctor_setup": {
     "title": "Profilinizi tamamlayın",

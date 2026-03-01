@@ -121,5 +121,8 @@
     "eq_anx_moderate": "Moderately anxious or depressed",
     "eq_anx_severe": "Severely anxious or depressed",
     "eq_anx_extreme": "Extremely anxious or depressed"
+  },
+  "doctor": {
+    "status_dead": "Dead"
   }
 }

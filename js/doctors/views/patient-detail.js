@@ -45,10 +45,10 @@ class PatientDetailView {
     }
 
     bindActions() {
-        const changeStatusBtn = document.getElementById('patient-change-status-btn');
-        if (changeStatusBtn && !changeStatusBtn._ilarsBound) {
-            changeStatusBtn._ilarsBound = true;
-            changeStatusBtn.addEventListener('click', () => this.togglePatientStatus());
+        const changeStatusSelect = document.getElementById('patient-change-status-select');
+        if (changeStatusSelect && !changeStatusSelect._ilarsBound) {
+            changeStatusSelect._ilarsBound = true;
+            changeStatusSelect.addEventListener('change', (e) => this.setPatientStatus(e.target.value));
         }
     }
 
@@ -62,36 +62,47 @@ class PatientDetailView {
 
     updateStatusUI(patientStatus) {
         const indicator = document.getElementById('patient-status-indicator');
-        const btn = document.getElementById('patient-change-status-btn');
-        if (!indicator || !btn) return;
-        const isActive = (patientStatus || 'active') === 'active';
-        indicator.textContent = isActive ? this._t('doctor.status_active') : this._t('doctor.status_inactive');
-        indicator.className = 'patient-status-badge ' + (isActive ? 'active' : 'inactive');
-        btn.textContent = isActive ? this._t('doctor.set_inactive') : this._t('doctor.set_active');
+        const select = document.getElementById('patient-change-status-select');
+        if (!indicator || !select) return;
+
+        const status = patientStatus || 'active';
+        indicator.className = 'patient-status-badge ' + status;
+
+        if (status === 'active') {
+            indicator.textContent = this._t('doctor.status_active');
+            indicator.style.background = 'var(--surface-color)'; // default active class
+            indicator.style.color = '#38a169'; // default active color
+        } else if (status === 'inactive') {
+            indicator.textContent = this._t('doctor.status_inactive');
+            indicator.style.background = 'var(--surface-color)';
+            indicator.style.color = '#e53e3e';
+        } else if (status === 'dead') {
+            indicator.textContent = this._t('doctor.status_dead') || 'Dead';
+            indicator.style.background = '#1a202c'; // dark background for dead
+            indicator.style.color = '#e2e8f0';
+        }
+
+        // Keep the select showing the current status or a default 'Change status...'
+        select.value = '';
     }
 
-    async togglePatientStatus() {
-        if (!this.currentCode || !this.api || !this.api.updatePatientStatus) return;
-        const newStatus = this.currentStatus === 'active' ? 'inactive' : 'active';
-        const btn = document.getElementById('patient-change-status-btn');
-        if (btn) {
-            btn.disabled = true;
-            btn.textContent = this._t('doctor.updating');
-        }
+    async setPatientStatus(newStatus) {
+        if (!this.currentCode || !this.api || !this.api.updatePatientStatus || !newStatus) return;
+
+        const select = document.getElementById('patient-change-status-select');
+        if (select) select.disabled = true;
+
         try {
             await this.api.updatePatientStatus(this.currentCode, newStatus);
             this.currentStatus = newStatus;
             this.updateStatusUI(newStatus);
-            alert(newStatus === 'inactive' ? 'Patient has been set to inactive.' : 'Patient has been set to active.');
             this.loadStatusHistory(this.currentCode);
         } catch (e) {
             alert('Failed to update status: ' + (e.message || 'Unknown error'));
             console.error('Update status error:', e);
+            if (select) select.value = ''; // reset to placeholder
         } finally {
-            if (btn) {
-                btn.disabled = false;
-                btn.textContent = this.currentStatus === 'active' ? 'Set inactive' : 'Set active';
-            }
+            if (select) select.disabled = false;
         }
     }
 
@@ -121,36 +132,28 @@ class PatientDetailView {
                 result.history.forEach(item => {
                     const tr = document.createElement('tr');
 
-                    const tdDate = document.createElement('td');
-                    tdDate.className = 'date';
-                    tdDate.textContent = item.changed_at ? new Date(item.changed_at).toLocaleString(this._dateLang()) : '-';
-
-                    const tdPrev = document.createElement('td');
-                    tdPrev.className = 'patient-status-badge ' + (item.previous_status === 'active' ? 'active' : 'inactive');
-                    tdPrev.style.display = 'inline-block';
-                    tdPrev.style.margin = '16px 24px';
-                    tdPrev.textContent = item.previous_status === 'active' ? this._t('doctor.status_active') : (item.previous_status === 'inactive' ? this._t('doctor.status_inactive') : '-');
-
-                    const tdNew = document.createElement('td');
-                    tdNew.className = 'patient-status-badge ' + (item.new_status === 'active' ? 'active' : 'inactive');
-                    tdNew.style.display = 'inline-block';
-                    tdNew.style.margin = '16px 24px';
-                    tdNew.textContent = item.new_status === 'active' ? this._t('doctor.status_active') : this._t('doctor.status_inactive');
-
-                    const tdReason = document.createElement('td');
-                    tdReason.textContent = item.reason || '-';
-
-                    tr.appendChild(tdDate);
-                    // Wrap spans in table cells so they align
-                    const tdPrevWrap = document.createElement('td');
-                    tdPrevWrap.appendChild(tdPrev);
-                    tr.appendChild(tdPrevWrap);
-
                     const tdNewWrap = document.createElement('td');
+                    const tdNew = document.createElement('div');
+                    tdNew.className = 'patient-status-badge ' + item.new_status;
+                    tdNew.style.display = 'inline-block';
+                    if (item.new_status === 'active') {
+                        tdNew.textContent = this._t('doctor.status_active');
+                    } else if (item.new_status === 'inactive') {
+                        tdNew.textContent = this._t('doctor.status_inactive');
+                    } else if (item.new_status === 'dead') {
+                        tdNew.textContent = this._t('doctor.status_dead') || 'Dead';
+                        tdNew.style.background = '#1a202c';
+                        tdNew.style.color = '#e2e8f0';
+                    } else {
+                        tdNew.textContent = item.new_status;
+                    }
                     tdNewWrap.appendChild(tdNew);
                     tr.appendChild(tdNewWrap);
 
-                    tr.appendChild(tdReason);
+                    const tdDate = document.createElement('td');
+                    tdDate.className = 'date';
+                    tdDate.textContent = item.changed_at ? new Date(item.changed_at).toLocaleString(this._dateLang()) : '-';
+                    tr.appendChild(tdDate);
 
                     tbody.appendChild(tr);
                 });

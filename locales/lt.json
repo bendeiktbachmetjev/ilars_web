@@ -176,7 +176,8 @@
     "creating": "Kuriama...",
     "updating": "Atnaujinama...",
     "status_active": "Aktyvus",
-    "status_inactive": "Neaktyvus"
+    "status_inactive": "Neaktyvus",
+    "status_dead": "Miręs"
   },
   "doctor_setup": {
     "title": "Užpildykite savo profilį",

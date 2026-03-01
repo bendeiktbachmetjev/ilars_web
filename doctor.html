@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script>(function(){try{var l=localStorage.getItem('ilars_lang');if(l&&l!=='en')document.documentElement.className+=' i18n-loading'}catch(e){}})();</script>
+  <script>(function () { try { var l = localStorage.getItem('ilars_lang'); if (l && l !== 'en') document.documentElement.className += ' i18n-loading' } catch (e) { } })();</script>
   <title>Doctor Dashboard — iLARS</title>
   <script>
     // Hide page immediately - before any rendering
-    (function() {
+    (function () {
       document.documentElement.style.visibility = 'hidden';
       document.documentElement.style.opacity = '0';
     })();
@@ -15,7 +16,7 @@
   <link rel="stylesheet" href="css/style.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    
+
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
@@ -29,25 +30,41 @@
     }
 
     @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+      0% {
+        background-position: 0% 50%;
+      }
+
+      50% {
+        background-position: 100% 50%;
+      }
+
+      100% {
+        background-position: 0% 50%;
+      }
     }
 
-    .navbar-menu a.btn-login, .navbar-cta a.btn-login, a.btn-login {
-      display: inline-flex !important; 
+    .navbar-menu a.btn-login,
+    .navbar-cta a.btn-login,
+    a.btn-login {
+      display: inline-flex !important;
       color: #ffffff !important;
       background-color: #667eea !important;
       background-image: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #ff9a56 100%) !important;
-      background-size: 200% 200% !important; 
+      background-size: 200% 200% !important;
       border-radius: 9999px !important;
-      padding: 0.5rem 1.25rem !important; 
+      padding: 0.5rem 1.25rem !important;
       box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4) !important;
-      text-decoration: none !important; 
+      text-decoration: none !important;
       font-weight: 600 !important;
     }
-    .navbar-menu a.btn-login::after { display: none !important; }
-    .btn-logout, .navbar-menu a.btn-logout, .navbar-cta a.btn-logout {
+
+    .navbar-menu a.btn-login::after {
+      display: none !important;
+    }
+
+    .btn-logout,
+    .navbar-menu a.btn-logout,
+    .navbar-cta a.btn-logout {
       display: inline-flex !important;
       color: #667eea !important;
       background: rgba(102, 126, 234, 0.08) !important;
@@ -60,7 +77,9 @@
       font-weight: 600 !important;
       transition: all 0.2s ease !important;
     }
-    .btn-logout:hover, .navbar-menu a.btn-logout:hover {
+
+    .btn-logout:hover,
+    .navbar-menu a.btn-logout:hover {
       background: rgba(102, 126, 234, 0.15) !important;
       color: #5a6fd6 !important;
       transform: translateY(-1px);
@@ -84,6 +103,7 @@
         opacity: 0;
         transform: translateY(20px);
       }
+
       to {
         opacity: 1;
         transform: translateY(0);
@@ -160,9 +180,20 @@
     }
 
     @keyframes dots {
-      0%, 20% { content: '.'; }
-      40% { content: '..'; }
-      60%, 100% { content: '...'; }
+
+      0%,
+      20% {
+        content: '.';
+      }
+
+      40% {
+        content: '..';
+      }
+
+      60%,
+      100% {
+        content: '...';
+      }
     }
 
     .skeleton-row {
@@ -191,24 +222,41 @@
       left: -100%;
       width: 100%;
       height: 100%;
-      background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.25) 50%,
-        transparent 100%
-      );
+      background: linear-gradient(90deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.25) 50%,
+          transparent 100%);
       animation: shimmer 1.8s ease-in-out infinite;
     }
 
-    .skeleton-row:nth-child(1) .skeleton-cell::after { animation-delay: 0s; }
-    .skeleton-row:nth-child(2) .skeleton-cell::after { animation-delay: 0.15s; }
-    .skeleton-row:nth-child(3) .skeleton-cell::after { animation-delay: 0.3s; }
-    .skeleton-row:nth-child(4) .skeleton-cell::after { animation-delay: 0.45s; }
-    .skeleton-row:nth-child(5) .skeleton-cell::after { animation-delay: 0.6s; }
+    .skeleton-row:nth-child(1) .skeleton-cell::after {
+      animation-delay: 0s;
+    }
+
+    .skeleton-row:nth-child(2) .skeleton-cell::after {
+      animation-delay: 0.15s;
+    }
+
+    .skeleton-row:nth-child(3) .skeleton-cell::after {
+      animation-delay: 0.3s;
+    }
+
+    .skeleton-row:nth-child(4) .skeleton-cell::after {
+      animation-delay: 0.45s;
+    }
+
+    .skeleton-row:nth-child(5) .skeleton-cell::after {
+      animation-delay: 0.6s;
+    }
 
     @keyframes shimmer {
-      0% { left: -100%; }
-      100% { left: 100%; }
+      0% {
+        left: -100%;
+      }
+
+      100% {
+        left: 100%;
+      }
     }
 
     .error {
@@ -251,8 +299,13 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
-    th:first-child { border-top-left-radius: 16px; }
-    th:last-child { border-top-right-radius: 16px; }
+    th:first-child {
+      border-top-left-radius: 16px;
+    }
+
+    th:last-child {
+      border-top-right-radius: 16px;
+    }
 
     td {
       padding: 16px 24px;
@@ -272,9 +325,17 @@
       background: rgba(255, 255, 255, 0.06);
     }
 
-    tbody tr:last-child td:first-child { border-bottom-left-radius: 16px; }
-    tbody tr:last-child td:last-child { border-bottom-right-radius: 16px; }
-    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:last-child td:first-child {
+      border-bottom-left-radius: 16px;
+    }
+
+    tbody tr:last-child td:last-child {
+      border-bottom-right-radius: 16px;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
 
     .patient-code {
       font-weight: 600;
@@ -303,9 +364,17 @@
       font-weight: 600;
     }
 
-    .score.good { color: #4ade80; }
-    .score.warning { color: #fbbf24; }
-    .score.bad { color: #f87171; }
+    .score.good {
+      color: #4ade80;
+    }
+
+    .score.warning {
+      color: #fbbf24;
+    }
+
+    .score.bad {
+      color: #f87171;
+    }
 
     .score span.date-part {
       color: rgba(255, 255, 255, 0.6);
@@ -328,11 +397,13 @@
       font-size: 0.9rem;
       font-weight: 600;
     }
+
     .patient-status-badge.active {
       background: rgba(74, 222, 128, 0.15);
       color: #4ade80;
       border: 1px solid rgba(74, 222, 128, 0.35);
     }
+
     .patient-status-badge.inactive {
       background: rgba(248, 113, 113, 0.15);
       color: #f87171;
@@ -423,7 +494,8 @@
         font-size: 32px;
       }
 
-      th, td {
+      th,
+      td {
         padding: 16px 12px;
         font-size: 13px;
       }
@@ -443,15 +515,18 @@
       justify-content: center;
       padding: 20px;
     }
+
     .doctor-profile-modal.is-visible {
       display: flex;
     }
+
     .doctor-profile-modal-backdrop {
       position: absolute;
       inset: 0;
       background: rgba(0, 0, 0, 0.6);
       backdrop-filter: blur(4px);
     }
+
     .doctor-profile-modal-content {
       position: relative;
       background: #fff;
@@ -461,17 +536,20 @@
       width: 100%;
       box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
     }
+
     .doctor-profile-title {
       font-size: 1.5rem;
       font-weight: 700;
       color: #1e1e32;
       margin-bottom: 0.5rem;
     }
+
     .doctor-profile-subtitle {
       font-size: 0.95rem;
       color: #666;
       margin-bottom: 1.5rem;
     }
+
     .doctor-profile-form label {
       display: block;
       font-size: 0.875rem;
@@ -479,9 +557,11 @@
       color: #333;
       margin-bottom: 0.35rem;
     }
+
     .doctor-profile-form .required {
       color: #e53935;
     }
+
     .doctor-profile-form input,
     .doctor-profile-form select {
       width: 100%;
@@ -491,16 +571,19 @@
       border-radius: 10px;
       margin-bottom: 1rem;
     }
+
     .doctor-profile-form input:focus,
     .doctor-profile-form select:focus {
       outline: none;
       border-color: #667eea;
     }
+
     .doctor-profile-error {
       color: #e53935;
       font-size: 0.875rem;
       margin-bottom: 1rem;
     }
+
     .doctor-profile-save {
       width: 100%;
       padding: 0.75rem 1.25rem;
@@ -513,13 +596,16 @@
       cursor: pointer;
       transition: background 0.2s ease;
     }
+
     .doctor-profile-save:hover:not(:disabled) {
       background: #5a6fd6;
     }
+
     .doctor-profile-save:disabled {
       opacity: 0.6;
       cursor: not-allowed;
     }
+
     .doctor-profile-close {
       position: absolute;
       top: 1rem;
@@ -534,9 +620,11 @@
       cursor: pointer;
       padding: 0;
     }
+
     .doctor-profile-close:hover {
       color: #333;
     }
+
     body.modal-open {
       overflow: hidden;
     }
@@ -551,15 +639,18 @@
       justify-content: center;
       padding: 20px;
     }
+
     .create-patient-modal.is-visible {
       display: flex;
     }
+
     .create-patient-modal-backdrop {
       position: absolute;
       inset: 0;
       background: rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(6px);
     }
+
     .create-patient-modal-content {
       position: relative;
       background: #fff;
@@ -570,10 +661,19 @@
       box-shadow: 0 24px 48px rgba(0, 0, 0, 0.18), 0 8px 24px rgba(102, 126, 234, 0.15);
       animation: modalFadeIn 0.3s ease-out;
     }
+
     @keyframes modalFadeIn {
-      from { opacity: 0; transform: scale(0.96) translateY(-10px); }
-      to { opacity: 1; transform: scale(1) translateY(0); }
+      from {
+        opacity: 0;
+        transform: scale(0.96) translateY(-10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
     }
+
     .create-patient-modal-title {
       font-size: 1.35rem;
       font-weight: 700;
@@ -581,12 +681,14 @@
       margin-bottom: 0.5rem;
       letter-spacing: -0.02em;
     }
+
     .create-patient-modal-subtitle {
       font-size: 0.9rem;
       color: #666;
       margin-bottom: 1.5rem;
       line-height: 1.5;
     }
+
     .create-patient-modal-row {
       display: flex;
       align-items: center;
@@ -597,20 +699,24 @@
       margin-bottom: 0.75rem;
       font-size: 0.95rem;
     }
+
     .create-patient-modal-row-label {
       color: #555;
       font-weight: 500;
     }
+
     .create-patient-modal-row-value {
       color: #1e1e32;
       font-weight: 600;
     }
+
     .create-patient-modal-actions {
       display: flex;
       gap: 12px;
       margin-top: 1.5rem;
       flex-direction: row-reverse;
     }
+
     .create-patient-modal-btn {
       flex: 1;
       padding: 0.75rem 1.25rem;
@@ -622,26 +728,32 @@
       font-family: inherit;
       border: none;
     }
+
     .create-patient-modal-btn:disabled {
       opacity: 0.6;
       cursor: not-allowed;
     }
+
     .create-patient-modal-btn-confirm {
       background: #667eea;
       color: #fff;
       box-shadow: 0 4px 14px rgba(102, 126, 234, 0.3);
     }
+
     .create-patient-modal-btn-confirm:hover:not(:disabled) {
       background: #5a6fd6;
       transform: translateY(-1px);
     }
+
     .create-patient-modal-btn-cancel {
       background: rgba(0, 0, 0, 0.06);
       color: #444;
     }
+
     .create-patient-modal-btn-cancel:hover:not(:disabled) {
       background: rgba(0, 0, 0, 0.1);
     }
+
     .create-patient-modal-close {
       position: absolute;
       top: 1rem;
@@ -657,10 +769,12 @@
       padding: 0;
       border-radius: 8px;
     }
+
     .create-patient-modal-close:hover {
       color: #333;
       background: rgba(0, 0, 0, 0.05);
     }
+
     .create-patient-modal-code-block {
       padding: 1.25rem 1.5rem;
       background: linear-gradient(135deg, rgba(102, 126, 234, 0.12) 0%, rgba(118, 75, 162, 0.12) 100%);
@@ -669,6 +783,7 @@
       margin: 1rem 0;
       text-align: center;
     }
+
     .create-patient-modal-code-value {
       font-size: 1.5rem;
       font-weight: 700;
@@ -683,9 +798,10 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     /* Hide all content until profile check is complete */
-    body:not(.profile-checked) > *:not(.profile-check-loader) {
+    body:not(.profile-checked)>*:not(.profile-check-loader) {
       display: none !important;
     }
+
     .profile-check-loader {
       position: fixed;
       inset: 0;
@@ -696,16 +812,19 @@
       z-index: 99999;
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
     }
+
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
   </style>
   <script>
     // IMMEDIATE check - before page renders
-    (function() {
+    (function () {
       // Hide body content immediately
       document.documentElement.style.visibility = 'hidden';
-      
+
       function showLoader() {
         var loader = document.createElement('div');
         loader.className = 'profile-check-loader';
@@ -713,30 +832,30 @@
         document.body.appendChild(loader);
         document.documentElement.style.visibility = 'visible';
       }
-      
+
       function checkProfile() {
         // Wait for scripts to load
         if (typeof window.ILARS_AUTH_CHECK === 'undefined' || typeof window.ILARS_CONFIG === 'undefined' || typeof window.ILARS_AUTH === 'undefined') {
           setTimeout(checkProfile, 50);
           return;
         }
-        
+
         showLoader();
-        
+
         // Check authentication
         if (window.ILARS_AUTH_CHECK) {
           if (!window.ILARS_AUTH_CHECK.requireAuth()) {
             return; // Redirecting to login
           }
         }
-        
+
         // Initialize Firebase Auth and wait for it to be ready
         function waitForAuth() {
           if (!window.ILARS_AUTH) {
             setTimeout(waitForAuth, 100);
             return;
           }
-          
+
           // Initialize Firebase Auth if not already done
           if (!window.ILARS_AUTH.auth && window.ILARS_AUTH.init) {
             if (!window.ILARS_AUTH.init()) {
@@ -745,93 +864,93 @@
               return;
             }
           }
-          
+
           // Wait for auth state to settle
-          setTimeout(function() {
+          setTimeout(function () {
             if (!window.ILARS_AUTH.auth || !window.ILARS_AUTH.auth.currentUser) {
               console.log('No Firebase user found, waiting...');
               setTimeout(waitForAuth, 500);
               return;
             }
-            
+
             // Now we can safely get token
             performProfileCheck();
           }, 300);
         }
-        
+
         function performProfileCheck() {
           // Check profile
           var profileCompleted = window.sessionStorage.getItem('ilars_doctor_profile_completed');
-          
+
           if (!window.ILARS_AUTH || !window.ILARS_AUTH.getIdToken) {
             console.error('ILARS_AUTH.getIdToken not available');
             window.location.href = 'doctor-setup.html';
             return;
           }
-          
+
           // Check if we just completed profile (from setup page)
           var justCompleted = window.sessionStorage.getItem('ilars_doctor_profile_completed') === '1';
-          
-          window.ILARS_AUTH.getIdToken(true).then(function(token) {
-          var apiBase = (window.ILARS_CONFIG && window.ILARS_CONFIG.API_BASE_URL || '').replace(/\/$/, '');
-          return fetch(apiBase + '/doctors/me', {
-            headers: { 'Authorization': 'Bearer ' + token }
-          }).then(function(r) {
-            return r.json().then(function(data) {
-              return { ok: r.ok, status: r.status, data: data };
+
+          window.ILARS_AUTH.getIdToken(true).then(function (token) {
+            var apiBase = (window.ILARS_CONFIG && window.ILARS_CONFIG.API_BASE_URL || '').replace(/\/$/, '');
+            return fetch(apiBase + '/doctors/me', {
+              headers: { 'Authorization': 'Bearer ' + token }
+            }).then(function (r) {
+              return r.json().then(function (data) {
+                return { ok: r.ok, status: r.status, data: data };
+              });
             });
-          });
-        }).then(function(result) {
-          if (result.data.status === 'ok' && result.data.needs_profile) {
-            // If we just completed profile but it's not showing as complete yet, wait a bit
-            if (justCompleted) {
-              console.log('Profile just completed, waiting for database sync...');
-              setTimeout(function() {
-                // Retry once more
-                window.ILARS_AUTH.getIdToken(true).then(function(token) {
-                  var apiBase = (window.ILARS_CONFIG && window.ILARS_CONFIG.API_BASE_URL || '').replace(/\/$/, '');
-                  return fetch(apiBase + '/doctors/me', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                  }).then(function(r) {
-                    return r.json().then(function(data) {
-                      if (data.status === 'ok' && !data.needs_profile) {
-                        window.sessionStorage.setItem('ilars_doctor_profile_completed', '1');
-                        var loader = document.querySelector('.profile-check-loader');
-                        if (loader) loader.remove();
-                        document.body.classList.add('profile-checked');
-                        document.documentElement.style.visibility = 'visible';
-                        document.documentElement.style.opacity = '1';
-                        initializeDashboard();
-                      } else {
-                        window.location.href = 'doctor-setup.html';
-                      }
+          }).then(function (result) {
+            if (result.data.status === 'ok' && result.data.needs_profile) {
+              // If we just completed profile but it's not showing as complete yet, wait a bit
+              if (justCompleted) {
+                console.log('Profile just completed, waiting for database sync...');
+                setTimeout(function () {
+                  // Retry once more
+                  window.ILARS_AUTH.getIdToken(true).then(function (token) {
+                    var apiBase = (window.ILARS_CONFIG && window.ILARS_CONFIG.API_BASE_URL || '').replace(/\/$/, '');
+                    return fetch(apiBase + '/doctors/me', {
+                      headers: { 'Authorization': 'Bearer ' + token }
+                    }).then(function (r) {
+                      return r.json().then(function (data) {
+                        if (data.status === 'ok' && !data.needs_profile) {
+                          window.sessionStorage.setItem('ilars_doctor_profile_completed', '1');
+                          var loader = document.querySelector('.profile-check-loader');
+                          if (loader) loader.remove();
+                          document.body.classList.add('profile-checked');
+                          document.documentElement.style.visibility = 'visible';
+                          document.documentElement.style.opacity = '1';
+                          initializeDashboard();
+                        } else {
+                          window.location.href = 'doctor-setup.html';
+                        }
+                      });
                     });
+                  }).catch(function () {
+                    window.location.href = 'doctor-setup.html';
                   });
-                }).catch(function() {
-                  window.location.href = 'doctor-setup.html';
-                });
-              }, 1500);
+                }, 1500);
+              } else {
+                window.location.href = 'doctor-setup.html';
+              }
+            } else if (result.data.status === 'ok' && !result.data.needs_profile) {
+              window.sessionStorage.setItem('ilars_doctor_profile_completed', '1');
+              // Show dashboard
+              var loader = document.querySelector('.profile-check-loader');
+              if (loader) loader.remove();
+              document.body.classList.add('profile-checked');
+              document.documentElement.style.visibility = 'visible';
+              document.documentElement.style.opacity = '1';
+              initializeDashboard();
             } else {
               window.location.href = 'doctor-setup.html';
             }
-          } else if (result.data.status === 'ok' && !result.data.needs_profile) {
-            window.sessionStorage.setItem('ilars_doctor_profile_completed', '1');
-            // Show dashboard
-            var loader = document.querySelector('.profile-check-loader');
-            if (loader) loader.remove();
-            document.body.classList.add('profile-checked');
-            document.documentElement.style.visibility = 'visible';
-            document.documentElement.style.opacity = '1';
-            initializeDashboard();
-          } else {
-            window.location.href = 'doctor-setup.html';
-          }
-          }).catch(function(err) {
+          }).catch(function (err) {
             console.error('Profile check failed:', err);
             // If we just completed profile, give it a chance
             if (justCompleted) {
               console.log('Just completed profile, retrying after delay...');
-              setTimeout(function() {
+              setTimeout(function () {
                 performProfileCheck();
               }, 2000);
             } else {
@@ -839,11 +958,11 @@
             }
           });
         }
-        
+
         // Start auth initialization and wait
         waitForAuth();
       }
-      
+
       function initializeDashboard() {
         if (window.ILARS_NAV && typeof window.ILARS_NAV.init === 'function') {
           window.ILARS_NAV.init();
@@ -856,13 +975,13 @@
           if (window.ILARS_I18N.patchDOM) {
             window.ILARS_I18N.patchDOM();
           } else {
-            window.ILARS_I18N.onReady(function() {
+            window.ILARS_I18N.onReady(function () {
               window.ILARS_I18N.patchDOM();
             });
           }
         }
       }
-      
+
       // Start check immediately
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', checkProfile);
@@ -872,6 +991,7 @@
     })();
   </script>
 </head>
+
 <body data-i18n-page="doctor">
   <!-- Navigation -->
   <nav class="navbar">
@@ -886,12 +1006,16 @@
         <li><a href="project.html" data-i18n="nav.project">Our Project</a></li>
         <li><a href="features.html" data-i18n="nav.features">Features</a></li>
         <li><a href="contact.html" data-i18n="nav.contact">Contact</a></li>
-        <li class="navbar-cta"><a href="#" id="btn-logout" class="btn btn-logout" data-i18n="nav.logout">Log out</a></li>
+        <li class="navbar-cta"><a href="#" id="btn-logout" class="btn btn-logout" data-i18n="nav.logout">Log out</a>
+        </li>
       </ul>
       <div class="navbar-lang">
         <button class="lang-btn" aria-label="Change language" aria-expanded="false">
           <span class="lang-current">EN</span>
-          <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+            <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
         </button>
         <ul class="lang-dropdown">
           <li><button data-lang="en">English</button></li>
@@ -938,7 +1062,9 @@
       </table>
 
       <div id="patients-inactive-section" style="display: none; margin-top: 48px;">
-        <h2 style="font-size: 1.35rem; font-weight: 600; color: rgba(255, 255, 255, 0.7); margin-bottom: 16px; letter-spacing: -0.3px;" data-i18n="doctor.inactive_patients">Inactive patients</h2>
+        <h2
+          style="font-size: 1.35rem; font-weight: 600; color: rgba(255, 255, 255, 0.7); margin-bottom: 16px; letter-spacing: -0.3px;"
+          data-i18n="doctor.inactive_patients">Inactive patients</h2>
         <table id="patients-inactive-table" style="display: none;">
           <thead>
             <tr>
@@ -961,29 +1087,35 @@
   <!-- Patient Detail View -->
   <div id="patient-detail-view" class="view">
     <div class="container">
-      <button class="back-btn" onclick="window.app.navigate('list')" data-i18n="doctor.back_to_list">← Back to Patient List</button>
+      <button class="back-btn" onclick="window.app.navigate('list')" data-i18n="doctor.back_to_list">← Back to Patient
+        List</button>
       <h1>Patient: <span id="patient-detail-code"></span></h1>
       <div id="patient-detail-loading" class="loading" data-i18n="doctor.loading_patient">Loading patient data...</div>
       <div id="patient-detail-error" class="error" style="display: none;"></div>
       <div id="patient-detail-content" style="display: none;">
-        <div id="patient-status-bar" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+        <div id="patient-status-bar"
+          style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
           <span id="patient-status-indicator" class="patient-status-badge">—</span>
-          <button id="patient-change-status-btn" type="button" class="create-patient-btn" style="background-image: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); box-shadow: 0 6px 18px rgba(129, 140, 248, 0.45);" data-i18n="doctor.set_inactive">
-            Set inactive
-          </button>
+          <select id="patient-change-status-select" class="create-patient-btn"
+            style="background-image: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); box-shadow: 0 6px 18px rgba(129, 140, 248, 0.45); color: white; border: none; padding: 10px 30px 10px 15px; font-weight: 600; cursor: pointer; appearance: none; -webkit-appearance: none;">
+            <option value="" disabled selected data-i18n="doctor.change_status">Change status...</option>
+            <option value="active" style="color: black;" data-i18n="doctor.status_active">Active</option>
+            <option value="inactive" style="color: black;" data-i18n="doctor.status_inactive">Inactive</option>
+            <option value="dead" style="color: black;" data-i18n="doctor.status_dead">Dead</option>
+          </select>
         </div>
-        
+
         <!-- Status History Table -->
         <div id="patient-status-history-container" style="display: none; margin-bottom: 2rem;">
-          <h3 style="color: rgba(255, 255, 255, 0.85); font-size: 16px; font-weight: 600; margin-bottom: 12px;" data-i18n="doctor.status_history_title">Status History</h3>
-          <div style="background: rgba(255, 255, 255, 0.05); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden;">
+          <h3 style="color: rgba(255, 255, 255, 0.85); font-size: 16px; font-weight: 600; margin-bottom: 12px;"
+            data-i18n="doctor.status_history_title">Status History</h3>
+          <div
+            style="background: rgba(255, 255, 255, 0.05); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden;">
             <table style="margin-top: 0; box-shadow: none; border: none; border-radius: 0;">
               <thead>
                 <tr>
-                  <th data-i18n="doctor.th_date">Date</th>
-                  <th data-i18n="doctor.th_previous_status">Previous Status</th>
                   <th data-i18n="doctor.th_new_status">New Status</th>
-                  <th data-i18n="doctor.th_reason">Reason</th>
+                  <th data-i18n="doctor.th_date">Date</th>
                 </tr>
               </thead>
               <tbody id="patient-status-history-tbody">
@@ -1054,13 +1186,16 @@
   </div>
 
   <!-- Create patient confirmation modal -->
-  <div id="create-patient-modal" class="create-patient-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="create-patient-modal-title">
+  <div id="create-patient-modal" class="create-patient-modal" aria-hidden="true" role="dialog" aria-modal="true"
+    aria-labelledby="create-patient-modal-title">
     <div class="create-patient-modal-backdrop"></div>
     <div class="create-patient-modal-content">
       <!-- Confirm state -->
       <div id="create-patient-modal-confirm-state">
-        <h2 id="create-patient-modal-title" class="create-patient-modal-title" data-i18n="doctor.modal_confirm_title">Confirm create patient</h2>
-        <p class="create-patient-modal-subtitle" data-i18n="doctor.modal_confirm_subtitle">Please verify you are on the correct account before creating a new patient.</p>
+        <h2 id="create-patient-modal-title" class="create-patient-modal-title" data-i18n="doctor.modal_confirm_title">
+          Confirm create patient</h2>
+        <p class="create-patient-modal-subtitle" data-i18n="doctor.modal_confirm_subtitle">Please verify you are on the
+          correct account before creating a new patient.</p>
         <div class="create-patient-modal-row">
           <span class="create-patient-modal-row-label" data-i18n="doctor.modal_doctor_label">Doctor</span>
           <span id="create-patient-modal-doctor-name" class="create-patient-modal-row-value">—</span>
@@ -1070,36 +1205,49 @@
           <span id="create-patient-modal-date" class="create-patient-modal-row-value">—</span>
         </div>
         <div class="create-patient-modal-actions">
-          <button type="button" id="create-patient-modal-confirm" class="create-patient-modal-btn create-patient-modal-btn-confirm" data-i18n="doctor.modal_confirm_btn">Create patient</button>
-          <button type="button" id="create-patient-modal-cancel" class="create-patient-modal-btn create-patient-modal-btn-cancel" data-i18n="doctor.modal_cancel_btn">Cancel</button>
+          <button type="button" id="create-patient-modal-confirm"
+            class="create-patient-modal-btn create-patient-modal-btn-confirm"
+            data-i18n="doctor.modal_confirm_btn">Create patient</button>
+          <button type="button" id="create-patient-modal-cancel"
+            class="create-patient-modal-btn create-patient-modal-btn-cancel"
+            data-i18n="doctor.modal_cancel_btn">Cancel</button>
         </div>
       </div>
       <!-- Success state: patient code -->
       <div id="create-patient-modal-success-state" style="display: none;">
         <h2 class="create-patient-modal-title" data-i18n="doctor.modal_success_title">Patient created</h2>
-        <p class="create-patient-modal-subtitle" data-i18n="doctor.modal_success_subtitle">Share this code with the patient to link their app.</p>
+        <p class="create-patient-modal-subtitle" data-i18n="doctor.modal_success_subtitle">Share this code with the
+          patient to link their app.</p>
         <div class="create-patient-modal-code-block">
           <span id="create-patient-modal-code" class="create-patient-modal-code-value"></span>
         </div>
         <div class="create-patient-modal-actions" style="margin-top: 1.5rem;">
-          <button type="button" id="create-patient-modal-done" class="create-patient-modal-btn create-patient-modal-btn-confirm" data-i18n="doctor.modal_done_btn">Done</button>
+          <button type="button" id="create-patient-modal-done"
+            class="create-patient-modal-btn create-patient-modal-btn-confirm"
+            data-i18n="doctor.modal_done_btn">Done</button>
         </div>
       </div>
-      <button type="button" id="create-patient-modal-close" class="create-patient-modal-close" aria-label="Close">×</button>
+      <button type="button" id="create-patient-modal-close" class="create-patient-modal-close"
+        aria-label="Close">×</button>
     </div>
   </div>
 
   <!-- Doctor profile modal (overlay) -->
-  <div id="doctor-profile-modal" class="doctor-profile-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="doctor-profile-title">
+  <div id="doctor-profile-modal" class="doctor-profile-modal" aria-hidden="true" role="dialog" aria-modal="true"
+    aria-labelledby="doctor-profile-title">
     <div class="doctor-profile-modal-backdrop"></div>
     <div class="doctor-profile-modal-content">
-      <h2 id="doctor-profile-title" class="doctor-profile-title" data-i18n="doctor.profile_title">Complete your profile</h2>
-      <p class="doctor-profile-subtitle" data-i18n="doctor.profile_subtitle">Please fill in your details to use the doctor dashboard.</p>
+      <h2 id="doctor-profile-title" class="doctor-profile-title" data-i18n="doctor.profile_title">Complete your profile
+      </h2>
+      <p class="doctor-profile-subtitle" data-i18n="doctor.profile_subtitle">Please fill in your details to use the
+        doctor dashboard.</p>
       <form id="doctor-profile-form" class="doctor-profile-form">
         <label for="doctor-profile-first-name" data-i18n="doctor.first_name">First name</label>
-        <input type="text" id="doctor-profile-first-name" name="first_name" placeholder="First name" autocomplete="given-name">
+        <input type="text" id="doctor-profile-first-name" name="first_name" placeholder="First name"
+          autocomplete="given-name">
         <label for="doctor-profile-last-name" data-i18n="doctor.last_name">Last name</label>
-        <input type="text" id="doctor-profile-last-name" name="last_name" placeholder="Last name" autocomplete="family-name">
+        <input type="text" id="doctor-profile-last-name" name="last_name" placeholder="Last name"
+          autocomplete="family-name">
         <label for="doctor-profile-hospital">Hospital <span class="required">*</span></label>
         <select id="doctor-profile-hospital" name="hospital_id" required>
           <option value="">Select hospital</option>
@@ -1114,7 +1262,7 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  
+
   <script src="js/i18n.js"></script>
   <script src="js/config.js"></script>
   <script src="js/firebase/config.js"></script>
@@ -1128,14 +1276,14 @@
   <script src="js/doctors/app.js"></script>
   <script>
     // Logout button handler (only after dashboard is shown)
-    (function() {
-      document.addEventListener('DOMContentLoaded', function() {
+    (function () {
+      document.addEventListener('DOMContentLoaded', function () {
         var logoutBtn = document.getElementById('btn-logout');
         if (logoutBtn) {
-          logoutBtn.addEventListener('click', function(e) {
+          logoutBtn.addEventListener('click', function (e) {
             e.preventDefault();
             if (window.ILARS_AUTH_CHECK && window.ILARS_AUTH_CHECK.signOut) {
-              window.ILARS_AUTH_CHECK.signOut().then(function() {
+              window.ILARS_AUTH_CHECK.signOut().then(function () {
                 window.location.href = 'login.html';
               });
             } else {
@@ -1147,4 +1295,5 @@
     })();
   </script>
 </body>
+
 </html>

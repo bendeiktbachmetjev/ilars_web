@@ -176,7 +176,8 @@
     "creating": "Creando...",
     "updating": "Actualizando...",
     "status_active": "Activo",
-    "status_inactive": "Inactivo"
+    "status_inactive": "Inactivo",
+    "status_dead": "Fallecido"
   },
   "doctor_setup": {
     "title": "Completa tu perfil",
