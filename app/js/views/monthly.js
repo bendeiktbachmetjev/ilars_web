@@ -25,73 +25,73 @@
       '<h1 class="app-form-title">' + _t('app.monthly_title') + '</h1>' +
       '<form id="monthly-form">' +
       '<div class="app-form-group app-form-group-with-icon">' +
-        '<div class="app-slider-head">' +
-          '<div class="app-form-label-wrap"><span class="app-form-icon">✈️</span><label for="monthly-avoid-travel">' + _t('app.avoid_traveling') + '</label></div>' +
-          '<span class="app-value-chip" id="monthly-avoid-travel-v">1</span>' +
-        '</div>' +
-        '<input class="app-range" type="range" id="monthly-avoid-travel" min="1" max="4" value="1">' +
-        '<p class="app-question-desc">' + _t('app.desc_1_4') + '</p>' +
+      '<div class="app-slider-head">' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">✈️</span><label for="monthly-avoid-travel">' + _t('app.avoid_traveling') + '</label></div>' +
+      '<span class="app-value-chip" id="monthly-avoid-travel-v">1</span>' +
+      '</div>' +
+      '<input class="app-range" type="range" id="monthly-avoid-travel" min="1" max="4" value="1">' +
+      '<p class="app-question-desc">' + _t('app.desc_1_4') + '</p>' +
       '</div>' +
 
       '<div class="app-form-group app-form-group-with-icon">' +
-        '<div class="app-slider-head">' +
-          '<div class="app-form-label-wrap"><span class="app-form-icon">🧑‍🤝‍🧑</span><label for="monthly-avoid-social">' + _t('app.avoid_social') + '</label></div>' +
-          '<span class="app-value-chip" id="monthly-avoid-social-v">1</span>' +
-        '</div>' +
-        '<input class="app-range" type="range" id="monthly-avoid-social" min="1" max="4" value="1">' +
-        '<p class="app-question-desc">' + _t('app.desc_1_4') + '</p>' +
+      '<div class="app-slider-head">' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">🧑‍🤝‍🧑</span><label for="monthly-avoid-social">' + _t('app.avoid_social') + '</label></div>' +
+      '<span class="app-value-chip" id="monthly-avoid-social-v">1</span>' +
+      '</div>' +
+      '<input class="app-range" type="range" id="monthly-avoid-social" min="1" max="4" value="1">' +
+      '<p class="app-question-desc">' + _t('app.desc_1_4') + '</p>' +
       '</div>' +
 
       '<div class="app-form-group app-form-group-with-icon">' +
-        '<div class="app-slider-head">' +
-          '<div class="app-form-label-wrap"><span class="app-form-icon">😳</span><label for="monthly-embarrassed">' + _t('app.feel_embarrassed') + '</label></div>' +
-          '<span class="app-value-chip" id="monthly-embarrassed-v">1</span>' +
-        '</div>' +
-        '<input class="app-range" type="range" id="monthly-embarrassed" min="1" max="4" value="1">' +
-        '<p class="app-question-desc">' + _t('app.desc_1_4') + '</p>' +
+      '<div class="app-slider-head">' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">😳</span><label for="monthly-embarrassed">' + _t('app.feel_embarrassed') + '</label></div>' +
+      '<span class="app-value-chip" id="monthly-embarrassed-v">1</span>' +
+      '</div>' +
+      '<input class="app-range" type="range" id="monthly-embarrassed" min="1" max="4" value="1">' +
+      '<p class="app-question-desc">' + _t('app.desc_1_4') + '</p>' +
       '</div>' +
 
       '<div class="app-form-group app-form-group-with-icon">' +
-        '<div class="app-slider-head">' +
-          '<div class="app-form-label-wrap"><span class="app-form-icon">👀</span><label for="monthly-worry">' + _t('app.worry_others_notice') + '</label></div>' +
-          '<span class="app-value-chip" id="monthly-worry-v">1</span>' +
-        '</div>' +
-        '<input class="app-range" type="range" id="monthly-worry" min="1" max="4" value="1">' +
-        '<p class="app-question-desc">' + _t('app.desc_1_4') + '</p>' +
+      '<div class="app-slider-head">' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">👀</span><label for="monthly-worry">' + _t('app.worry_others_notice') + '</label></div>' +
+      '<span class="app-value-chip" id="monthly-worry-v">1</span>' +
+      '</div>' +
+      '<input class="app-range" type="range" id="monthly-worry" min="1" max="4" value="1">' +
+      '<p class="app-question-desc">' + _t('app.desc_1_4') + '</p>' +
       '</div>' +
 
       '<div class="app-form-group app-form-group-with-icon">' +
-        '<div class="app-slider-head">' +
-          '<div class="app-form-label-wrap"><span class="app-form-icon">😞</span><label for="monthly-depressed">' + _t('app.feel_depressed') + '</label></div>' +
-          '<span class="app-value-chip" id="monthly-depressed-v">1</span>' +
-        '</div>' +
-        '<input class="app-range" type="range" id="monthly-depressed" min="1" max="4" value="1">' +
-        '<p class="app-question-desc">' + _t('app.desc_1_4') + '</p>' +
+      '<div class="app-slider-head">' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">😞</span><label for="monthly-depressed">' + _t('app.feel_depressed') + '</label></div>' +
+      '<span class="app-value-chip" id="monthly-depressed-v">1</span>' +
+      '</div>' +
+      '<input class="app-range" type="range" id="monthly-depressed" min="1" max="4" value="1">' +
+      '<p class="app-question-desc">' + _t('app.desc_1_4') + '</p>' +
       '</div>' +
 
       '<div class="app-form-group app-form-group-with-icon">' +
-        '<div class="app-slider-head">' +
-          '<div class="app-form-label-wrap"><span class="app-form-icon">🎛️</span><label for="monthly-control">' + _t('app.feel_in_control') + '</label></div>' +
-          '<span class="app-value-chip" id="monthly-control-v">0</span>' +
-        '</div>' +
-        '<input class="app-range" type="range" id="monthly-control" min="0" max="10" value="0">' +
-        '<p class="app-question-desc">' + _t('app.desc_0_10_control') + '</p>' +
+      '<div class="app-slider-head">' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">🎛️</span><label for="monthly-control">' + _t('app.feel_in_control') + '</label></div>' +
+      '<span class="app-value-chip" id="monthly-control-v">0</span>' +
+      '</div>' +
+      '<input class="app-range" type="range" id="monthly-control" min="0" max="10" value="0">' +
+      '<p class="app-question-desc">' + _t('app.desc_0_10_control') + '</p>' +
       '</div>' +
 
       '<div class="app-form-group app-form-group-with-icon">' +
-        '<div class="app-slider-head">' +
-          '<div class="app-form-label-wrap"><span class="app-form-icon">😊</span><label for="monthly-satisfaction">' + _t('app.satisfaction') + '</label></div>' +
-          '<span class="app-value-chip" id="monthly-satisfaction-v">0</span>' +
-        '</div>' +
-        '<input class="app-range" type="range" id="monthly-satisfaction" min="0" max="10" value="0">' +
-        '<p class="app-question-desc">' + _t('app.desc_0_10_satisfaction') + '</p>' +
+      '<div class="app-slider-head">' +
+      '<div class="app-form-label-wrap"><span class="app-form-icon">😊</span><label for="monthly-satisfaction">' + _t('app.satisfaction') + '</label></div>' +
+      '<span class="app-value-chip" id="monthly-satisfaction-v">0</span>' +
+      '</div>' +
+      '<input class="app-range" type="range" id="monthly-satisfaction" min="0" max="10" value="0">' +
+      '<p class="app-question-desc">' + _t('app.desc_0_10_satisfaction') + '</p>' +
       '</div>' +
 
       '<div class="app-form-group app-form-score">' +
-        '<div class="app-score-card">' +
-          '<p class="app-score-label">' + _t('app.qol_score') + '</p>' +
-          '<p class="app-score-value"><span id="monthly-qol-score">0</span></p>' +
-        '</div>' +
+      '<div class="app-score-card">' +
+      '<p class="app-score-label">' + _t('app.qol_score') + '</p>' +
+      '<p class="app-score-value"><span id="monthly-qol-score">0</span></p>' +
+      '</div>' +
       '</div>' +
 
       '<div class="app-form-actions"><button type="submit" class="app-btn app-btn-primary">' + _t('app.submit') + '</button></div>' +
@@ -101,8 +101,8 @@
   }
 
   function computeQolScore() {
-    var control = parseFloat(document.getElementById('monthly-control').value, 10) || 0;
-    var satisfaction = parseFloat(document.getElementById('monthly-satisfaction').value, 10) || 0;
+    var control = parseInt(document.getElementById('monthly-control').value, 10) || 0;
+    var satisfaction = parseInt(document.getElementById('monthly-satisfaction').value, 10) || 0;
     return Math.round((control + satisfaction) / 2);
   }
 
@@ -140,13 +140,13 @@
 
     document.getElementById('monthly-form').addEventListener('submit', function (e) {
       e.preventDefault();
-      var avoidTravel = parseFloat(document.getElementById('monthly-avoid-travel').value, 10) || 1;
-      var avoidSocial = parseFloat(document.getElementById('monthly-avoid-social').value, 10) || 1;
-      var embarrassed = parseFloat(document.getElementById('monthly-embarrassed').value, 10) || 1;
-      var worryNotice = parseFloat(document.getElementById('monthly-worry').value, 10) || 1;
-      var depressed = parseFloat(document.getElementById('monthly-depressed').value, 10) || 1;
-      var control = parseFloat(document.getElementById('monthly-control').value, 10) || 0;
-      var satisfaction = parseFloat(document.getElementById('monthly-satisfaction').value, 10) || 0;
+      var avoidTravel = parseInt(document.getElementById('monthly-avoid-travel').value, 10) || 1;
+      var avoidSocial = parseInt(document.getElementById('monthly-avoid-social').value, 10) || 1;
+      var embarrassed = parseInt(document.getElementById('monthly-embarrassed').value, 10) || 1;
+      var worryNotice = parseInt(document.getElementById('monthly-worry').value, 10) || 1;
+      var depressed = parseInt(document.getElementById('monthly-depressed').value, 10) || 1;
+      var control = parseInt(document.getElementById('monthly-control').value, 10) || 0;
+      var satisfaction = parseInt(document.getElementById('monthly-satisfaction').value, 10) || 0;
       var qolScore = Math.round((control + satisfaction) / 2);
       var payload = {
         entry_date: todayStr(),

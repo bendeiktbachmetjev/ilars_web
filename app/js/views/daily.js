@@ -200,9 +200,9 @@
       night_stools: (document.querySelector('#daily-night .app-form-option.selected') || {}).dataset?.value || 'No',
       leakage: (document.querySelector('#daily-leakage .app-form-option.selected') || {}).dataset?.value || 'None',
       incomplete_evacuation: (document.querySelector('#daily-incomplete .app-form-option.selected') || {}).dataset?.value || 'No',
-      bloating: parseFloat(document.getElementById('daily-bloating').value, 10) || 0,
-      impact_score: parseFloat(document.getElementById('daily-impact').value, 10) || 0,
-      activity_interfere: parseFloat(document.getElementById('daily-activity').value, 10) || 0
+      bloating: parseInt(document.getElementById('daily-bloating').value, 10) || 0,
+      impact_score: parseInt(document.getElementById('daily-impact').value, 10) || 0,
+      activity_interfere: parseInt(document.getElementById('daily-activity').value, 10) || 0
     };
     var bristol = parseInt(document.getElementById('daily-bristol').value, 10) || 1;
     var food = {};
