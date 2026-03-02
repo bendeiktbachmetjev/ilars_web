@@ -219,13 +219,65 @@
     xhr.send(JSON.stringify(payload));
   }
 
+  function getPatientProfile(patientCode, callback) {
+    var code = patientCode || getPatientCode();
+    if (!code) {
+      if (callback) callback(new Error('No patient code'), null);
+      return;
+    }
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', base + '/getPatientProfile', true);
+    xhr.setRequestHeader('X-Patient-Code', code);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          var data = JSON.parse(xhr.responseText);
+          if (callback) callback(null, data);
+        } catch (e) {
+          if (callback) callback(e, null);
+        }
+      } else {
+        if (callback) callback(new Error('Server ' + xhr.status), null);
+      }
+    };
+    xhr.onerror = function () {
+      if (callback) callback(new Error('Network error'), null);
+    };
+    xhr.send();
+  }
+
+  function unsubscribePatient(patientCode, callback) {
+    var code = patientCode || getPatientCode();
+    if (!code) {
+      if (callback) callback(new Error('No patient code'));
+      return;
+    }
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', base + '/unsubscribePatient', true);
+    Object.keys(headers(code)).forEach(function (k) {
+      xhr.setRequestHeader(k, headers(code)[k]);
+    });
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+      if (callback) callback(xhr.status >= 200 && xhr.status < 300 ? null : new Error('Server ' + xhr.status));
+    };
+    xhr.onerror = function () {
+      if (callback) callback(new Error('Network error'));
+    };
+    xhr.send();
+  }
+
   global.ILARS_APP_API = {
     getPatientCode: getPatientCode,
+    validatePatientCode: validatePatientCode,
     getNextQuestionnaire: getNextQuestionnaire,
     getLarsData: getLarsData,
     sendDaily: sendDaily,
     sendWeekly: sendWeekly,
     sendMonthly: sendMonthly,
-    sendEq5d5l: sendEq5d5l
+    sendEq5d5l: sendEq5d5l,
+    getPatientProfile: getPatientProfile,
+    unsubscribePatient: unsubscribePatient
   };
 })(typeof window !== 'undefined' ? window : this);

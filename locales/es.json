@@ -312,6 +312,10 @@
     "eq_anx_severe": "Estoy gravemente ansioso/a o deprimido/a",
     "eq_anx_extreme": "Estoy extremadamente ansioso/a o deprimido/a",
     "daily_warning": "Tenga en cuenta: este cuestionario se refiere a cómo se siente HOY.",
-    "weekly_warning": "Tenga en cuenta: este cuestionario se refiere a su condición durante la SEMANA PASADA."
+    "weekly_warning": "Tenga en cuenta: este cuestionario se refiere a su condición durante la SEMANA PASADA.",
+    "profile": "Perfil",
+    "email": "Correo electrónico",
+    "unsubscribe_promos": "Darse de baja de correos promocionales",
+    "unsubscribed": "Baja exitosa"
   }
 }

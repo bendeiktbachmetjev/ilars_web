@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script>(function(){try{var l=localStorage.getItem('ilars_lang');if(l&&l!=='en')document.documentElement.className+=' i18n-loading'}catch(e){}})()</script>
+  <script>(function () { try { var l = localStorage.getItem('ilars_lang'); if (l && l !== 'en') document.documentElement.className += ' i18n-loading' } catch (e) { } })()</script>
   <title>iLARS — Patient</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
+
 <body data-i18n-page="patient">
   <div class="app-header">
     <div class="app-header-inner">
@@ -18,7 +20,10 @@
         <div class="lang-switcher" style="position:relative">
           <button class="lang-btn" aria-label="Change language" aria-expanded="false">
             <span class="lang-current">EN</span>
-            <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+              <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
           </button>
           <ul class="lang-dropdown">
             <li><button data-lang="en">English</button></li>
@@ -43,7 +48,8 @@
             <p class="app-loading" id="dashboard-loading" data-i18n="app.loading">Loading…</p>
             <div class="app-next-card is-hidden" id="dashboard-next-card">
               <p class="app-next-type" id="dashboard-next-type"></p>
-              <button type="button" class="app-btn app-btn-primary" id="dashboard-fill-btn" data-i18n="app.fill_it_now">Fill it now</button>
+              <button type="button" class="app-btn app-btn-primary" id="dashboard-fill-btn"
+                data-i18n="app.fill_it_now">Fill it now</button>
             </div>
             <div class="app-next-done is-hidden" id="dashboard-next-done">
               <p data-i18n="app.all_up_to_date">All questionnaires up to date.</p>
@@ -55,12 +61,35 @@
         </section>
         <section class="app-section app-section-stats" id="dashboard-lars-section">
           <h2 class="app-section-title" data-i18n="app.lars_score">LARS score</h2>
-          <p class="app-section-hint is-hidden" id="dashboard-lars-hint" data-i18n="app.lars_hint">Complete weekly questionnaires to see your score over time.</p>
+          <p class="app-section-hint is-hidden" id="dashboard-lars-hint" data-i18n="app.lars_hint">Complete weekly
+            questionnaires to see your score over time.</p>
           <div class="app-chart-wrap" id="dashboard-lars-chart"></div>
           <div class="app-chart-periods" id="dashboard-lars-periods" role="tablist" aria-label="Chart period">
-            <button type="button" class="app-period-btn is-active" data-period="weekly" role="tab" aria-selected="true" data-i18n="app.period_week">Week</button>
-            <button type="button" class="app-period-btn" data-period="monthly" role="tab" aria-selected="false" data-i18n="app.period_month">Month</button>
-            <button type="button" class="app-period-btn" data-period="yearly" role="tab" aria-selected="false" data-i18n="app.period_year">Year</button>
+            <button type="button" class="app-period-btn is-active" data-period="weekly" role="tab" aria-selected="true"
+              data-i18n="app.period_week">Week</button>
+            <button type="button" class="app-period-btn" data-period="monthly" role="tab" aria-selected="false"
+              data-i18n="app.period_month">Month</button>
+            <button type="button" class="app-period-btn" data-period="yearly" role="tab" aria-selected="false"
+              data-i18n="app.period_year">Year</button>
+          </div>
+        </section>
+
+        <section class="app-section app-section-profile" id="dashboard-profile-section" style="margin-top: 2rem;">
+          <h2 class="app-section-title" data-i18n="app.profile">Profile</h2>
+          <div id="profile-content">
+            <p class="app-loading" id="profile-loading" data-i18n="app.loading">Loading…</p>
+            <div id="profile-details" class="is-hidden"
+              style="background:var(--card-bg); border-radius:12px; padding:1.5rem; box-shadow:0 4px 12px rgba(0,0,0,0.06); margin-top:1rem;">
+              <p id="profile-email-text"
+                style="font-size:14px; color:var(--text-light); margin-bottom:12px; display:none;"></p>
+              <button type="button" class="app-btn app-btn-outline" id="profile-unsubscribe-btn"
+                data-i18n="app.unsubscribe_promos"
+                style="display:none; color:var(--error-color); border-color:var(--error-color);">Unsubscribe from
+                promotional emails</button>
+            </div>
+            <div class="app-next-error is-hidden" id="profile-error">
+              <p id="profile-error-text"></p>
+            </div>
           </div>
         </section>
       </div>
@@ -89,4 +118,5 @@
   <script src="js/views/eq5d5l.js"></script>
   <script src="js/app.js"></script>
 </body>
+
 </html>

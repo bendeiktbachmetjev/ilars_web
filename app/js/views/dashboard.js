@@ -194,9 +194,67 @@
     });
   }
 
+  function loadProfile() {
+    var profileLoading = document.getElementById('profile-loading');
+    var profileDetails = document.getElementById('profile-details');
+    var profileError = document.getElementById('profile-error');
+    var profileErrorText = document.getElementById('profile-error-text');
+    var profileEmailText = document.getElementById('profile-email-text');
+    var profileUnsubBtn = document.getElementById('profile-unsubscribe-btn');
+
+    setVisible(profileLoading, true);
+    setVisible(profileDetails, false);
+    setVisible(profileError, false);
+
+    API.getPatientProfile(null, function (err, data) {
+      setVisible(profileLoading, false);
+      if (err || data.status !== 'ok') {
+        setVisible(profileError, true);
+        if (profileErrorText) {
+          profileErrorText.textContent = err ? (err.message || 'Error') : data.detail;
+        }
+        return;
+      }
+
+      setVisible(profileDetails, true);
+
+      if (data.email) {
+        profileEmailText.style.display = 'block';
+        profileEmailText.textContent = _t('app.email') + ': ' + data.email;
+      } else {
+        profileEmailText.style.display = 'none';
+      }
+
+      if (data.agreed_to_promos) {
+        profileUnsubBtn.style.display = 'block';
+        profileUnsubBtn.onclick = function () {
+          if (profileUnsubBtn.disabled) return;
+          profileUnsubBtn.disabled = true;
+          API.unsubscribePatient(null, function (uErr) {
+            profileUnsubBtn.disabled = false;
+            if (!uErr) {
+              if (opts.showToast) opts.showToast(_t('app.unsubscribed'));
+              loadProfile();
+            } else {
+              if (opts.showToast) opts.showToast(uErr.message);
+            }
+          });
+        };
+      } else {
+        profileUnsubBtn.style.display = 'none';
+
+        // Hide entire box if neither email nor button are shown
+        if (!data.email) {
+          setVisible(profileDetails, false);
+        }
+      }
+    });
+  }
+
   function refresh() {
     loadNext();
     loadLars();
+    loadProfile();
   }
 
   function init(options) {
@@ -204,6 +262,7 @@
     bindPeriodButtons();
     loadNext();
     loadLars();
+    loadProfile();
     if (fillBtn) fillBtn.onclick = function () {
       if (opts.showScreen && currentType) opts.showScreen(currentType);
     };

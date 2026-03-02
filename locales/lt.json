@@ -312,6 +312,10 @@
     "eq_anx_severe": "Esu smarkiai sunerimęs (-usi) ar apimtas (-a) depresijos",
     "eq_anx_extreme": "Esu nepaprastai sunerimęs (-usi) ar apimtas (-a) depresijos",
     "daily_warning": "Atkreipkite dėmesį: šis klausimynas skirtas įvertinti, kaip jaučiatės ŠIANDIEN.",
-    "weekly_warning": "Atkreipkite dėmesį: šis klausimynas skirtas įvertinti jūsų būklę per PRAĖJUSIĄ SAVAITĘ."
+    "weekly_warning": "Atkreipkite dėmesį: šis klausimynas skirtas įvertinti jūsų būklę per PRAĖJUSIĄ SAVAITĘ.",
+    "profile": "Profilis",
+    "email": "El. paštas",
+    "unsubscribe_promos": "Atsisakyti reklaminių el. laiškų",
+    "unsubscribed": "Sėkmingai atsisakyta"
   }
 }

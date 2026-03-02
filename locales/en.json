@@ -122,7 +122,11 @@
     "eq_anx_severe": "Severely anxious or depressed",
     "eq_anx_extreme": "Extremely anxious or depressed",
     "daily_warning": "Please note: this questionnaire refers to how you feel TODAY.",
-    "weekly_warning": "Please note: this questionnaire refers to your condition over the PAST WEEK."
+    "weekly_warning": "Please note: this questionnaire refers to your condition over the PAST WEEK.",
+    "profile": "Profile",
+    "email": "Email",
+    "unsubscribe_promos": "Unsubscribe from promotional emails",
+    "unsubscribed": "Unsubscribed successfully"
   },
   "doctor": {
     "status_dead": "Dead",
