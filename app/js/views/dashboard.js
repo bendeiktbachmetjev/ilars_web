@@ -201,6 +201,9 @@
     var profileErrorText = document.getElementById('profile-error-text');
     var profileEmailText = document.getElementById('profile-email-text');
     var profileUnsubBtn = document.getElementById('profile-unsubscribe-btn');
+    var profileSubWrap = document.getElementById('profile-subscribe-wrap');
+    var profileSubEmail = document.getElementById('profile-subscribe-email');
+    var profileSubBtn = document.getElementById('profile-subscribe-btn');
 
     setVisible(profileLoading, true);
     setVisible(profileDetails, false);
@@ -227,6 +230,8 @@
 
       if (data.agreed_to_promos) {
         profileUnsubBtn.style.display = 'block';
+        profileSubWrap.style.display = 'none';
+
         profileUnsubBtn.onclick = function () {
           if (profileUnsubBtn.disabled) return;
           profileUnsubBtn.disabled = true;
@@ -242,11 +247,32 @@
         };
       } else {
         profileUnsubBtn.style.display = 'none';
+        profileSubWrap.style.display = 'block';
 
-        // Hide entire box if neither email nor button are shown
-        if (!data.email) {
-          setVisible(profileDetails, false);
+        // Auto-fill existing email if available
+        if (data.email && !profileSubEmail.value) {
+          profileSubEmail.value = data.email;
         }
+
+        profileSubBtn.onclick = function () {
+          var inputEmail = profileSubEmail.value.trim();
+          if (!inputEmail) {
+            if (opts.showToast) opts.showToast('Email address is required.');
+            return;
+          }
+          if (profileSubBtn.disabled) return;
+          profileSubBtn.disabled = true;
+
+          API.subscribePatient({ email: inputEmail }, function (sErr) {
+            profileSubBtn.disabled = false;
+            if (!sErr) {
+              if (opts.showToast) opts.showToast(_t('app.subscribed'));
+              loadProfile();
+            } else {
+              if (opts.showToast) opts.showToast(sErr.message);
+            }
+          });
+        };
       }
     });
   }

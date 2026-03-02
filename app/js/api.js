@@ -268,6 +268,27 @@
     xhr.send();
   }
 
+  function subscribePatient(payload, callback) {
+    var code = getPatientCode();
+    if (!code) {
+      if (callback) callback(new Error('No patient code'));
+      return;
+    }
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', base + '/subscribePatient', true);
+    Object.keys(headers(code)).forEach(function (k) {
+      xhr.setRequestHeader(k, headers(code)[k]);
+    });
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+      if (callback) callback(xhr.status >= 200 && xhr.status < 300 ? null : new Error('Server ' + xhr.status));
+    };
+    xhr.onerror = function () {
+      if (callback) callback(new Error('Network error'));
+    };
+    xhr.send(JSON.stringify(payload));
+  }
+
   global.ILARS_APP_API = {
     getPatientCode: getPatientCode,
     validatePatientCode: validatePatientCode,
@@ -278,6 +299,7 @@
     sendMonthly: sendMonthly,
     sendEq5d5l: sendEq5d5l,
     getPatientProfile: getPatientProfile,
-    unsubscribePatient: unsubscribePatient
+    unsubscribePatient: unsubscribePatient,
+    subscribePatient: subscribePatient
   };
 })(typeof window !== 'undefined' ? window : this);
