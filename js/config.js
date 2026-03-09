@@ -1,5 +1,5 @@
 /**
- * iLARS Web — global configuration
+ * ABBA LARS Web — global configuration
  * Central place for API base URL and app constants
  */
 (function (global) {
