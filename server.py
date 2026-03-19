@@ -46,32 +46,45 @@ class StaticHandler(SimpleHTTPRequestHandler):
         """Handle GET requests"""
         try:
             return super().do_GET()
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, TimeoutError) as e:
+            # Client disconnected early (browser navigated away, flaky network, etc).
+            # Don't try to write an error response back to a closed socket.
+            print(f"INFO: Client connection dropped during do_GET: {e}", file=sys.stderr)
+            return
         except Exception as e:
             print(f"ERROR in do_GET: {e}", file=sys.stderr)
-            self.send_error(500, f"Internal Server Error: {str(e)}")
+            # Best-effort error response; may also fail if the client is gone.
+            try:
+                self.send_error(500, f"Internal Server Error: {str(e)}")
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, TimeoutError):
+                return
     
     def end_headers(self):
         """Add headers for better caching and CORS"""
-        # Add CORS headers
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', '*')
-        
-        # Add caching headers
-        if self.path.endswith('.html'):
-            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
-            self.send_header('Pragma', 'no-cache')
-            self.send_header('Expires', '0')
-        elif self.path.endswith('.js') or self.path.endswith('.css'):
-            # Don't cache JS and CSS files to ensure updates are picked up
-            self.send_header('Cache-Control', 'no-cache, must-revalidate')
-            self.send_header('Pragma', 'no-cache')
-            self.send_header('Expires', '0')
-        else:
-            # Cache other static assets
-            self.send_header('Cache-Control', 'public, max-age=31536000')
-        
-        super().end_headers()
+        try:
+            # Add CORS headers
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', '*')
+            
+            # Add caching headers
+            if self.path.endswith('.html'):
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                self.send_header('Pragma', 'no-cache')
+                self.send_header('Expires', '0')
+            elif self.path.endswith('.js') or self.path.endswith('.css'):
+                # Don't cache JS and CSS files to ensure updates are picked up
+                self.send_header('Cache-Control', 'no-cache, must-revalidate')
+                self.send_header('Pragma', 'no-cache')
+                self.send_header('Expires', '0')
+            else:
+                # Cache other static assets
+                self.send_header('Cache-Control', 'public, max-age=31536000')
+            
+            super().end_headers()
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, TimeoutError):
+            # Client disconnected while writing headers; ignore.
+            return
     
     def log_message(self, format, *args):
         """Log messages to stderr for Railway logs"""
