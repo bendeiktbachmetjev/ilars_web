@@ -53,10 +53,15 @@
   }
 
   function firebaseAuthErrorMessage(error) {
-    var code = error && error.code ? error.code : '';
+    var code = error && error.code ? String(error.code) : '';
     if (code === 'auth/invalid-email') return 'Please enter a valid email address.';
     if (code === 'auth/user-disabled') return 'This account has been disabled.';
-    if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+    if (
+      code === 'auth/user-not-found' ||
+      code === 'auth/wrong-password' ||
+      code === 'auth/invalid-credential' ||
+      code === 'auth/invalid-login-credentials'
+    ) {
       return 'Incorrect email or password. Please try again.';
     }
     if (code === 'auth/email-already-in-use') return 'This email is already registered. Sign in instead.';
@@ -64,6 +69,23 @@
     if (code === 'auth/network-request-failed') return 'Network error. Please check your connection.';
     if (code === 'auth/too-many-requests') return 'Too many attempts. Try again later.';
     if (code === 'auth/missing-email') return 'Please enter your email address.';
+    if (code === 'auth/operation-not-allowed') {
+      return 'Email/password sign-in is disabled for this app. In Firebase Console → Authentication → Sign-in method, enable Email/Password for this project.';
+    }
+    if (code === 'auth/internal-error') {
+      return 'Authentication service error. Please try again in a moment.';
+    }
+    if (code === 'auth/invalid-api-key' || code === 'auth/app-deleted' || code === 'auth/app-not-authorized') {
+      return 'App configuration error. Please contact support.';
+    }
+    if (code === 'auth/unauthorized-domain') {
+      return 'This website domain is not allowed for sign-in. Add it in Firebase Console → Authentication → Settings → Authorized domains.';
+    }
+    if (error && error.message) {
+      console.error('Unmapped Firebase auth error:', code || '(no code)', error.message);
+    } else {
+      console.error('Unmapped Firebase auth error:', error);
+    }
     return 'Something went wrong. Please try again.';
   }
 
