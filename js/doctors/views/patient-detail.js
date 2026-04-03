@@ -285,51 +285,84 @@ class PatientDetailView {
         }
     }
 
+    resetChartCanvases() {
+        const pairs = [
+            ['chart-wrap-lars', 'lars-chart'],
+            ['chart-wrap-eq5d5l', 'eq5d5l-chart'],
+            ['chart-wrap-lars-food', 'lars-food-chart'],
+            ['chart-wrap-lars-symptoms', 'lars-symptoms-chart'],
+            ['chart-wrap-food', 'food-chart'],
+            ['chart-wrap-drink', 'drink-chart'],
+            ['chart-wrap-steps', 'steps-chart'],
+        ];
+        pairs.forEach(([wrapperId, canvasId]) => {
+            if (!document.getElementById(canvasId)) {
+                const w = document.getElementById(wrapperId);
+                if (w) {
+                    w.innerHTML = '<canvas id="' + canvasId + '"></canvas>';
+                }
+            }
+        });
+    }
+
+    setChartPlaceholder(wrapperId, i18nKey) {
+        const w = document.getElementById(wrapperId);
+        if (!w) return;
+        const msg = this._t(i18nKey);
+        w.innerHTML =
+            '<div class="chart-empty-msg" style="display:flex;align-items:center;justify-content:center;height:100%;min-height:200px;color:rgba(255,255,255,0.55);font-size:14px;text-align:center;padding:1rem;line-height:1.5;">' +
+            (msg || i18nKey) +
+            '</div>';
+    }
+
     renderCharts(data) {
-        // Destroy existing charts
         Object.values(this.charts).forEach(chart => {
             if (chart) chart.destroy();
         });
         this.charts = {};
+        this.resetChartCanvases();
+
+        const hasDaily = data.daily_entries && data.daily_entries.length > 0;
+        const hasLars = data.lars_scores && data.lars_scores.length > 0;
 
         // LARS Score Chart
-        if (data.lars_scores && data.lars_scores.length > 0) {
+        if (hasLars) {
             this.renderLarsChart(data.lars_scores);
+        } else {
+            this.setChartPlaceholder('chart-wrap-lars', 'doctor.chart_no_lars_data');
         }
 
         // EQ-5D-5L Chart
         if (data.eq5d5l_scores && data.eq5d5l_scores.length > 0) {
             this.renderEq5d5lChart(data.eq5d5l_scores);
+        } else {
+            this.setChartPlaceholder('chart-wrap-eq5d5l', 'doctor.chart_no_eq5d5l_data');
         }
 
-        // Combined charts showing relationships
-        if (data.lars_scores && data.daily_entries && data.lars_scores.length > 0 && data.daily_entries.length > 0) {
+        // Combined charts need weekly LARS + at least one daily row in the loaded period
+        if (hasLars && hasDaily) {
             this.renderLarsFoodChart(data.lars_scores, data.daily_entries);
             this.renderLarsSymptomsChart(data.lars_scores, data.daily_entries);
+        } else {
+            this.setChartPlaceholder('chart-wrap-lars-food', 'doctor.chart_combined_unavailable');
+            this.setChartPlaceholder('chart-wrap-lars-symptoms', 'doctor.chart_combined_unavailable');
         }
 
-        // Food Consumption Chart
-        if (data.daily_entries && data.daily_entries.length > 0) {
+        if (hasDaily) {
             this.renderFoodChart(data.daily_entries);
-        }
-
-        // Drink Consumption Chart
-        if (data.daily_entries && data.daily_entries.length > 0) {
             this.renderDrinkChart(data.daily_entries);
+        } else {
+            this.setChartPlaceholder('chart-wrap-food', 'doctor.chart_no_daily_data');
+            this.setChartPlaceholder('chart-wrap-drink', 'doctor.chart_no_daily_data');
         }
 
-        // Daily Steps Chart — always show, with empty state if no data
         const stepsContainer = document.getElementById('steps-chart-container');
         if (stepsContainer) {
             stepsContainer.style.display = 'block';
             if (data.daily_steps && data.daily_steps.length > 0) {
                 this.renderStepsChart(data.daily_steps, data.lars_scores || []);
             } else {
-                const ctx = document.getElementById('steps-chart');
-                if (ctx) {
-                    const parent = ctx.parentNode;
-                    parent.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.5);font-size:15px;">' + this._t('doctor.no_steps_data') + '</div>';
-                }
+                this.setChartPlaceholder('chart-wrap-steps', 'doctor.no_steps_data');
             }
         }
     }
