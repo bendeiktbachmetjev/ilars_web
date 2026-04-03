@@ -1,6 +1,7 @@
 {
   "meta": {
-    "title_patient": "ABBA LARS — Patient"
+    "title_patient": "ABBA LARS — Patient",
+    "title_login": "Log in — ABBA LARS"
   },
   "app": {
     "home": "Home",
@@ -127,6 +128,33 @@
     "email": "Email",
     "unsubscribe_promos": "Unsubscribe from promotional emails",
     "unsubscribed": "Unsubscribed successfully"
+  },
+  "login": {
+    "title": "Log in to ABBA LARS",
+    "subtitle": "Choose how you want to continue — as a patient or as a doctor.",
+    "continue_as": "Continue as",
+    "patient_title": "Patient",
+    "patient_desc": "Enter your patient code to fill questionnaires and track your symptoms.",
+    "doctor_title": "Doctor",
+    "doctor_desc": "Sign in with email or Google to access the doctor dashboard.",
+    "enter_code": "Enter your patient code",
+    "patient_code_label": "Patient code",
+    "patient_code_placeholder": "e.g. ABC123",
+    "continue_btn": "Continue",
+    "change_role": "Change role",
+    "doctor_signin": "Doctor sign in",
+    "doctor_signin_desc": "Sign in with your email or Google account to access the doctor dashboard.",
+    "email_label": "Email",
+    "email_placeholder": "you@hospital.org",
+    "password_label": "Password",
+    "password_placeholder": "Password",
+    "email_signin_btn": "Sign in with email",
+    "email_register_btn": "Create account",
+    "forgot_password": "Forgot password?",
+    "forgot_password_sent": "If an account exists for this email, we sent a reset link.",
+    "or": "or",
+    "google_btn": "Sign in with Google",
+    "signing_in": "Signing in..."
   },
   "doctor": {
     "status_dead": "Dead",

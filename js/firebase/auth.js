@@ -1,6 +1,6 @@
 /**
  * Firebase Authentication Module
- * Handles Google Sign-In for doctors
+ * Google Sign-In and email/password for doctors
  */
 (function (global) {
   'use strict';
@@ -92,6 +92,74 @@
           console.error('Google Sign-In error:', error);
           throw error;
         });
+    },
+
+    /**
+     * Sign in with email and password
+     */
+    signInWithEmailPassword: function(email, password) {
+      var self = this;
+      if (!self.auth) {
+        return Promise.reject(new Error('Firebase Auth not initialized'));
+      }
+      var em = (email || '').trim();
+      if (!em || !password) {
+        return Promise.reject(new Error('Email and password are required'));
+      }
+      return self.auth.signInWithEmailAndPassword(em, password)
+        .then(function(result) {
+          var user = result.user;
+          return self.auth.currentUser.getIdToken().then(function(idToken) {
+            return {
+              uid: user.uid,
+              email: user.email,
+              displayName: user.displayName || '',
+              photoURL: user.photoURL,
+              idToken: idToken
+            };
+          });
+        });
+    },
+
+    /**
+     * Create account with email and password, then return user + id token
+     */
+    createUserWithEmailPassword: function(email, password) {
+      var self = this;
+      if (!self.auth) {
+        return Promise.reject(new Error('Firebase Auth not initialized'));
+      }
+      var em = (email || '').trim();
+      if (!em || !password) {
+        return Promise.reject(new Error('Email and password are required'));
+      }
+      return self.auth.createUserWithEmailAndPassword(em, password)
+        .then(function(result) {
+          var user = result.user;
+          return self.auth.currentUser.getIdToken().then(function(idToken) {
+            return {
+              uid: user.uid,
+              email: user.email,
+              displayName: user.displayName || '',
+              photoURL: user.photoURL,
+              idToken: idToken
+            };
+          });
+        });
+    },
+
+    /**
+     * Send password reset email (Firebase handles the link)
+     */
+    sendPasswordResetEmail: function(email) {
+      if (!this.auth) {
+        return Promise.reject(new Error('Firebase Auth not initialized'));
+      }
+      var em = (email || '').trim();
+      if (!em) {
+        return Promise.reject(new Error('Email is required'));
+      }
+      return this.auth.sendPasswordResetEmail(em);
     },
 
     /**

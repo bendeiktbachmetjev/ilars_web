@@ -23,7 +23,6 @@
   var doctorLoading = null;
   var patientFormError = null;
   var doctorFormError = null;
-
   function getElements() {
     roleWindow = document.getElementById('login-role-modal');
     roleWindowClose = document.getElementById('role-modal-close');
@@ -37,6 +36,108 @@
     doctorLoading = document.getElementById('doctor-loading');
     patientFormError = document.getElementById('patient-form-error');
     doctorFormError = document.getElementById('doctor-form-error');
+  }
+
+  function hideDoctorEmailInfo() {
+    var el = document.getElementById('doctor-email-info');
+    if (!el) return;
+    el.textContent = '';
+    el.style.display = 'none';
+  }
+
+  function showDoctorEmailInfo(message) {
+    var el = document.getElementById('doctor-email-info');
+    if (!el) return;
+    el.textContent = message || '';
+    el.style.display = message ? 'block' : 'none';
+  }
+
+  function firebaseAuthErrorMessage(error) {
+    var code = error && error.code ? error.code : '';
+    if (code === 'auth/invalid-email') return 'Please enter a valid email address.';
+    if (code === 'auth/user-disabled') return 'This account has been disabled.';
+    if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+      return 'Incorrect email or password. Please try again.';
+    }
+    if (code === 'auth/email-already-in-use') return 'This email is already registered. Sign in instead.';
+    if (code === 'auth/weak-password') return 'Password should be at least 6 characters.';
+    if (code === 'auth/network-request-failed') return 'Network error. Please check your connection.';
+    if (code === 'auth/too-many-requests') return 'Too many attempts. Try again later.';
+    if (code === 'auth/missing-email') return 'Please enter your email address.';
+    return 'Something went wrong. Please try again.';
+  }
+
+  function setDoctorLoading(isLoading) {
+    if (doctorLoading) doctorLoading.style.display = isLoading ? 'flex' : 'none';
+    if (btnGoogleSignIn) btnGoogleSignIn.disabled = !!isLoading;
+    var em = document.getElementById('doctor-email');
+    var pw = document.getElementById('doctor-password');
+    var btnIn = document.getElementById('btn-email-signin');
+    var btnReg = document.getElementById('btn-email-register');
+    var btnForgot = document.getElementById('btn-forgot-password');
+    if (em) em.disabled = !!isLoading;
+    if (pw) pw.disabled = !!isLoading;
+    if (btnIn) btnIn.disabled = !!isLoading;
+    if (btnReg) btnReg.disabled = !!isLoading;
+    if (btnForgot) btnForgot.disabled = !!isLoading;
+  }
+
+  /**
+   * After Firebase auth (Google or email), call API and redirect like existing Google flow.
+   */
+  function completeDoctorLoginAfterFirebase() {
+    doctorFormError = document.getElementById('doctor-form-error');
+    hideError(doctorFormError);
+    hideDoctorEmailInfo();
+
+    return global.ILARS_AUTH.getIdToken(true).then(function (token) {
+      if (!token) {
+        console.error('No token after sign-in');
+        global.location.href = 'doctor-setup.html';
+        return;
+      }
+      var apiBase = (CONFIG.API_BASE_URL || '').replace(/\/$/, '');
+      return fetch(apiBase + '/doctors/me', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        }
+      }).then(function (r) {
+        if (!r.ok) {
+          return r.text().then(function (text) {
+            console.error('API error:', r.status, text);
+            throw new Error('API error: ' + r.status);
+          });
+        }
+        return r.json();
+      }).then(function (data) {
+        if (data.status === 'ok' && data.needs_profile) {
+          global.location.href = 'doctor-setup.html';
+        } else if (data.status === 'ok' && !data.needs_profile) {
+          global.location.href = 'doctor.html';
+        } else {
+          global.location.href = 'doctor-setup.html';
+        }
+      }).catch(function (err) {
+        console.error('Profile check error:', err);
+        global.location.href = 'doctor-setup.html';
+      });
+    }).catch(function (err) {
+      console.error('Token error:', err);
+      global.location.href = 'doctor-setup.html';
+    });
+  }
+
+  function storeDoctorSessionFromUser(userData) {
+    try {
+      if (CONFIG.STORAGE_KEYS) {
+        global.sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_ROLE, CONFIG.ROLES.DOCTOR);
+        global.sessionStorage.setItem('ilars_doctor_email', userData.email || '');
+        global.sessionStorage.setItem('ilars_doctor_name', userData.displayName || '');
+        global.sessionStorage.setItem('ilars_doctor_uid', userData.uid || '');
+      }
+    } catch (err) { }
   }
 
   function showRoleWindow() {
@@ -84,6 +185,7 @@
       formDoctor.setAttribute('aria-hidden', 'false');
     }
     hideError(doctorFormError);
+    hideDoctorEmailInfo();
   }
 
   function showError(el, message) {
@@ -166,105 +268,144 @@
     }
   }
 
+  function ensureDoctorAuthReady() {
+    doctorFormError = document.getElementById('doctor-form-error');
+    if (!global.ILARS_AUTH) {
+      showError(doctorFormError, 'Authentication service not available. Please refresh the page.');
+      return false;
+    }
+    if (!global.firebase) {
+      showError(doctorFormError, 'Firebase SDK not loaded. Please refresh the page.');
+      return false;
+    }
+    if (!global.ILARS_AUTH.auth) {
+      if (!global.ILARS_AUTH.init()) {
+        showError(doctorFormError, 'Failed to initialize authentication. Please refresh the page.');
+        return false;
+      }
+    }
+    return true;
+  }
+
   function onGoogleSignIn() {
     doctorFormError = document.getElementById('doctor-form-error');
     btnGoogleSignIn = document.getElementById('btn-google-signin');
     doctorLoading = document.getElementById('doctor-loading');
     hideError(doctorFormError);
+    hideDoctorEmailInfo();
 
-    if (!global.ILARS_AUTH) {
-      showError(doctorFormError, 'Authentication service not available. Please refresh the page.');
-      return;
-    }
-    if (!global.firebase) {
-      showError(doctorFormError, 'Firebase SDK not loaded. Please refresh the page.');
-      return;
-    }
-    if (!global.ILARS_AUTH.auth) {
-      if (!global.ILARS_AUTH.init()) {
-        showError(doctorFormError, 'Failed to initialize authentication. Please refresh the page.');
-        return;
-      }
-    }
+    if (!ensureDoctorAuthReady()) return;
 
     if (btnGoogleSignIn) btnGoogleSignIn.disabled = true;
-    if (doctorLoading) doctorLoading.style.display = 'flex';
+    setDoctorLoading(true);
 
     global.ILARS_AUTH.signInWithGoogle()
       .then(function (userData) {
-        try {
-          if (CONFIG.STORAGE_KEYS) {
-            global.sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_ROLE, CONFIG.ROLES.DOCTOR);
-            global.sessionStorage.setItem('ilars_doctor_email', userData.email || '');
-            global.sessionStorage.setItem('ilars_doctor_name', userData.displayName || '');
-            global.sessionStorage.setItem('ilars_doctor_uid', userData.uid || '');
-          }
-        } catch (err) { }
-
-        // Get fresh token after sign-in
-        return global.ILARS_AUTH.getIdToken(true).then(function (token) {
-          if (!token) {
-            console.error('No token after Google sign-in');
-            global.location.href = 'doctor-setup.html';
-            return;
-          }
-
-          // Auto-create profile and check if hospital is assigned
-          var apiBase = (CONFIG.API_BASE_URL || '').replace(/\/$/, '');
-
-          console.log('Calling /doctors/me after Google sign-in...', apiBase + '/doctors/me');
-
-          return fetch(apiBase + '/doctors/me', {
-            method: 'GET',
-            headers: {
-              'Authorization': 'Bearer ' + token,
-              'Content-Type': 'application/json'
-            }
-          }).then(function (r) {
-            console.log('Response status:', r.status);
-            if (!r.ok) {
-              console.error('API error:', r.status, r.statusText);
-              return r.text().then(function (text) {
-                console.error('Error response:', text);
-                throw new Error('API error: ' + r.status);
-              });
-            }
-            return r.json();
-          }).then(function (data) {
-            console.log('Profile check result:', data);
-            // Profile is auto-created, needs_profile means no hospital assigned
-            if (data.status === 'ok' && data.needs_profile) {
-              // Profile exists but no hospital - go to setup
-              console.log('Profile created, hospital needed - redirecting to setup');
-              global.location.href = 'doctor-setup.html';
-            } else if (data.status === 'ok' && !data.needs_profile) {
-              // Profile complete with hospital - go to dashboard
-              console.log('Profile complete - redirecting to dashboard');
-              global.location.href = 'doctor.html';
-            } else {
-              // Fallback to setup
-              console.log('Unknown response, redirecting to setup');
-              global.location.href = 'doctor-setup.html';
-            }
-          }).catch(function (err) {
-            console.error('Profile check error:', err);
-            // On error, redirect to setup page
-            global.location.href = 'doctor-setup.html';
-          });
-        }).catch(function (err) {
-          console.error('Token error:', err);
-          global.location.href = 'doctor-setup.html';
-        });
+        storeDoctorSessionFromUser(userData);
+        return completeDoctorLoginAfterFirebase();
       })
       .catch(function (error) {
+        setDoctorLoading(false);
         if (btnGoogleSignIn) btnGoogleSignIn.disabled = false;
-        if (doctorLoading) doctorLoading.style.display = 'none';
         var msg = 'Failed to sign in. ';
         if (error.code === 'auth/popup-closed-by-user') msg += 'Sign-in popup was closed.';
         else if (error.code === 'auth/popup-blocked') msg += 'Popup was blocked. Please allow popups.';
         else if (error.code === 'auth/network-request-failed') msg += 'Network error. Please check your connection.';
         else msg += 'Please try again.';
         showError(doctorFormError, msg);
+      });
+  }
+
+  function onDoctorEmailSubmit(e) {
+    e.preventDefault();
+    doctorFormError = document.getElementById('doctor-form-error');
+    hideError(doctorFormError);
+    hideDoctorEmailInfo();
+    if (!ensureDoctorAuthReady()) return;
+
+    var em = document.getElementById('doctor-email');
+    var pw = document.getElementById('doctor-password');
+    var email = (em && em.value || '').trim();
+    var password = pw && pw.value || '';
+    if (!email) {
+      showError(doctorFormError, 'Please enter your email address.');
+      return;
+    }
+    if (!password) {
+      showError(doctorFormError, 'Please enter your password.');
+      return;
+    }
+
+    setDoctorLoading(true);
+    global.ILARS_AUTH.signInWithEmailPassword(email, password)
+      .then(function (userData) {
+        storeDoctorSessionFromUser(userData);
+        return completeDoctorLoginAfterFirebase();
+      })
+      .catch(function (error) {
+        setDoctorLoading(false);
+        showError(doctorFormError, firebaseAuthErrorMessage(error));
+      });
+  }
+
+  function onDoctorEmailRegister() {
+    doctorFormError = document.getElementById('doctor-form-error');
+    hideError(doctorFormError);
+    hideDoctorEmailInfo();
+    if (!ensureDoctorAuthReady()) return;
+
+    var em = document.getElementById('doctor-email');
+    var pw = document.getElementById('doctor-password');
+    var email = (em && em.value || '').trim();
+    var password = pw && pw.value || '';
+    if (!email) {
+      showError(doctorFormError, 'Please enter your email address.');
+      return;
+    }
+    if (password.length < 6) {
+      showError(doctorFormError, 'Password must be at least 6 characters.');
+      return;
+    }
+
+    setDoctorLoading(true);
+    global.ILARS_AUTH.createUserWithEmailPassword(email, password)
+      .then(function (userData) {
+        storeDoctorSessionFromUser(userData);
+        return completeDoctorLoginAfterFirebase();
+      })
+      .catch(function (error) {
+        setDoctorLoading(false);
+        showError(doctorFormError, firebaseAuthErrorMessage(error));
+      });
+  }
+
+  function onForgotPassword() {
+    doctorFormError = document.getElementById('doctor-form-error');
+    hideError(doctorFormError);
+    hideDoctorEmailInfo();
+    if (!ensureDoctorAuthReady()) return;
+
+    var em = document.getElementById('doctor-email');
+    var email = (em && em.value || '').trim();
+    if (!email) {
+      showError(doctorFormError, 'Enter your email above, then tap Forgot password.');
+      return;
+    }
+
+    setDoctorLoading(true);
+    global.ILARS_AUTH.sendPasswordResetEmail(email)
+      .then(function () {
+        setDoctorLoading(false);
+        var sent = 'If an account exists for this email, we sent a reset link.';
+        if (global.ILARS_I18N && typeof global.ILARS_I18N.t === 'function') {
+          var t = global.ILARS_I18N.t('login.forgot_password_sent');
+          if (t && t !== 'login.forgot_password_sent') sent = t;
+        }
+        showDoctorEmailInfo(sent);
+      })
+      .catch(function (error) {
+        setDoctorLoading(false);
+        showError(doctorFormError, firebaseAuthErrorMessage(error));
       });
   }
 
@@ -293,6 +434,19 @@
     }
     if (formPatientEl) {
       formPatientEl.addEventListener('submit', onPatientSubmit);
+    }
+
+    var formDoctorEmailEl = document.getElementById('form-doctor-email');
+    if (formDoctorEmailEl) {
+      formDoctorEmailEl.addEventListener('submit', onDoctorEmailSubmit);
+    }
+    var btnEmailRegister = document.getElementById('btn-email-register');
+    if (btnEmailRegister) {
+      btnEmailRegister.addEventListener('click', onDoctorEmailRegister);
+    }
+    var btnForgot = document.getElementById('btn-forgot-password');
+    if (btnForgot) {
+      btnForgot.addEventListener('click', onForgotPassword);
     }
 
     document.addEventListener('keydown', function (e) {
