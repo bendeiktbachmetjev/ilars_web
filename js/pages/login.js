@@ -69,8 +69,23 @@
     if (code === 'auth/network-request-failed') return 'Network error. Please check your connection.';
     if (code === 'auth/too-many-requests') return 'Too many attempts. Try again later.';
     if (code === 'auth/missing-email') return 'Please enter your email address.';
+    if (code === 'auth/popup-closed-by-user') {
+      return 'Sign-in window was closed.';
+    }
+    if (code === 'auth/popup-blocked') {
+      return 'Popup was blocked. Allow popups for this site and try again.';
+    }
+    if (code === 'auth/cancelled-popup-request') {
+      return 'Another sign-in window is already open. Close it and try again.';
+    }
+    if (code === 'auth/account-exists-with-different-credential') {
+      return 'An account exists with this email using a different sign-in method. Use email/password or the method you used to register.';
+    }
+    if (code === 'auth/web-storage-unsupported' || code === 'auth/cookie-storage-unsupported') {
+      return 'This browser blocks storage needed for sign-in. Try another browser or turn off private/incognito mode.';
+    }
     if (code === 'auth/operation-not-allowed') {
-      return 'Email/password sign-in is disabled for this app. In Firebase Console → Authentication → Sign-in method, enable Email/Password for this project.';
+      return 'This sign-in method is disabled. In Firebase Console → Authentication → Sign-in method, enable Google (and Email/Password if needed).';
     }
     if (code === 'auth/internal-error') {
       return 'Authentication service error. Please try again in a moment.';
@@ -329,12 +344,7 @@
       .catch(function (error) {
         setDoctorLoading(false);
         if (btnGoogleSignIn) btnGoogleSignIn.disabled = false;
-        var msg = 'Failed to sign in. ';
-        if (error.code === 'auth/popup-closed-by-user') msg += 'Sign-in popup was closed.';
-        else if (error.code === 'auth/popup-blocked') msg += 'Popup was blocked. Please allow popups.';
-        else if (error.code === 'auth/network-request-failed') msg += 'Network error. Please check your connection.';
-        else msg += 'Please try again.';
-        showError(doctorFormError, msg);
+        showError(doctorFormError, firebaseAuthErrorMessage(error));
       });
   }
 
