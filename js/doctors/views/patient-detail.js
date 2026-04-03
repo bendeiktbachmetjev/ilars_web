@@ -697,10 +697,10 @@ class PatientDetailView {
         const ctx = document.getElementById('lars-food-chart');
         if (!ctx) return;
 
-        // Create maps for LARS and daily data
+        // Create maps for LARS and daily data (dates normalized to YYYY-MM-DD)
         const larsMap = new Map();
         larsData.forEach(d => {
-            const dateKey = d.date ? d.date.split('T')[0] : null;
+            const dateKey = this.normalizeDateKey(d.date);
             if (dateKey) {
                 larsMap.set(dateKey, d.score);
             }
@@ -708,7 +708,7 @@ class PatientDetailView {
 
         const dailyMap = new Map();
         dailyData.forEach(d => {
-            const dateKey = d.date ? d.date.split('T')[0] : null;
+            const dateKey = this.normalizeDateKey(d.date);
             if (dateKey) {
                 const totalFood = Object.values(d.food || {}).reduce((sum, val) => sum + (val || 0), 0);
                 dailyMap.set(dateKey, totalFood);
@@ -717,15 +717,17 @@ class PatientDetailView {
 
         // Get all unique dates and sort them
         const allDates = new Set([...larsMap.keys(), ...dailyMap.keys()]);
-        const sortedDates = Array.from(allDates).sort((a, b) => new Date(a) - new Date(b));
+        const sortedDates = Array.from(allDates).sort((a, b) => a.localeCompare(b));
 
         if (sortedDates.length === 0) return;
 
-        // Create datasets - each point on its own date
         const labels = sortedDates.map(d => this.formatDateShort(d));
-        const larsScores = sortedDates.map(date => larsMap.get(date) || null);
-        const foodValues = sortedDates.map(date => dailyMap.get(date) || null);
+        const larsScores = this.forwardFillLarsScores(sortedDates, larsData);
+        const foodValues = sortedDates.map(date =>
+            dailyMap.has(date) ? dailyMap.get(date) : null
+        );
 
+        try {
         this.charts.larsFood = new Chart(ctx, {
             type: 'line',
             data: {
@@ -836,16 +838,18 @@ class PatientDetailView {
                 }
             }
         });
+        } catch (e) {
+            console.error('LARS vs food chart failed:', e);
+        }
     }
 
     renderLarsSymptomsChart(larsData, dailyData) {
         const ctx = document.getElementById('lars-symptoms-chart');
         if (!ctx) return;
 
-        // Create maps for LARS and daily data
         const larsMap = new Map();
         larsData.forEach(d => {
-            const dateKey = d.date ? d.date.split('T')[0] : null;
+            const dateKey = this.normalizeDateKey(d.date);
             if (dateKey) {
                 larsMap.set(dateKey, d.score);
             }
@@ -853,7 +857,7 @@ class PatientDetailView {
 
         const dailyMap = new Map();
         dailyData.forEach(d => {
-            const dateKey = d.date ? d.date.split('T')[0] : null;
+            const dateKey = this.normalizeDateKey(d.date);
             if (dateKey) {
                 dailyMap.set(dateKey, {
                     bloating: d.bloating || 0,
@@ -863,15 +867,13 @@ class PatientDetailView {
             }
         });
 
-        // Get all unique dates and sort them
         const allDates = new Set([...larsMap.keys(), ...dailyMap.keys()]);
-        const sortedDates = Array.from(allDates).sort((a, b) => new Date(a) - new Date(b));
+        const sortedDates = Array.from(allDates).sort((a, b) => a.localeCompare(b));
 
         if (sortedDates.length === 0) return;
 
-        // Create datasets - each point on its own date
         const labels = sortedDates.map(d => this.formatDateShort(d));
-        const larsScores = sortedDates.map(date => larsMap.get(date) || null);
+        const larsScores = this.forwardFillLarsScores(sortedDates, larsData);
         const bloating = sortedDates.map(date => {
             const daily = dailyMap.get(date);
             return daily ? daily.bloating : null;
@@ -881,6 +883,7 @@ class PatientDetailView {
             return daily ? daily.impactScore : null;
         });
 
+        try {
         this.charts.larsSymptoms = new Chart(ctx, {
             type: 'line',
             data: {
@@ -994,6 +997,9 @@ class PatientDetailView {
                 }
             }
         });
+        } catch (e) {
+            console.error('LARS vs symptoms chart failed:', e);
+        }
     }
 
     renderStepsChart(stepsData, larsData) {
@@ -1004,8 +1010,15 @@ class PatientDetailView {
         const steps = stepsData.map(d => d.steps);
 
         const larsMap = {};
-        (larsData || []).forEach(d => { larsMap[d.date] = d.score; });
-        const larsLine = stepsData.map(d => larsMap[d.date] !== undefined ? larsMap[d.date] : null);
+        (larsData || []).forEach(d => {
+            const k = this.normalizeDateKey(d.date);
+            if (k) larsMap[k] = d.score;
+        });
+        const larsLine = stepsData.map(d => {
+            const k = this.normalizeDateKey(d.date);
+            if (!k) return null;
+            return larsMap[k] !== undefined ? larsMap[k] : null;
+        });
         const hasLars = larsLine.some(v => v !== null);
 
         const datasets = [{
@@ -1102,6 +1115,35 @@ class PatientDetailView {
         if (!dateString) return '';
         const date = new Date(dateString);
         return date.toLocaleDateString(this._dateLang(), { month: 'short', day: 'numeric' });
+    }
+
+    /** Normalize API date strings to YYYY-MM-DD for matching weekly LARS vs daily rows. */
+    normalizeDateKey(raw) {
+        if (raw == null || raw === '') return null;
+        const s = String(raw).trim();
+        if (!s) return null;
+        const day = s.includes('T') ? s.split('T')[0] : s.slice(0, 10);
+        return day.length >= 10 ? day.slice(0, 10) : null;
+    }
+
+    /**
+     * Weekly LARS scores fall on questionnaire dates; daily rows are per calendar day.
+     * For each day in the timeline, use the latest LARS score on or before that day.
+     */
+    forwardFillLarsScores(sortedDateKeys, larsData) {
+        const weekly = (larsData || [])
+            .map(d => ({ k: this.normalizeDateKey(d.date), s: d.score }))
+            .filter(x => x.k !== null)
+            .sort((a, b) => a.k.localeCompare(b.k));
+        let wi = 0;
+        let last = null;
+        return sortedDateKeys.map(day => {
+            while (wi < weekly.length && weekly[wi].k <= day) {
+                last = weekly[wi].s;
+                wi++;
+            }
+            return last;
+        });
     }
 }
 
