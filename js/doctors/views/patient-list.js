@@ -35,6 +35,22 @@ class PatientListView {
             if (errorEl) errorEl.style.display = 'none';
 
             if (activeData.status === 'ok' && activeData.patients) {
+                // Fetch names from Firebase
+                this.firebaseNames = {};
+                try {
+                    const user = window.ILARS_AUTH && window.ILARS_AUTH.getCurrentUser();
+                    if (user && window.ILARS_AUTH.db) {
+                        // We fetch all patient names this doctor has access to
+                        const snapshot = await window.ILARS_AUTH.db.collection('patients')
+                            .where('doctorUid', '==', user.uid).get();
+                        snapshot.forEach(doc => {
+                            this.firebaseNames[doc.id] = doc.data();
+                        });
+                    }
+                } catch (fbError) {
+                    console.error('Failed to load names from Firebase', fbError);
+                }
+
                 this.cachedData = {
                     patients: activeData.patients,
                     inactivePatients: (inactiveData.status === 'ok' && inactiveData.patients) ? inactiveData.patients : []
@@ -172,6 +188,31 @@ class PatientListView {
             const data = await this.api.createPatient();
             const code = data && data.patient_code ? data.patient_code : 'Unknown';
 
+            // Extract First and Last names and save to Firebase
+            const firstNameEl = document.getElementById('create-patient-first-name');
+            const lastNameEl = document.getElementById('create-patient-last-name');
+            const firstName = firstNameEl ? firstNameEl.value.trim() : '';
+            const lastName = lastNameEl ? lastNameEl.value.trim() : '';
+
+            try {
+                const user = window.ILARS_AUTH && window.ILARS_AUTH.getCurrentUser();
+                if (user && window.ILARS_AUTH.db && (firstName || lastName)) {
+                    await window.ILARS_AUTH.db.collection('patients').doc(code).set({
+                        firstName: firstName,
+                        lastName: lastName,
+                        doctorUid: user.uid,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            } catch (fbError) {
+                console.error('Failed to save patient name to Firebase:', fbError);
+                // We don't block the UI flow, just log it.
+            }
+
+            // Clear inputs
+            if (firstNameEl) firstNameEl.value = '';
+            if (lastNameEl) lastNameEl.value = '';
+
             const confirmState = document.getElementById('create-patient-modal-confirm-state');
             const successState = document.getElementById('create-patient-modal-success-state');
             const codeEl = document.getElementById('create-patient-modal-code');
@@ -304,9 +345,19 @@ class PatientListView {
                     doctorDisplay = patient.doctor_code;
                 }
 
+                // Retrieve Firebase Name
+                let displayName = this.escapeHtml(patient.patient_code);
+                if (this.firebaseNames && this.firebaseNames[patient.patient_code]) {
+                    const fbData = this.firebaseNames[patient.patient_code];
+                    const fullFbName = [fbData.firstName, fbData.lastName].filter(Boolean).join(' ');
+                    if (fullFbName) {
+                        displayName = `<strong>${this.escapeHtml(fullFbName)}</strong> <span style="font-size: 11px; color: #888; display: block;">${this.escapeHtml(patient.patient_code)}</span>`;
+                    }
+                }
+
                 return `
                     <tr onclick="window.app.navigate('patient/${this.escapeHtml(patient.patient_code)}')">
-                        <td class="patient-code">${this.escapeHtml(patient.patient_code)}</td>
+                        <td class="patient-code">${displayName}</td>
                         <td class="date">${this.formatDate(patient.created_at)}</td>
                         <td class="count">${patient.weekly_count}</td>
                         <td class="count">${patient.monthly_count}</td>

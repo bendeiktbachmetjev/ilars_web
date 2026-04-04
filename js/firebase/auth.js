@@ -43,6 +43,7 @@
       }
 
       this.auth = global.firebase.auth();
+      this.db = global.firebase.firestore();
       this.googleProvider = new global.firebase.auth.GoogleAuthProvider();
       
       // Set additional scopes if needed

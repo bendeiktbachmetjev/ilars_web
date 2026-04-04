@@ -1251,6 +1251,16 @@
           <span class="create-patient-modal-row-label" data-i18n="doctor.modal_date_label">Date</span>
           <span id="create-patient-modal-date" class="create-patient-modal-row-value">—</span>
         </div>
+        
+        <div class="create-patient-modal-row input-row" style="flex-direction: column; align-items: flex-start; margin-top: 15px; border-top: 1px solid #efefef; padding-top: 15px;">
+          <label style="margin-bottom: 5px; font-weight: 500; font-size: 14px; display: block;" data-i18n="doctor.modal_first_name">Имя (необязательно)</label>
+          <input type="text" id="create-patient-first-name" class="ilars-input" placeholder="Иван" style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; margin-bottom: 15px; width: 100%; box-sizing: border-box;">
+          
+          <label style="margin-bottom: 5px; font-weight: 500; font-size: 14px; display: block;" data-i18n="doctor.modal_last_name">Фамилия (необязательно)</label>
+          <input type="text" id="create-patient-last-name" class="ilars-input" placeholder="Иванов" style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; width: 100%; box-sizing: border-box;">
+          
+          <p style="font-size: 11px; color: #888; margin-top: 8px; line-height: 1.3;" data-i18n="doctor.modal_gdpr_warning">Данные ФИО сохраняются только в Firebase и не передаются в медицинскую базу (GDPR Pseudonymization).</p>
+        </div>
         <div class="create-patient-modal-actions">
           <button type="button" id="create-patient-modal-confirm"
             class="create-patient-modal-btn create-patient-modal-btn-confirm"
@@ -1309,6 +1319,7 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
   <script src="js/i18n.js"></script>
   <script src="js/config.js"></script>
