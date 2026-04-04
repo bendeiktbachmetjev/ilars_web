@@ -67,6 +67,7 @@ class PatientDetailView {
         
         this.currentFirstName = '';
         this.currentLastName = '';
+        this.canEditName = true;
         
         try {
             if (window.firebase && window.firebase.firestore && window.ILARS_AUTH && window.ILARS_AUTH.auth.currentUser) {
@@ -78,6 +79,11 @@ class PatientDetailView {
                     this.currentFirstName = data.firstName || '';
                     this.currentLastName = data.lastName || '';
                     
+                    const currentUserUid = window.ILARS_AUTH.auth.currentUser.uid;
+                    if (data.doctorUid && data.doctorUid !== currentUserUid) {
+                        this.canEditName = false;
+                    }
+                    
                     const fullName = [this.currentFirstName, this.currentLastName].filter(Boolean).join(' ');
                     if (fullName && nameDisplay) {
                         nameDisplay.textContent = fullName;
@@ -88,7 +94,7 @@ class PatientDetailView {
         } catch (e) {
             console.error('Failed to load patient name from Firebase:', e);
         } finally {
-            if (editBtn) editBtn.style.display = 'inline-block';
+            if (editBtn) editBtn.style.display = this.canEditName ? 'inline-block' : 'none';
         }
     }
 
