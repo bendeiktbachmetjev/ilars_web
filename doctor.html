@@ -1114,7 +1114,13 @@
     <div class="container">
       <button class="back-btn" onclick="window.app.navigate('list')" data-i18n="doctor.back_to_list">← Back to Patient
         List</button>
-      <h1>Patient: <span id="patient-detail-code"></span></h1>
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 1rem;">
+        <h1 style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 0;">
+          <span id="patient-detail-name-display" style="display: none;"></span>
+          <span id="patient-detail-code" style="font-size: 0.6em; color: #64748b; font-weight: normal; margin-top: 5px;"></span>
+          <button id="btn-edit-patient-name" class="create-patient-btn" style="background: transparent; border: 1px solid #cbd5e1; color: #1e293b; padding: 4px 12px; font-size: 13px; font-weight: 500; height: auto; box-shadow: none; display: none;" data-i18n="doctor.edit_name">Edit Name</button>
+        </h1>
+      </div>
       <div id="patient-detail-loading" class="loading" data-i18n="doctor.loading_patient">Loading patient data...</div>
       <div id="patient-detail-error" class="error" style="display: none;"></div>
       <div id="patient-detail-content" style="display: none;">
@@ -1285,6 +1291,36 @@
         </div>
       </div>
       <button type="button" id="create-patient-modal-close" class="create-patient-modal-close"
+        aria-label="Close">×</button>
+    </div>
+  </div>
+
+  <!-- Edit patient name modal -->
+  <div id="edit-patient-name-modal" class="create-patient-modal" aria-hidden="true" role="dialog" aria-modal="true"
+    aria-labelledby="edit-patient-name-title">
+    <div class="create-patient-modal-backdrop"></div>
+    <div class="create-patient-modal-content">
+      <h2 id="edit-patient-name-title" class="create-patient-modal-title" data-i18n="doctor.edit_name_title">Edit Patient Name</h2>
+      <p class="create-patient-modal-subtitle" data-i18n="doctor.edit_name_subtitle">Update the patient's name securely in Firebase.</p>
+      
+      <div class="create-patient-modal-row input-row" style="flex-direction: column; align-items: flex-start; margin-top: 15px; padding-top: 5px;">
+        <label style="margin-bottom: 5px; font-weight: 500; font-size: 14px; display: block;" data-i18n="doctor.modal_first_name">First Name</label>
+        <input type="text" id="edit-patient-first-name" class="ilars-input" data-i18n-placeholder="doctor.modal_first_name_placeholder" style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; margin-bottom: 15px; width: 100%; box-sizing: border-box;">
+        
+        <label style="margin-bottom: 5px; font-weight: 500; font-size: 14px; display: block;" data-i18n="doctor.modal_last_name">Last Name</label>
+        <input type="text" id="edit-patient-last-name" class="ilars-input" data-i18n-placeholder="doctor.modal_last_name_placeholder" style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; width: 100%; box-sizing: border-box;">
+        
+        <p style="font-size: 11px; color: #888; margin-top: 8px; line-height: 1.3;" data-i18n="doctor.modal_gdpr_warning">Данные ФИО сохраняются только в Firebase и не передаются в медицинскую базу (GDPR Pseudonymization).</p>
+      </div>
+      <div class="create-patient-modal-actions">
+        <button type="button" id="edit-patient-name-save"
+          class="create-patient-modal-btn create-patient-modal-btn-confirm"
+          data-i18n="doctor.edit_name_save">Save</button>
+        <button type="button" id="edit-patient-name-cancel"
+          class="create-patient-modal-btn create-patient-modal-btn-cancel"
+          data-i18n="doctor.modal_cancel_btn">Cancel</button>
+      </div>
+      <button type="button" id="edit-patient-name-close" class="create-patient-modal-close"
         aria-label="Close">×</button>
     </div>
   </div>

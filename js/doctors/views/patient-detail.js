@@ -18,6 +18,9 @@ class PatientDetailView {
         }
         this.currentCode = patientCode;
 
+        // Fetch name from Firebase (Pseudonymization)
+        this.loadFirebaseName(patientCode);
+
         if (loadingEl) loadingEl.style.display = 'block';
         if (errorEl) errorEl.style.display = 'none';
         if (contentEl) contentEl.style.display = 'none';
@@ -49,6 +52,116 @@ class PatientDetailView {
         if (changeStatusSelect && !changeStatusSelect._ilarsBound) {
             changeStatusSelect._ilarsBound = true;
             changeStatusSelect.addEventListener('change', (e) => this.setPatientStatus(e.target.value));
+        }
+
+        this.bindEditModalActions();
+    }
+
+    async loadFirebaseName(patientCode) {
+        const nameDisplay = document.getElementById('patient-detail-name-display');
+        const editBtn = document.getElementById('btn-edit-patient-name');
+        
+        // Reset UI
+        if (nameDisplay) { nameDisplay.textContent = ''; nameDisplay.style.display = 'none'; }
+        if (editBtn) { editBtn.style.display = 'none'; }
+        
+        this.currentFirstName = '';
+        this.currentLastName = '';
+        
+        try {
+            if (window.firebase && window.firebase.firestore && window.ILARS_AUTH && window.ILARS_AUTH.auth.currentUser) {
+                const db = window.firebase.firestore();
+                const docRef = db.collection('patients').doc(patientCode);
+                const docSnap = await docRef.get();
+                if (docSnap.exists) {
+                    const data = docSnap.data();
+                    this.currentFirstName = data.firstName || '';
+                    this.currentLastName = data.lastName || '';
+                    
+                    const fullName = [this.currentFirstName, this.currentLastName].filter(Boolean).join(' ');
+                    if (fullName && nameDisplay) {
+                        nameDisplay.textContent = fullName;
+                        nameDisplay.style.display = 'inline-block';
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load patient name from Firebase:', e);
+        } finally {
+            if (editBtn) editBtn.style.display = 'inline-block';
+        }
+    }
+
+    bindEditModalActions() {
+        const editBtn = document.getElementById('btn-edit-patient-name');
+        const modal = document.getElementById('edit-patient-name-modal');
+        const closeBtn = document.getElementById('edit-patient-name-close');
+        const cancelBtn = document.getElementById('edit-patient-name-cancel');
+        const saveBtn = document.getElementById('edit-patient-name-save');
+        const backdrop = modal ? modal.querySelector('.create-patient-modal-backdrop') : null;
+        
+        if (!modal || !editBtn || modal._ilarsBound) return;
+        modal._ilarsBound = true;
+        
+        const hideModal = () => {
+            modal.classList.remove('is-visible');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+        };
+        
+        const showModal = () => {
+            document.getElementById('edit-patient-first-name').value = this.currentFirstName || '';
+            document.getElementById('edit-patient-last-name').value = this.currentLastName || '';
+            modal.classList.add('is-visible');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('modal-open');
+        };
+        
+        editBtn.addEventListener('click', showModal);
+        if (closeBtn) closeBtn.addEventListener('click', hideModal);
+        if (cancelBtn) cancelBtn.addEventListener('click', hideModal);
+        if (backdrop) backdrop.addEventListener('click', hideModal);
+        
+        if (saveBtn) {
+            saveBtn.addEventListener('click', async () => {
+                const fName = document.getElementById('edit-patient-first-name').value.trim();
+                const lName = document.getElementById('edit-patient-last-name').value.trim();
+                
+                try {
+                    saveBtn.disabled = true;
+                    saveBtn.textContent = 'Saving...';
+                    
+                    if (window.firebase && window.firebase.firestore && window.ILARS_AUTH && window.ILARS_AUTH.auth.currentUser) {
+                        const db = window.firebase.firestore();
+                        const doctorUid = window.ILARS_AUTH.auth.currentUser.uid;
+                        const docRef = db.collection('patients').doc(this.currentCode);
+                        
+                        await docRef.set({
+                            firstName: fName,
+                            lastName: lName,
+                            doctorUid: doctorUid,
+                            updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+                        
+                        // Update local cache
+                        this.currentFirstName = fName;
+                        this.currentLastName = lName;
+                        const fullName = [fName, lName].filter(Boolean).join(' ');
+                        const nameDisplay = document.getElementById('patient-detail-name-display');
+                        if (nameDisplay) {
+                            nameDisplay.textContent = fullName;
+                            nameDisplay.style.display = fullName ? 'inline-block' : 'none';
+                        }
+                    }
+                    hideModal();
+                } catch (e) {
+                    alert('Error saving name: ' + e.message);
+                    console.error('Firebase save error:', e);
+                } finally {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = this._t('doctor.edit_name_save') || 'Save';
+                }
+            });
         }
     }
 
