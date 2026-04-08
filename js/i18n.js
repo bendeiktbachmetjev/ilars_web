@@ -1,5 +1,5 @@
 /**
- * Lightweight i18n for ABBA LARS static pages.
+ * Lightweight i18n for iLARS static pages.
  * Detects browser language, loads JSON translations, and patches the DOM.
  * Supported: en (default), lt, it, es, tr
  *

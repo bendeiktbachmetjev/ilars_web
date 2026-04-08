@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title_patient": "ABBA LARS — Patient",
-    "title_login": "Log in — ABBA LARS"
+    "title_patient": "iLARS — Patient",
+    "title_login": "Log in — iLARS"
   },
   "app": {
     "home": "Home",
@@ -130,7 +130,7 @@
     "unsubscribed": "Unsubscribed successfully"
   },
   "login": {
-    "title": "Log in to ABBA LARS",
+    "title": "Log in to iLARS",
     "subtitle": "Choose how you want to continue — as a patient or as a doctor.",
     "continue_as": "Continue as",
     "patient_title": "Patient",

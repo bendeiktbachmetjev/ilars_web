@@ -1,5 +1,5 @@
 /**
- * ABBA LARS Web — landing pages entry
+ * iLARS Web — landing pages entry
  * Initializes shared nav component and landing-specific forms (email, contact)
  */
 (function (global) {
@@ -20,7 +20,7 @@
         var email = input && input.value ? input.value.trim() : '';
         if (email) {
           if (input) input.value = '';
-          alert('Thanks! We\'ll notify you when ABBA LARS is ready.');
+          alert('Thanks! We\'ll notify you when iLARS is ready.');
         }
       });
     });
