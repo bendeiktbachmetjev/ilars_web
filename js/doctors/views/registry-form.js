@@ -83,19 +83,27 @@ class RegistryDetailView {
 
       ${sections}
       <div class="registry-page-spacer"></div>
-
-      ${this.isMine ? `
-      <div class="registry-savebar">
-        <span class="registry-form-msg" id="registry-form-msg"></span>
-        <button type="button" class="registry-save-btn" id="reg-save">Išsaugoti</button>
-      </div>` : ''}
     `;
+
+    // Floating save bar must live OUTSIDE the glassy .container: the container's
+    // backdrop-filter would otherwise become the containing block for
+    // position:fixed and pin the button to the container instead of the viewport.
+    const view = document.getElementById('registry-detail-view');
+    const oldBar = document.getElementById('registry-savebar-el');
+    if (oldBar) oldBar.remove();
+    if (this.isMine && view) {
+      const bar = document.createElement('div');
+      bar.id = 'registry-savebar-el';
+      bar.className = 'registry-savebar';
+      bar.innerHTML = `<span class="registry-form-msg" id="registry-form-msg"></span>
+        <button type="button" class="registry-save-btn" id="reg-save">Išsaugoti</button>`;
+      view.appendChild(bar);
+      bar.querySelector('#reg-save').addEventListener('click', () => this.save());
+    }
 
     cont.querySelector('#reg-back').addEventListener('click', () => window.app.navigate('list'));
     const delBtn = cont.querySelector('#reg-delete');
     if (delBtn) delBtn.addEventListener('click', () => this._confirmDelete());
-    const saveBtn = cont.querySelector('#reg-save');
-    if (saveBtn) saveBtn.addEventListener('click', () => this.save());
     cont.querySelectorAll('.reg-section-head').forEach(h =>
       h.addEventListener('click', () => h.parentElement.classList.toggle('is-open')));
     cont.querySelectorAll('.registry-nav-chip').forEach(ch =>
