@@ -121,11 +121,14 @@ class RegistryDetailView {
     });
     this._recalcBmi();
 
-    // Checkbox visual state (Taip/Ne)
-    cont.querySelectorAll('.reg-check input[type="checkbox"]').forEach(cb => {
-      cb.addEventListener('change', () => {
-        const wrap = cb.closest('.reg-check');
-        if (wrap) wrap.classList.toggle('is-on', cb.checked);
+    // Segmented buttons (bool + short selects): click to select, click again to clear.
+    cont.querySelectorAll('.reg-seg-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const group = btn.closest('.reg-seg');
+        const val = btn.getAttribute('data-val');
+        const isSame = group.dataset.value === val;
+        group.dataset.value = isSame ? '' : val;
+        group.querySelectorAll('.reg-seg-btn').forEach(b => b.classList.toggle('is-on', !isSame && b === btn));
       });
     });
   }
@@ -134,13 +137,15 @@ class RegistryDetailView {
     const id = 'reg-f-' + f.key;
     const v = (value === null || value === undefined) ? '' : value;
 
-    // Yes/No -> single checkbox (checked = Taip)
-    if (f.type === 'bool') {
-      const checked = String(v) === '1' ? 'checked' : '';
-      return `<label class="reg-field reg-check${checked ? ' is-on' : ''}">
-          <input type="checkbox" id="${id}" ${checked} ${ro}>
-          <span>${this._esc(f.label)}</span>
-        </label>`;
+    // Few options -> segmented buttons in a row (bool, or selects with <= 6 options).
+    let segOpts = null;
+    if (f.type === 'bool') segOpts = [{ v: 0, l: 'Ne' }, { v: 1, l: 'Taip' }];
+    else if (f.type === 'select' && f.options && f.options.length <= 6) segOpts = f.options;
+    if (segOpts) {
+      const btns = segOpts.map(o =>
+        `<button type="button" class="reg-seg-btn${String(o.v) === String(v) ? ' is-on' : ''}" data-val="${this._esc(o.v)}" ${ro}>${this._esc(o.l)}</button>`
+      ).join('');
+      return `<div class="reg-field"><label>${this._esc(f.label)}</label><div class="reg-seg" id="${id}" data-value="${this._esc(v)}">${btns}</div></div>`;
     }
 
     let input;
@@ -167,7 +172,7 @@ class RegistryDetailView {
   _val(key) {
     const el = document.getElementById('reg-f-' + key);
     if (!el) return '';
-    if (el.type === 'checkbox') return el.checked ? '1' : '0';
+    if (el.classList && el.classList.contains('reg-seg')) return el.dataset.value || '';
     return el.value;
   }
 
