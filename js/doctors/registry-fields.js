@@ -191,6 +191,24 @@
   // BMI (KMI) is computed automatically from weight + height.
   if (BY_KEY.bmi) BY_KEY.bmi.auto = true;
 
+  // Allowed numeric ranges (mirror DB CHECK/type limits) — used for client-side
+  // validation so out-of-range typos are caught before saving, not as a 500.
+  var RANGES = {
+    age_at_diagnosis: [0, 130], height_cm: [0, 300], weight_kg: [0, 999], bmi: [0, 999],
+    cea_pre_treatment: [0, 99999], cea_post_op: [0, 99999],
+    tumor_distance_anus_cm: [0, 999], tumor_distance_arj_cm: [0, 999],
+    proximal_margin_cm: [0, 999], distal_margin_cm: [0, 999], specimen_length_cm: [0, 999],
+    nrt_dose_gy: [0, 999], art_dose_gy: [0, 999],
+    nct_cycles: [0, 99], act_cycles: [0, 99],
+    operation_duration_min: [0, 3000], blood_loss_ml: [0, 30000], hospital_stay_days: [0, 3000],
+    ln_removed: [0, 300], ln_positive: [0, 300],
+    lars_baseline: [0, 42], lars_0m: [0, 42], lars_3m: [0, 42], lars_6m: [0, 42], lars_12m: [0, 42],
+    wexner_0m: [0, 20], wexner_12m: [0, 20]
+  };
+  Object.keys(RANGES).forEach(function (k) {
+    if (BY_KEY[k]) { BY_KEY[k].min = RANGES[k][0]; BY_KEY[k].max = RANGES[k][1]; }
+  });
+
   // Columns shown by default in the registry table summary (before the scrollable rest).
   var PRIMARY_KEYS = ['sex', 'diagnosis_date', 'operation_date', 'clinical_stage', 'ptnm_stage'];
 

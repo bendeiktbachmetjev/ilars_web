@@ -121,6 +121,11 @@ class RegistryDetailView {
     });
     this._recalcBmi();
 
+    // Clear the invalid highlight as soon as the user edits the value
+    cont.querySelectorAll('input[type="number"]').forEach(el => {
+      el.addEventListener('input', () => el.classList.remove('reg-invalid'));
+    });
+
     // Segmented buttons (bool + short selects): click to select, click again to clear.
     cont.querySelectorAll('.reg-seg-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -162,7 +167,8 @@ class RegistryDetailView {
       // Auto-computed (e.g. BMI) — read-only, filled from other fields
       input = `<input type="number" step="0.1" id="${id}" value="${this._esc(v)}" readonly class="reg-auto" title="Skaičiuojama automatiškai">`;
     } else if (f.type === 'int' || f.type === 'num') {
-      input = `<input type="number" step="${f.type === 'num' ? '0.1' : '1'}" id="${id}" value="${this._esc(v)}" ${ro}>`;
+      const mm = (f.min !== undefined ? ` min="${f.min}"` : '') + (f.max !== undefined ? ` max="${f.max}"` : '');
+      input = `<input type="number" step="${f.type === 'num' ? '0.1' : '1'}"${mm} id="${id}" value="${this._esc(v)}" ${ro}>`;
     } else {
       input = `<input type="text" id="${id}" value="${this._esc(v)}" ${ro}>`;
     }
@@ -197,6 +203,24 @@ class RegistryDetailView {
 
   async save() {
     if (!this.isMine || !this.id) return;
+
+    // Validate number fields against their min/max/step before sending.
+    const cont = this._cont();
+    cont.querySelectorAll('.reg-invalid').forEach(el => el.classList.remove('reg-invalid'));
+    const invalid = Array.from(cont.querySelectorAll('input[type="number"]'))
+      .filter(el => el.value !== '' && !el.checkValidity());
+    if (invalid.length) {
+      invalid.forEach(el => el.classList.add('reg-invalid'));
+      const first = invalid[0];
+      const lbl = first.closest('.reg-field') && first.closest('.reg-field').querySelector('label');
+      this._setMsg('Patikrinkite lauką: ' + (lbl ? lbl.textContent : ''), 'err');
+      const sec = first.closest('.reg-section');
+      if (sec) sec.classList.add('is-open');
+      first.focus();
+      first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
     const saveBtn = document.getElementById('reg-save');
     if (saveBtn) saveBtn.disabled = true;
     this._setMsg('Saugoma…');
