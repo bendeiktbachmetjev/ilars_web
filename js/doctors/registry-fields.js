@@ -183,6 +183,14 @@
     s.fields.forEach(function (f) { BY_KEY[f.key] = f; });
   });
 
+  // Yes/No fields render as a single checkbox (checked = Taip / 1, unchecked = Ne / 0).
+  SECTIONS.forEach(function (s) {
+    s.fields.forEach(function (f) { if (f.options === YESNO) f.type = 'bool'; });
+  });
+
+  // BMI (KMI) is computed automatically from weight + height.
+  if (BY_KEY.bmi) BY_KEY.bmi.auto = true;
+
   // Columns shown by default in the registry table summary (before the scrollable rest).
   var PRIMARY_KEYS = ['sex', 'diagnosis_date', 'operation_date', 'clinical_stage', 'ptnm_stage'];
 
@@ -190,6 +198,7 @@
     if (value === null || value === undefined || value === '') return '';
     var f = BY_KEY[key];
     if (!f) return String(value);
+    if (f.type === 'bool') return String(value) === '1' ? 'Taip' : (String(value) === '0' ? 'Ne' : '');
     if (f.type === 'select' && f.options) {
       for (var i = 0; i < f.options.length; i++) {
         if (String(f.options[i].v) === String(value)) return f.options[i].l;

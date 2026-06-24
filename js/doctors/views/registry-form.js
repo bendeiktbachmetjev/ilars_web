@@ -105,11 +105,36 @@ class RegistryDetailView {
       }));
     this._bindLink();
     this._updateTitle();
+
+    // Auto BMI from weight + height
+    ['weight_kg', 'height_cm'].forEach(k => {
+      const el = document.getElementById('reg-f-' + k);
+      if (el) el.addEventListener('input', () => this._recalcBmi());
+    });
+    this._recalcBmi();
+
+    // Checkbox visual state (Taip/Ne)
+    cont.querySelectorAll('.reg-check input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const wrap = cb.closest('.reg-check');
+        if (wrap) wrap.classList.toggle('is-on', cb.checked);
+      });
+    });
   }
 
   _fieldHtml(f, value, ro) {
     const id = 'reg-f-' + f.key;
     const v = (value === null || value === undefined) ? '' : value;
+
+    // Yes/No -> single checkbox (checked = Taip)
+    if (f.type === 'bool') {
+      const checked = String(v) === '1' ? 'checked' : '';
+      return `<label class="reg-field reg-check${checked ? ' is-on' : ''}">
+          <input type="checkbox" id="${id}" ${checked} ${ro}>
+          <span>${this._esc(f.label)}</span>
+        </label>`;
+    }
+
     let input;
     if (f.type === 'select') {
       const opts = ['<option value=""></option>'].concat(f.options.map(o =>
@@ -120,6 +145,9 @@ class RegistryDetailView {
       input = `<textarea id="${id}" rows="2" ${ro}>${this._esc(v)}</textarea>`;
     } else if (f.type === 'date') {
       input = `<input type="date" id="${id}" value="${this._esc(v)}" ${ro}>`;
+    } else if (f.auto) {
+      // Auto-computed (e.g. BMI) — read-only, filled from other fields
+      input = `<input type="number" step="0.1" id="${id}" value="${this._esc(v)}" readonly class="reg-auto" title="Skaičiuojama automatiškai">`;
     } else if (f.type === 'int' || f.type === 'num') {
       input = `<input type="number" step="${f.type === 'num' ? '0.1' : '1'}" id="${id}" value="${this._esc(v)}" ${ro}>`;
     } else {
@@ -130,7 +158,22 @@ class RegistryDetailView {
 
   _val(key) {
     const el = document.getElementById('reg-f-' + key);
-    return el ? el.value : '';
+    if (!el) return '';
+    if (el.type === 'checkbox') return el.checked ? '1' : '0';
+    return el.value;
+  }
+
+  _recalcBmi() {
+    const bmiEl = document.getElementById('reg-f-bmi');
+    if (!bmiEl) return;
+    const wEl = document.getElementById('reg-f-weight_kg');
+    const hEl = document.getElementById('reg-f-height_cm');
+    const w = parseFloat(wEl && wEl.value);
+    const h = parseFloat(hEl && hEl.value);
+    if (w > 0 && h > 0) {
+      const m = h / 100;
+      bmiEl.value = (w / (m * m)).toFixed(1);
+    }
   }
 
   collect() {
