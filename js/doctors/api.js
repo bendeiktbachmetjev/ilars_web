@@ -166,6 +166,7 @@ class ApiService {
     getRegistryPatientDetail(id) { return this._get(`/getRegistryPatientDetail?id=${encodeURIComponent(id)}`); }
     createRegistryPatient() { return this._post('/createRegistryPatient', {}); }
     updateRegistryPatient(id, data) { return this._post('/updateRegistryPatient', { id, data }); }
+    deleteRegistryPatient(id) { return this._post('/deleteRegistryPatient', { id }); }
     linkRegistryToStudy(registryId, patientCode) { return this._post('/linkRegistryToStudy', { registry_id: registryId, patient_code: patientCode }); }
     unlinkRegistryFromStudy(registryId) { return this._post('/unlinkRegistryFromStudy', { registry_id: registryId }); }
     getLinkableStudyPatients() { return this._get('/getLinkableStudyPatients'); }

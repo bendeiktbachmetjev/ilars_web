@@ -10,15 +10,9 @@ class RegistryListView {
     this.cached = null;
     this.names = {};        // registry id -> {firstName,lastName} (own records)
     this.studyNames = {};   // study patient_code -> "First Last" (own study patients, for link picker)
-    this.form = null;
   }
 
   _esc(s) { const d = document.createElement('div'); d.textContent = (s === null || s === undefined) ? '' : s; return d.innerHTML; }
-
-  _getForm() {
-    if (!this.form) this.form = new RegistryFormView(this.api);
-    return this.form;
-  }
 
   async load(force) {
     const wrap = document.getElementById('registry-table-wrap');
@@ -118,8 +112,7 @@ class RegistryListView {
     wrap.querySelectorAll('tbody tr').forEach(tr => {
       tr.addEventListener('click', () => {
         const id = tr.getAttribute('data-id');
-        const rec = this.cached.find(x => String(x.id) === String(id));
-        if (rec) this._getForm().open(rec, !!rec.is_mine);
+        if (id) window.app.navigate('registry/' + id);
       });
     });
   }
@@ -130,9 +123,8 @@ class RegistryListView {
     try {
       const res = await this.api.createRegistryPatient();
       if (res && res.id) {
-        const rec = { id: res.id, is_mine: true };
-        await this.load(true);
-        this._getForm().open(rec, true);
+        this.cached = null; // refresh list when we come back
+        window.app.navigate('registry/' + res.id);
       }
     } catch (e) {
       console.error('Create registry patient failed', e);

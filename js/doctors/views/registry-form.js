@@ -1,142 +1,110 @@
 /**
- * Registry form — large modal with the full ~110-field record, grouped into
- * collapsible sections (built from ILARS_REGISTRY). Owner can edit; other
- * doctors see it read-only. Names live in Firebase (collection registry_patients).
+ * Registry detail — a full-page editing screen (route #registry/:id), NOT a popup.
+ * Loads the record by id, renders identity + 9 section cards, with a floating
+ * always-visible Save button. Owner can edit/delete; others see it read-only.
+ * Names live in Firebase (collection registry_patients).
  */
-class RegistryFormView {
+class RegistryDetailView {
   constructor(api) {
     this.api = api;
-    this.record = null;
+    this.record = {};
     this.isMine = false;
-    this.modal = null;
-    this._build();
+    this.id = null;
+    this._picker = null;
+    this._firstName = '';
+    this._lastName = '';
   }
 
   _esc(s) { const d = document.createElement('div'); d.textContent = (s === null || s === undefined) ? '' : s; return d.innerHTML; }
+  _cont() { return document.getElementById('registry-detail-container'); }
 
-  _build() {
-    if (document.getElementById('registry-form-modal')) { this.modal = document.getElementById('registry-form-modal'); return; }
-    const modal = document.createElement('div');
-    modal.id = 'registry-form-modal';
-    modal.className = 'registry-modal';
-    modal.setAttribute('aria-hidden', 'true');
-    modal.innerHTML = `
-      <div class="registry-modal-backdrop"></div>
-      <div class="registry-modal-content">
-        <div class="registry-modal-header">
-          <div class="registry-modal-title" id="registry-form-title">Pacientas</div>
-          <button type="button" class="registry-modal-close" id="registry-form-close" aria-label="Close">×</button>
-        </div>
-        <div class="registry-modal-scroll">
-          <div class="registry-identity" id="registry-form-identity"></div>
-          <div id="registry-form-sections"></div>
-        </div>
-        <div class="registry-modal-footer">
-          <div class="registry-form-msg" id="registry-form-msg"></div>
-          <div class="registry-modal-actions">
-            <button type="button" class="reg-btn reg-btn-secondary" id="registry-form-cancel">Uždaryti</button>
-            <button type="button" class="reg-btn reg-btn-primary" id="registry-form-save">Išsaugoti</button>
-          </div>
-        </div>
-      </div>`;
-    document.body.appendChild(modal);
-    this.modal = modal;
-
-    modal.querySelector('.registry-modal-backdrop').addEventListener('click', () => this.close());
-    modal.querySelector('#registry-form-close').addEventListener('click', () => this.close());
-    modal.querySelector('#registry-form-cancel').addEventListener('click', () => this.close());
-    modal.querySelector('#registry-form-save').addEventListener('click', () => this.save());
+  async load(id) {
+    this.id = id;
+    const cont = this._cont();
+    if (!cont) return;
+    cont.innerHTML = '<div class="registry-loading">Kraunama…</div>';
+    try {
+      const res = await this.api.getRegistryPatientDetail(id);
+      if (res && res.status === 'ok' && res.patient) {
+        this.record = res.patient;
+        this.isMine = !!res.patient.is_mine;
+        this.render();
+        await this._loadName();
+      } else {
+        cont.innerHTML = '<div class="registry-empty">Įrašas nerastas.</div>';
+      }
+    } catch (e) {
+      console.error('Registry detail load failed', e);
+      cont.innerHTML = '<div class="registry-empty">Klaida įkeliant įrašą: ' + this._esc(e.message || '') + '</div>';
+    }
   }
 
-  async open(record, isMine) {
-    this.record = record || {};
-    this.isMine = !!isMine;
-    this._renderIdentity();
-    this._renderSections();
-    this._setMsg('');
-
-    const saveBtn = this.modal.querySelector('#registry-form-save');
-    saveBtn.style.display = this.isMine ? '' : 'none';
-
-    this.modal.classList.add('is-visible');
-    this.modal.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('modal-open');
-
-    await this._loadName();
-  }
-
-  close() {
-    this.modal.classList.remove('is-visible');
-    this.modal.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('modal-open');
-  }
-
-  _renderIdentity() {
+  render() {
+    const cont = this._cont();
     const r = this.record;
     const ro = this.isMine ? '' : 'disabled';
-    const linkHtml = this._linkHtml();
-    let nameRow = '';
-    if (this.isMine) {
-      nameRow = `
-        <div class="reg-field">
-          <label>Vardas</label>
-          <input type="text" id="reg-name-first" ${ro}>
-        </div>
-        <div class="reg-field">
-          <label>Pavardė</label>
-          <input type="text" id="reg-name-last" ${ro}>
-        </div>`;
-    }
-    this.modal.querySelector('#registry-form-identity').innerHTML = `
-      <div class="reg-grid">
-        ${nameRow}
-        <div class="reg-field">
-          <label>LIN (pseudonimizuotas)</label>
-          <input type="text" id="reg-f-lin" value="${this._esc(r.lin)}" ${ro}>
-        </div>
-        <div class="reg-field">
-          <label>Asmens ID kodas</label>
-          <input type="text" id="reg-f-personal_id_code" value="${this._esc(r.personal_id_code)}" ${ro}>
-        </div>
-      </div>
-      ${this.isMine ? `<p class="reg-gdpr">Vardas ir pavardė saugomi tik Firebase ir nepatenka į medicininę DB (GDPR pseudonimizacija).</p>` : ''}
-      <div class="reg-link-row" id="reg-link-row">${linkHtml}</div>`;
 
-    if (this.isMine) {
-      const btnLink = this.modal.querySelector('#reg-link-btn');
-      const btnUnlink = this.modal.querySelector('#reg-unlink-btn');
-      if (btnLink) btnLink.addEventListener('click', () => this._openLinkPicker());
-      if (btnUnlink) btnUnlink.addEventListener('click', () => this._unlink());
-    }
-  }
+    const navChips = ILARS_REGISTRY.sections.map(s =>
+      `<button type="button" class="registry-nav-chip" data-sec="${s.id}">${this._esc(s.title)}</button>`
+    ).join('');
 
-  _linkHtml() {
-    const code = this.record.study_patient_code;
-    if (code) {
-      return `<span class="reg-link-label">Susietas tyrimo pacientas:</span>
-              <span class="reg-link-code">${this._esc(code)}</span>
-              ${this.isMine ? `<button type="button" class="reg-btn reg-btn-link" id="reg-unlink-btn">Atsieti</button>` : ''}`;
-    }
-    return `<span class="reg-link-label">Tyrimo pacientas nesusietas</span>
-            ${this.isMine ? `<button type="button" class="reg-btn reg-btn-link" id="reg-link-btn">Susieti su tyrimo pacientu</button>` : ''}`;
-  }
-
-  _renderSections() {
-    const ro = this.isMine ? '' : 'disabled';
-    const r = this.record;
-    const html = ILARS_REGISTRY.sections.map((sec, idx) => {
+    const sections = ILARS_REGISTRY.sections.map(sec => {
       const fields = sec.fields.map(f => this._fieldHtml(f, r[f.key], ro)).join('');
-      return `
-        <div class="reg-section ${idx === 0 ? 'is-open' : ''}">
+      return `<div class="reg-section is-open" id="sec-${sec.id}">
           <button type="button" class="reg-section-head">${this._esc(sec.title)}<span class="reg-section-chevron">▾</span></button>
           <div class="reg-section-body"><div class="reg-grid">${fields}</div></div>
         </div>`;
     }).join('');
-    const container = this.modal.querySelector('#registry-form-sections');
-    container.innerHTML = html;
-    container.querySelectorAll('.reg-section-head').forEach(head => {
-      head.addEventListener('click', () => head.parentElement.classList.toggle('is-open'));
-    });
+
+    const nameRow = this.isMine ? `
+        <div class="reg-field"><label>Vardas</label><input type="text" id="reg-name-first"></div>
+        <div class="reg-field"><label>Pavardė</label><input type="text" id="reg-name-last"></div>` : '';
+
+    cont.innerHTML = `
+      <div class="registry-page-topbar">
+        <button type="button" class="back-btn" id="reg-back">← Atgal į registrą</button>
+        <div class="registry-page-title" id="registry-page-title">Pacientas</div>
+        ${this.isMine
+          ? `<button type="button" class="registry-delete-btn" id="reg-delete">Ištrinti</button>`
+          : `<span class="reg-readonly-badge">Tik peržiūra</span>`}
+      </div>
+
+      <div class="registry-nav">${navChips}</div>
+
+      <div class="registry-identity-card">
+        <div class="reg-grid">
+          ${nameRow}
+          <div class="reg-field"><label>LIN (pseudonimizuotas)</label><input type="text" id="reg-f-lin" value="${this._esc(r.lin)}" ${ro}></div>
+          <div class="reg-field"><label>Asmens ID kodas</label><input type="text" id="reg-f-personal_id_code" value="${this._esc(r.personal_id_code)}" ${ro}></div>
+        </div>
+        ${this.isMine ? `<p class="reg-gdpr">Vardas ir pavardė saugomi tik Firebase ir nepatenka į medicininę DB (GDPR pseudonimizacija).</p>` : ''}
+        <div class="reg-link-row" id="reg-link-row">${this._linkHtml()}</div>
+      </div>
+
+      ${sections}
+      <div class="registry-page-spacer"></div>
+
+      ${this.isMine ? `
+      <div class="registry-savebar">
+        <span class="registry-form-msg" id="registry-form-msg"></span>
+        <button type="button" class="registry-save-btn" id="reg-save">Išsaugoti</button>
+      </div>` : ''}
+    `;
+
+    cont.querySelector('#reg-back').addEventListener('click', () => window.app.navigate('list'));
+    const delBtn = cont.querySelector('#reg-delete');
+    if (delBtn) delBtn.addEventListener('click', () => this._confirmDelete());
+    const saveBtn = cont.querySelector('#reg-save');
+    if (saveBtn) saveBtn.addEventListener('click', () => this.save());
+    cont.querySelectorAll('.reg-section-head').forEach(h =>
+      h.addEventListener('click', () => h.parentElement.classList.toggle('is-open')));
+    cont.querySelectorAll('.registry-nav-chip').forEach(ch =>
+      ch.addEventListener('click', () => {
+        const el = document.getElementById('sec-' + ch.getAttribute('data-sec'));
+        if (el) { el.classList.add('is-open'); el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      }));
+    this._bindLink();
+    this._updateTitle();
   }
 
   _fieldHtml(f, value, ro) {
@@ -161,91 +129,141 @@ class RegistryFormView {
   }
 
   _val(key) {
-    const el = this.modal.querySelector('#reg-f-' + key);
+    const el = document.getElementById('reg-f-' + key);
     return el ? el.value : '';
   }
 
   collect() {
     const data = { lin: this._val('lin'), personal_id_code: this._val('personal_id_code') };
-    ILARS_REGISTRY.sections.forEach(sec => {
-      sec.fields.forEach(f => { data[f.key] = this._val(f.key); });
-    });
+    ILARS_REGISTRY.sections.forEach(sec => sec.fields.forEach(f => { data[f.key] = this._val(f.key); }));
     return data;
   }
 
   async save() {
-    if (!this.isMine || !this.record.id) return;
-    const saveBtn = this.modal.querySelector('#registry-form-save');
-    saveBtn.disabled = true;
+    if (!this.isMine || !this.id) return;
+    const saveBtn = document.getElementById('reg-save');
+    if (saveBtn) saveBtn.disabled = true;
     this._setMsg('Saugoma…');
     try {
-      await this.api.updateRegistryPatient(this.record.id, this.collect());
+      await this.api.updateRegistryPatient(this.id, this.collect());
       await this._saveName();
       this._setMsg('Išsaugota ✓', 'ok');
-      if (window.RegistryListView) window.RegistryListView.load(true);
-      setTimeout(() => this.close(), 600);
+      if (window.RegistryListView) window.RegistryListView.cached = null;
+      setTimeout(() => this._setMsg(''), 2500);
     } catch (e) {
       console.error('Registry save failed', e);
       this._setMsg('Klaida išsaugant: ' + (e.message || ''), 'err');
     } finally {
-      saveBtn.disabled = false;
+      if (saveBtn) saveBtn.disabled = false;
     }
   }
 
   _setMsg(text, kind) {
-    const el = this.modal.querySelector('#registry-form-msg');
+    const el = document.getElementById('registry-form-msg');
+    if (!el) return;
     el.textContent = text || '';
     el.className = 'registry-form-msg' + (kind ? ' ' + kind : '');
   }
 
-  // ---- Firebase name (own records only) ----
+  // ---- Delete ----
+  _confirmDelete() {
+    this._showOverlay(`
+      <div class="registry-picker-title">Ištrinti įrašą?</div>
+      <p class="registry-confirm-text">Ar tikrai norite ištrinti šį registro įrašą? Šio veiksmo atšaukti nebus galima.</p>
+      <div class="registry-confirm-actions">
+        <button type="button" class="reg-btn reg-btn-secondary" id="reg-del-cancel">Atšaukti</button>
+        <button type="button" class="registry-delete-btn" id="reg-del-confirm">Ištrinti</button>
+      </div>`);
+    this._picker.querySelector('#reg-del-cancel').addEventListener('click', () => this._closeOverlay());
+    this._picker.querySelector('#reg-del-confirm').addEventListener('click', () => this._doDelete());
+  }
+
+  async _doDelete() {
+    try {
+      await this.api.deleteRegistryPatient(this.id);
+      try { const doc = this._nameDoc(); if (doc) await doc.delete(); } catch (e) { /* best effort */ }
+      if (window.RegistryListView) window.RegistryListView.cached = null;
+      this._closeOverlay();
+      window.app.navigate('list');
+    } catch (e) {
+      console.error('Registry delete failed', e);
+      alert('Klaida trinant: ' + (e.message || ''));
+    }
+  }
+
+  // ---- Firebase name (own records) ----
   _nameDoc() {
     try {
       const auth = window.ILARS_AUTH;
-      if (!auth || !auth.db || !this.record.id) return null;
-      return auth.db.collection('registry_patients').doc(String(this.record.id));
+      if (!auth || !auth.db || !this.id) return null;
+      return auth.db.collection('registry_patients').doc(String(this.id));
     } catch (e) { return null; }
   }
 
   async _loadName() {
-    if (!this.isMine) return;
+    if (!this.isMine) { this._updateTitle(); return; }
     const doc = this._nameDoc();
     if (!doc) return;
     try {
       const snap = await doc.get();
       const data = snap.exists ? snap.data() : {};
-      const first = this.modal.querySelector('#reg-name-first');
-      const last = this.modal.querySelector('#reg-name-last');
-      if (first) first.value = data.firstName || '';
-      if (last) last.value = data.lastName || '';
-      this._updateTitle(data.firstName, data.lastName);
+      this._firstName = data.firstName || '';
+      this._lastName = data.lastName || '';
+      const first = document.getElementById('reg-name-first');
+      const last = document.getElementById('reg-name-last');
+      if (first) first.value = this._firstName;
+      if (last) last.value = this._lastName;
+      this._updateTitle();
     } catch (e) { console.error('Load registry name failed', e); }
   }
 
   async _saveName() {
     const doc = this._nameDoc();
     if (!doc) return;
-    const first = this.modal.querySelector('#reg-name-first');
-    const last = this.modal.querySelector('#reg-name-last');
+    const first = document.getElementById('reg-name-first');
+    const last = document.getElementById('reg-name-last');
     const user = window.ILARS_AUTH && window.ILARS_AUTH.getCurrentUser();
     if (!user) return;
+    this._firstName = first ? first.value.trim() : '';
+    this._lastName = last ? last.value.trim() : '';
     try {
-      await doc.set({
-        firstName: first ? first.value.trim() : '',
-        lastName: last ? last.value.trim() : '',
-        doctorUid: user.uid
-      }, { merge: true });
-      this._updateTitle(first ? first.value : '', last ? last.value : '');
+      await doc.set({ firstName: this._firstName, lastName: this._lastName, doctorUid: user.uid }, { merge: true });
+      this._updateTitle();
     } catch (e) { console.error('Save registry name failed', e); }
   }
 
-  _updateTitle(first, last) {
-    const name = [first, last].filter(Boolean).join(' ').trim();
+  _updateTitle() {
+    const name = [this._firstName, this._lastName].filter(Boolean).join(' ').trim();
     const title = name || this.record.lin || this.record.personal_id_code || 'Pacientas';
-    this.modal.querySelector('#registry-form-title').textContent = title;
+    const el = document.getElementById('registry-page-title');
+    if (el) el.textContent = title;
   }
 
   // ---- Linking registry -> study ----
+  _linkHtml() {
+    const code = this.record.study_patient_code;
+    if (code) {
+      return `<span class="reg-link-label">Susietas tyrimo pacientas:</span>
+              <span class="reg-link-code">${this._esc(code)}</span>
+              ${this.isMine ? `<button type="button" class="reg-btn reg-btn-link" id="reg-unlink-btn">Atsieti</button>` : ''}`;
+    }
+    return `<span class="reg-link-label">Tyrimo pacientas nesusietas</span>
+            ${this.isMine ? `<button type="button" class="reg-btn reg-btn-link" id="reg-link-btn">Susieti su tyrimo pacientu</button>` : ''}`;
+  }
+
+  _bindLink() {
+    const btnLink = document.getElementById('reg-link-btn');
+    const btnUnlink = document.getElementById('reg-unlink-btn');
+    if (btnLink) btnLink.addEventListener('click', () => this._openLinkPicker());
+    if (btnUnlink) btnUnlink.addEventListener('click', () => this._unlink());
+  }
+
+  _refreshLinkRow() {
+    const row = document.getElementById('reg-link-row');
+    if (row) { row.innerHTML = this._linkHtml(); this._bindLink(); }
+    if (window.RegistryListView) window.RegistryListView.cached = null;
+  }
+
   async _openLinkPicker() {
     try {
       const res = await this.api.getLinkableStudyPatients();
@@ -256,7 +274,12 @@ class RegistryFormView {
         const label = nm ? `${nm} (${p.patient_code})` : p.patient_code;
         return `<button type="button" class="reg-pick-item" data-code="${this._esc(p.patient_code)}">${this._esc(label)}</button>`;
       }).join('') || '<p class="reg-empty">Nėra laisvų tyrimo pacientų.</p>';
-      this._showPicker('Pasirinkite tyrimo pacientą', rows, (el) => this._link(el.getAttribute('data-code')));
+      this._showOverlay(`<div class="registry-picker-title">Pasirinkite tyrimo pacientą</div>
+        <div class="registry-picker-list">${rows}</div>
+        <button type="button" class="reg-btn reg-btn-secondary" id="reg-pick-cancel">Atšaukti</button>`);
+      this._picker.querySelector('#reg-pick-cancel').addEventListener('click', () => this._closeOverlay());
+      this._picker.querySelectorAll('.reg-pick-item').forEach(item =>
+        item.addEventListener('click', () => this._link(item.getAttribute('data-code'))));
     } catch (e) {
       this._setMsg('Klaida: ' + (e.message || ''), 'err');
     }
@@ -264,48 +287,39 @@ class RegistryFormView {
 
   async _link(code) {
     try {
-      await this.api.linkRegistryToStudy(this.record.id, code);
+      await this.api.linkRegistryToStudy(this.id, code);
       this.record.study_patient_code = code;
-      this._closePicker();
-      this._renderIdentity();
-      await this._loadName();
-      if (window.RegistryListView) window.RegistryListView.load(true);
+      this._closeOverlay();
+      this._refreshLinkRow();
     } catch (e) {
+      this._closeOverlay();
       this._setMsg('Klaida susiejant: ' + (e.message || ''), 'err');
     }
   }
 
   async _unlink() {
     try {
-      await this.api.unlinkRegistryFromStudy(this.record.id);
+      await this.api.unlinkRegistryFromStudy(this.id);
       this.record.study_patient_code = null;
-      this._renderIdentity();
-      await this._loadName();
-      if (window.RegistryListView) window.RegistryListView.load(true);
+      this._refreshLinkRow();
     } catch (e) {
       this._setMsg('Klaida atsiejant: ' + (e.message || ''), 'err');
     }
   }
 
-  _showPicker(title, rowsHtml, onPick) {
-    this._closePicker();
+  // ---- Overlay (link picker / delete confirm) ----
+  _showOverlay(innerHtml) {
+    this._closeOverlay();
     const p = document.createElement('div');
     p.className = 'registry-picker';
-    p.innerHTML = `
-      <div class="registry-picker-backdrop"></div>
-      <div class="registry-picker-content">
-        <div class="registry-picker-title">${this._esc(title)}</div>
-        <div class="registry-picker-list">${rowsHtml}</div>
-        <button type="button" class="reg-btn reg-btn-secondary registry-picker-cancel">Atšaukti</button>
-      </div>`;
+    p.innerHTML = `<div class="registry-picker-backdrop"></div>
+      <div class="registry-picker-content">${innerHtml}</div>`;
     document.body.appendChild(p);
     this._picker = p;
-    p.querySelector('.registry-picker-backdrop').addEventListener('click', () => this._closePicker());
-    p.querySelector('.registry-picker-cancel').addEventListener('click', () => this._closePicker());
-    p.querySelectorAll('.reg-pick-item').forEach(item => item.addEventListener('click', () => onPick(item)));
+    p.querySelector('.registry-picker-backdrop').addEventListener('click', () => this._closeOverlay());
   }
 
-  _closePicker() {
+  _closeOverlay() {
     if (this._picker) { this._picker.remove(); this._picker = null; }
   }
 }

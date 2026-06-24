@@ -40,12 +40,12 @@
     api.getDoctorProfile().then(function (data) {
       isLT = !!(data && data.is_lithuania);
       global.ILARS_IS_LT = isLT;
-      var toggle = document.getElementById('table-mode-toggle');
+      var bar = document.getElementById('table-mode-bar');
       if (isLT) {
-        if (toggle) toggle.style.display = '';
+        if (bar) bar.style.display = '';
         setMode('registry'); // default to registry for Lithuanian doctors
       } else {
-        if (toggle) toggle.style.display = 'none';
+        if (bar) bar.style.display = 'none';
         setMode('study');
       }
     }).catch(function () { setMode('study'); });

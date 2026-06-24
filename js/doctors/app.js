@@ -47,6 +47,13 @@ class App {
                     this.showPatientList();
                 }
                 break;
+            case 'registry':
+                if (params[0]) {
+                    this.showRegistryDetail(params[0]);
+                } else {
+                    this.showPatientList();
+                }
+                break;
             case '':
             case 'list':
             default:
@@ -85,6 +92,20 @@ class App {
             }
             if (window.PatientDetailView) {
                 window.PatientDetailView.load(patientCode);
+            }
+        }
+    }
+
+    showRegistryDetail(id) {
+        const view = document.getElementById('registry-detail-view');
+        if (view) {
+            view.classList.add('active');
+            view.style.display = 'block';
+            if (!window.RegistryDetailView && this.api) {
+                window.RegistryDetailView = new RegistryDetailView(this.api);
+            }
+            if (window.RegistryDetailView) {
+                window.RegistryDetailView.load(id);
             }
         }
     }
