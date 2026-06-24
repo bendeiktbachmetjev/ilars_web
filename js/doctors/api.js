@@ -133,5 +133,42 @@ class ApiService {
         }
         return await response.json();
     }
+
+    // ---- Registry (Lithuanian colorectal cancer registry) ----
+
+    async _get(path) {
+        const token = await this.getAuthToken();
+        const response = await fetch(`${this.baseUrl}${path}`, {
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${response.statusText}. ${errorText}`);
+        }
+        return await response.json();
+    }
+
+    async _post(path, body) {
+        const token = await this.getAuthToken();
+        const response = await fetch(`${this.baseUrl}${path}`, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body || {})
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${response.statusText}. ${errorText}`);
+        }
+        return await response.json();
+    }
+
+    getRegistryPatients() { return this._get('/getRegistryPatients'); }
+    getRegistryPatientDetail(id) { return this._get(`/getRegistryPatientDetail?id=${encodeURIComponent(id)}`); }
+    createRegistryPatient() { return this._post('/createRegistryPatient', {}); }
+    updateRegistryPatient(id, data) { return this._post('/updateRegistryPatient', { id, data }); }
+    linkRegistryToStudy(registryId, patientCode) { return this._post('/linkRegistryToStudy', { registry_id: registryId, patient_code: patientCode }); }
+    unlinkRegistryFromStudy(registryId) { return this._post('/unlinkRegistryFromStudy', { registry_id: registryId }); }
+    getLinkableStudyPatients() { return this._get('/getLinkableStudyPatients'); }
+    getLinkableRegistryPatients() { return this._get('/getLinkableRegistryPatients'); }
 }
 

@@ -21,6 +21,9 @@ class PatientDetailView {
         // Fetch name from Firebase (Pseudonymization)
         this.loadFirebaseName(patientCode);
 
+        // Registry link state (Lithuanian doctors only)
+        this.updateRegistryLink(patientCode);
+
         if (loadingEl) loadingEl.style.display = 'block';
         if (errorEl) errorEl.style.display = 'none';
         if (contentEl) contentEl.style.display = 'none';
@@ -96,6 +99,116 @@ class PatientDetailView {
         } finally {
             if (editBtn) editBtn.style.display = this.canEditName ? 'inline-block' : 'none';
         }
+    }
+
+    // ---- Link this study patient to a registry record (Lithuanian doctors) ----
+    _esc(s) { const d = document.createElement('div'); d.textContent = (s === null || s === undefined) ? '' : s; return d.innerHTML; }
+
+    async updateRegistryLink(patientCode) {
+        const cont = document.getElementById('patient-registry-link');
+        if (!cont) return;
+        if (!window.ILARS_IS_LT) { cont.style.display = 'none'; return; }
+        cont.style.display = '';
+        cont.innerHTML = '';
+        let linked = null;
+        try {
+            let list = (window.RegistryListView && window.RegistryListView.cached);
+            if (!list) {
+                const r = await this.api.getRegistryPatients();
+                list = (r && r.patients) || [];
+            }
+            linked = list.find(x => x.study_patient_code === patientCode) || null;
+        } catch (e) {
+            console.error('Registry link lookup failed', e);
+        }
+        this._renderRegistryLink(cont, patientCode, linked);
+    }
+
+    _registryName(rec) {
+        const names = window.RegistryListView && window.RegistryListView.names;
+        if (rec.is_mine && names && names[rec.id]) {
+            const d = names[rec.id];
+            const nm = [d.firstName, d.lastName].filter(Boolean).join(' ').trim();
+            if (nm) return nm;
+        }
+        return rec.lin || rec.personal_id_code || 'įrašas';
+    }
+
+    _renderRegistryLink(cont, patientCode, linked) {
+        if (linked) {
+            const label = this._esc(this._registryName(linked));
+            if (linked.is_mine) {
+                cont.innerHTML = `<span class="reg-chip reg-chip-linked">Registras: ${label}</span>
+                    <button type="button" class="reg-btn reg-btn-link" id="pd-unlink-registry">Atsieti</button>`;
+                const btn = cont.querySelector('#pd-unlink-registry');
+                if (btn) btn.addEventListener('click', () => this._unlinkRegistry(linked.id, patientCode));
+            } else {
+                cont.innerHTML = `<span class="reg-chip reg-chip-linked">Registras: ${label} (kito gydytojo įrašas)</span>`;
+            }
+        } else {
+            cont.innerHTML = `<button type="button" class="reg-btn reg-btn-link" id="pd-link-registry">Susieti su registru</button>`;
+            const btn = cont.querySelector('#pd-link-registry');
+            if (btn) btn.addEventListener('click', () => this._openRegistryPicker(patientCode));
+        }
+    }
+
+    async _openRegistryPicker(patientCode) {
+        try {
+            const res = await this.api.getLinkableRegistryPatients();
+            const records = (res && res.records) || [];
+            const names = (window.RegistryListView && window.RegistryListView.names) || {};
+            const rowsHtml = records.map(rec => {
+                const d = names[rec.id];
+                const nm = d ? [d.firstName, d.lastName].filter(Boolean).join(' ').trim() : '';
+                const label = nm || rec.lin || rec.personal_id_code || rec.id;
+                return `<button type="button" class="reg-pick-item" data-id="${this._esc(rec.id)}">${this._esc(label)}</button>`;
+            }).join('') || '<p class="reg-empty">Nėra laisvų registro įrašų.</p>';
+            this._showRegistryPicker('Pasirinkite registro įrašą', rowsHtml, (el) => this._linkRegistry(el.getAttribute('data-id'), patientCode));
+        } catch (e) {
+            console.error('Registry picker failed', e);
+        }
+    }
+
+    async _linkRegistry(registryId, patientCode) {
+        try {
+            await this.api.linkRegistryToStudy(registryId, patientCode);
+            this._closeRegistryPicker();
+            if (window.RegistryListView) window.RegistryListView.load(true);
+            this.updateRegistryLink(patientCode);
+        } catch (e) {
+            alert('Klaida susiejant: ' + (e.message || ''));
+        }
+    }
+
+    async _unlinkRegistry(registryId, patientCode) {
+        try {
+            await this.api.unlinkRegistryFromStudy(registryId);
+            if (window.RegistryListView) window.RegistryListView.load(true);
+            this.updateRegistryLink(patientCode);
+        } catch (e) {
+            alert('Klaida atsiejant: ' + (e.message || ''));
+        }
+    }
+
+    _showRegistryPicker(title, rowsHtml, onPick) {
+        this._closeRegistryPicker();
+        const p = document.createElement('div');
+        p.className = 'registry-picker';
+        p.innerHTML = `<div class="registry-picker-backdrop"></div>
+            <div class="registry-picker-content">
+                <div class="registry-picker-title">${this._esc(title)}</div>
+                <div class="registry-picker-list">${rowsHtml}</div>
+                <button type="button" class="reg-btn reg-btn-secondary registry-picker-cancel">Atšaukti</button>
+            </div>`;
+        document.body.appendChild(p);
+        this._regPicker = p;
+        p.querySelector('.registry-picker-backdrop').addEventListener('click', () => this._closeRegistryPicker());
+        p.querySelector('.registry-picker-cancel').addEventListener('click', () => this._closeRegistryPicker());
+        p.querySelectorAll('.reg-pick-item').forEach(item => item.addEventListener('click', () => onPick(item)));
+    }
+
+    _closeRegistryPicker() {
+        if (this._regPicker) { this._regPicker.remove(); this._regPicker = null; }
     }
 
     bindEditModalActions() {

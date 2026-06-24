@@ -60,12 +60,16 @@ class App {
         if (view) {
             view.classList.add('active');
             view.style.display = 'block';
-            // Initialize PatientListView if not exists
-            if (!window.PatientListView && this.api) {
-                window.PatientListView = new PatientListView(this.api);
-            }
-            if (window.PatientListView) {
-                window.PatientListView.load();
+            // Delegate to the tab controller (study vs Lithuanian registry).
+            if (window.ILARS_TABS && this.api) {
+                window.ILARS_TABS.show(this.api);
+            } else {
+                if (!window.PatientListView && this.api) {
+                    window.PatientListView = new PatientListView(this.api);
+                }
+                if (window.PatientListView) {
+                    window.PatientListView.load();
+                }
             }
         }
     }
