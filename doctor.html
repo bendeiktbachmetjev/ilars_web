@@ -1022,17 +1022,10 @@
     }
 
     .registry-nav {
-      position: sticky;
-      top: 72px;
-      z-index: 5;
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
-      padding: 12px 0;
-      margin-bottom: 8px;
-      background: rgba(18, 18, 32, 0.92);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 18px;
     }
 
     .registry-nav-chip {
@@ -1070,22 +1063,24 @@
     .registry-savebar {
       position: fixed;
       left: 50%;
-      bottom: 26px;
+      bottom: 28px;
       transform: translateX(-50%);
       z-index: 60;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 16px;
-      padding: 10px 12px 10px 24px;
-      background: rgba(20, 20, 35, 0.82);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 999px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
-      backdrop-filter: blur(14px);
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .registry-savebar .registry-save-btn {
+      pointer-events: auto;
     }
 
     .registry-savebar .registry-form-msg {
-      color: rgba(255, 255, 255, 0.85);
+      color: #fff;
+      font-weight: 600;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
     }
 
     .registry-save-btn {
