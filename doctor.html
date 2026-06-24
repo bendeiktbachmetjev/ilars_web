@@ -874,6 +874,60 @@
       background: rgba(74, 222, 128, 0.12);
     }
 
+    /* ---- Study patient detail: clean centered header ---- */
+    .pd-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+
+    .pd-hero {
+      text-align: center;
+      margin: 10px 0 28px;
+    }
+
+    .pd-name {
+      margin: 0;
+      font-size: 34px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .pd-code {
+      margin-top: 8px;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      font-family: 'SF Mono', Monaco, Consolas, monospace;
+      letter-spacing: 0.05em;
+    }
+
+    .pd-edit-btn {
+      margin-top: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 999px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+
+    .pd-edit-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
     /* ---- Registry: wide scrollable table ---- */
     #registry-table-wrap {
       margin-top: 20px;
@@ -2015,21 +2069,22 @@
   <!-- Patient Detail View -->
   <div id="patient-detail-view" class="view">
     <div class="container">
-      <button class="back-btn" onclick="window.app.navigate('list')" data-i18n="doctor.back_to_list">← Back to Patient
-        List</button>
-      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 1rem;">
-        <h1 style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 0;">
-          <span id="patient-detail-name-display" style="display: none;"></span>
-          <span id="patient-detail-code" style="font-size: 0.6em; color: #64748b; font-weight: normal; margin-top: 5px;"></span>
-          <button id="btn-edit-patient-name" class="create-patient-btn" style="background: #667eea; border: none; color: white; padding: 6px 14px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; display: none; height: auto; box-shadow: 0 4px 10px rgba(102,126,234,0.3);" data-i18n="doctor.edit_name">Edit Name</button>
-        </h1>
+      <div class="pd-topbar">
+        <button class="back-btn" onclick="window.app.navigate('list')" data-i18n="doctor.back_to_list">← Back to Patient
+          List</button>
         <div id="patient-registry-link" class="patient-registry-link" style="display: none;"></div>
+      </div>
+      <div class="pd-hero">
+        <h1 class="pd-name"><span id="patient-detail-name-display" style="display: none;"></span></h1>
+        <div class="pd-code" id="patient-detail-code"></div>
+        <button id="btn-edit-patient-name" class="pd-edit-btn" style="display: none;"
+          data-i18n="doctor.edit_name">Edit Name</button>
       </div>
       <div id="patient-detail-loading" class="loading" data-i18n="doctor.loading_patient">Loading patient data...</div>
       <div id="patient-detail-error" class="error" style="display: none;"></div>
       <div id="patient-detail-content" style="display: none;">
         <div id="patient-status-bar"
-          style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+          style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap;">
           <span id="patient-status-indicator" class="patient-status-badge">—</span>
           <select id="patient-change-status-select" class="create-patient-btn"
             style="background-image: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); box-shadow: 0 6px 18px rgba(129, 140, 248, 0.45); color: white; border: none; padding: 10px 30px 10px 15px; font-weight: 600; cursor: pointer; appearance: none; -webkit-appearance: none;">
