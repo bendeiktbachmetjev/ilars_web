@@ -219,6 +219,7 @@ class RegistryDetailView {
     if (!el) return;
     el.textContent = text || '';
     el.className = 'registry-form-msg' + (kind ? ' ' + kind : '');
+    el.style.display = text ? 'inline-block' : 'none';
   }
 
   // ---- Delete ----
