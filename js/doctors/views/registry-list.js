@@ -148,11 +148,14 @@ class RegistryListView {
       return;
     }
     if (bar) {
-      bar.innerHTML = `<button type="button" class="registry-reset" id="registry-reset">↺ Atstatyti</button>
+      bar.innerHTML = `<button type="button" class="registry-export-btn" id="registry-export">⇩ Eksportuoti</button>
+        <button type="button" class="registry-reset" id="registry-reset">↺ Atstatyti</button>
         <span class="registry-count" id="registry-count"></span>`;
       bar.querySelector('#registry-reset').addEventListener('click', () => {
         this.sort = null; this.colFilters = {}; this._closePopover(); this._renderTable();
       });
+      const exp = bar.querySelector('#registry-export');
+      exp.addEventListener('click', (e) => { e.stopPropagation(); this._openExportMenu(exp); });
     }
     this._bindOutside();
     this._renderTable();
@@ -298,6 +301,88 @@ class RegistryListView {
     if (this._outsideBound) return;
     this._outsideBound = true;
     document.addEventListener('click', () => this._closePopover());
+  }
+
+  // ---- Export to Excel ----
+  _ownNameOnly(p) {
+    if (p.is_mine && this.names[p.id]) {
+      const d = this.names[p.id];
+      return [d.firstName, d.lastName].filter(Boolean).join(' ').trim();
+    }
+    return '';
+  }
+
+  _exportColumns() {
+    const self = this;
+    const cols = [
+      { h: 'Vardas Pavardė', v: p => self._ownNameOnly(p) },
+      { h: 'LIN', v: p => p.lin || '' },
+      { h: 'Asmens ID', v: p => p.personal_id_code || '' },
+      { h: 'Ligoninė', v: p => p.hospital_name || '' },
+      { h: 'Gydytojas', v: p => self._ownerLabel(p) }
+    ];
+    ILARS_REGISTRY.sections.forEach(s => s.fields.forEach(f => {
+      cols.push({ h: f.label, v: p => ILARS_REGISTRY.formatValue(f.key, p[f.key]) });
+    }));
+    cols.push({ h: 'Susietas tyrimas', v: p => p.study_patient_code || '' });
+    return cols;
+  }
+
+  _buildAoa(scope) {
+    const cols = this._exportColumns();
+    const rows = scope === 'all' ? this.cached : this._sortRows(this._applyColFilters(this.cached));
+    const aoa = [cols.map(c => c.h)];
+    rows.forEach(p => aoa.push(cols.map(c => c.v(p))));
+    return aoa;
+  }
+
+  _ensureXlsx() {
+    return new Promise((resolve, reject) => {
+      if (window.XLSX) return resolve();
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('Nepavyko įkelti eksporto bibliotekos'));
+      document.head.appendChild(s);
+    });
+  }
+
+  async _export(scope) {
+    try {
+      const aoa = this._buildAoa(scope);
+      await this._ensureXlsx();
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Registras');
+      const date = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `registras_${scope === 'all' ? 'visi' : 'filtruoti'}_${date}.xlsx`);
+    } catch (e) {
+      console.error('Registry export failed', e);
+      this._showError('Klaida eksportuojant: ' + (e.message || ''));
+    }
+  }
+
+  _openExportMenu(btn) {
+    const open = this._pop && this._pop._export;
+    this._closePopover();
+    if (open) return;
+    const all = this.cached.length;
+    const shown = this._sortRows(this._applyColFilters(this.cached)).length;
+    const pop = document.createElement('div');
+    pop.className = 'reg-col-pop reg-export-pop';
+    pop._export = true;
+    pop.innerHTML = `
+      <button type="button" class="reg-export-opt" data-scope="all">Visi duomenys (${all})</button>
+      <button type="button" class="reg-export-opt" data-scope="view">Tik rodomi / filtruoti (${shown})</button>`;
+    document.body.appendChild(pop);
+    this._pop = pop;
+    const r = btn.getBoundingClientRect();
+    pop.style.top = (r.bottom + 4) + 'px';
+    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 260)) + 'px';
+    pop.querySelectorAll('.reg-export-opt').forEach(b => {
+      b.addEventListener('click', () => { const sc = b.getAttribute('data-scope'); this._closePopover(); this._export(sc); });
+    });
+    pop.addEventListener('click', (e) => e.stopPropagation());
   }
 
   async createPatient() {
