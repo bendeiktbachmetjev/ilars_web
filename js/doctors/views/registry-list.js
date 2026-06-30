@@ -1,29 +1,26 @@
 /**
  * Registry list — national registry table (all Lithuanian hospitals).
- * Wide, horizontally scrollable table with all columns; the first column
- * (patient) is sticky. Names of OWN patients come from Firebase; for others
- * only LIN / personal ID is shown. Click a row to open the full form.
- *
- * Filter bar: free-text search across every column, multi-select by hospital
- * and by doctor (who added the record), and a "only my patients" toggle.
+ * Sticky first column (patient); hospital and doctor are columns 2 and 3.
+ * Every other column has two header tools: sort (⇅) and filter (☰, Excel-style
+ * value picker). "Atstatyti" clears all sort/filters back to the default order
+ * (own patients first, then everyone else). Names of OWN patients come from
+ * Firebase; others show LIN / personal ID. Click a row to open the full form.
  */
 class RegistryListView {
   constructor(api) {
     this.api = api;
     this.cached = null;
-    this.names = {};        // registry id -> {firstName,lastName} (own records)
-    this.studyNames = {};   // study patient_code -> "First Last" (own study patients, for link picker)
-    this.filters = { search: '', hospitals: new Set(), doctors: new Set(), onlyMine: false };
+    this.names = {};
+    this.studyNames = {};
+    this.sort = null;          // { key, dir: 'asc'|'desc' } or null
+    this.colFilters = {};      // key -> Set(allowed display values)
+    this._pop = null;
     this._outsideBound = false;
+    this._cols = null;
+    this.colByKey = {};
   }
 
   _esc(s) { const d = document.createElement('div'); d.textContent = (s === null || s === undefined) ? '' : s; return d.innerHTML; }
-
-  _fields() {
-    const out = [];
-    ILARS_REGISTRY.sections.forEach(s => s.fields.forEach(f => out.push(f)));
-    return out;
-  }
 
   async load(force) {
     const wrap = document.getElementById('registry-table-wrap');
@@ -31,7 +28,6 @@ class RegistryListView {
     if (errEl) errEl.style.display = 'none';
     if (this.cached && !force) { this.render(); return; }
     if (wrap && !this.cached) wrap.innerHTML = '<div class="registry-loading">Kraunama…</div>';
-
     try {
       const [res] = await Promise.all([this.api.getRegistryPatients(), this._loadNames()]);
       if (res && res.status === 'ok') {
@@ -82,119 +78,121 @@ class RegistryListView {
     return p.owner_doctor_code || '—';
   }
 
-  // ---- Filtering ----
-  _searchText(p, fields) {
-    const parts = [
-      this._displayName(p).main, p.lin, p.personal_id_code,
-      p.hospital_name, this._ownerLabel(p), p.study_patient_code
+  // ---- Column model ----
+  _columns() {
+    if (this._cols) return this._cols;
+    const self = this;
+    const cols = [
+      { key: '__patient', label: 'Pacientas', sticky: true, tools: false, numeric: false,
+        display: p => self._displayName(p).main, raw: p => self._displayName(p).main },
+      { key: 'hospital_name', label: 'Ligoninė', tools: true, numeric: false,
+        display: p => p.hospital_name || '', raw: p => p.hospital_name || '' },
+      { key: '__owner', label: 'Gydytojas', tools: true, numeric: false,
+        display: p => self._ownerLabel(p), raw: p => self._ownerLabel(p) },
+      { key: 'personal_id_code', label: 'Asmens ID', tools: true, numeric: false,
+        display: p => p.personal_id_code || '', raw: p => p.personal_id_code || '' }
     ];
-    fields.forEach(f => parts.push(ILARS_REGISTRY.formatValue(f.key, p[f.key])));
-    return parts.filter(Boolean).join(' ').toLowerCase();
+    ILARS_REGISTRY.sections.forEach(s => s.fields.forEach(f => {
+      const numeric = (f.type === 'int' || f.type === 'num' || f.type === 'bool');
+      cols.push({
+        key: f.key, label: f.label, tools: true, numeric,
+        display: p => ILARS_REGISTRY.formatValue(f.key, p[f.key]),
+        raw: p => numeric ? ((p[f.key] === '' || p[f.key] == null) ? null : Number(p[f.key]))
+                          : ILARS_REGISTRY.formatValue(f.key, p[f.key])
+      });
+    }));
+    cols.push({ key: 'study_patient_code', label: 'Tyrimas', tools: true, numeric: false,
+      display: p => p.study_patient_code || '', raw: p => p.study_patient_code || '' });
+
+    this._cols = cols;
+    this.colByKey = {};
+    cols.forEach(c => { this.colByKey[c.key] = c; });
+    return cols;
   }
 
-  _applyFilters(rows, fields) {
-    const q = this.filters.search.trim().toLowerCase();
-    return rows.filter(p => {
-      if (this.filters.onlyMine && !p.is_mine) return false;
-      if (this.filters.hospitals.size && !this.filters.hospitals.has(p.hospital_name || '')) return false;
-      if (this.filters.doctors.size && !this.filters.doctors.has(this._ownerLabel(p))) return false;
-      if (q && this._searchText(p, fields).indexOf(q) === -1) return false;
-      return true;
+  _activeFilterKeys() {
+    return Object.keys(this.colFilters).filter(k => this.colFilters[k] && this.colFilters[k].size);
+  }
+
+  _applyColFilters(rows) {
+    const keys = this._activeFilterKeys();
+    if (!keys.length) return rows;
+    return rows.filter(p => keys.every(k => this.colFilters[k].has(this.colByKey[k].display(p))));
+  }
+
+  _sortRows(rows) {
+    if (!this.sort || !this.sort.key) return rows;
+    const col = this.colByKey[this.sort.key];
+    if (!col) return rows;
+    const dir = this.sort.dir === 'desc' ? -1 : 1;
+    return rows.slice().sort((a, b) => {
+      let va = col.raw(a), vb = col.raw(b);
+      const ea = (va === null || va === undefined || va === '');
+      const eb = (vb === null || vb === undefined || vb === '');
+      if (ea && eb) return 0;
+      if (ea) return 1;   // empties always last
+      if (eb) return -1;
+      if (col.numeric) return (va - vb) * dir;
+      return String(va).localeCompare(String(vb), 'lt') * dir;
     });
   }
 
+  // ---- Render ----
   render() {
     const wrap = document.getElementById('registry-table-wrap');
     if (!wrap) return;
-
+    const bar = document.getElementById('registry-filters');
     if (!this.cached || this.cached.length === 0) {
-      const filters = document.getElementById('registry-filters');
-      if (filters) filters.innerHTML = '';
+      if (bar) bar.innerHTML = '';
       wrap.innerHTML = '<div class="registry-empty">Registre dar nėra pacientų. Spauskite „Sukurti pacientą“.</div>';
       return;
     }
-
-    this._buildFilterBar();
+    if (bar) {
+      bar.innerHTML = `<button type="button" class="registry-reset" id="registry-reset">↺ Atstatyti</button>
+        <span class="registry-count" id="registry-count"></span>`;
+      bar.querySelector('#registry-reset').addEventListener('click', () => {
+        this.sort = null; this.colFilters = {}; this._closePopover(); this._renderTable();
+      });
+    }
+    this._bindOutside();
     this._renderTable();
   }
 
-  _buildFilterBar() {
-    const host = document.getElementById('registry-filters');
-    if (!host) return;
-
-    const hospitals = Array.from(new Set(this.cached.map(p => p.hospital_name).filter(Boolean))).sort();
-    const doctors = Array.from(new Set(this.cached.map(p => this._ownerLabel(p)).filter(v => v && v !== '—'))).sort();
-
-    host.innerHTML = `
-      <input type="text" class="registry-search" id="registry-search" placeholder="Paieška pagal vardą, LIN, ID ar bet kurį stulpelį…">
-      <div class="reg-filter" id="reg-filter-hospital"></div>
-      <div class="reg-filter" id="reg-filter-doctor"></div>
-      <label class="registry-only-mine${this.filters.onlyMine ? ' is-on' : ''}">
-        <input type="checkbox" id="registry-only-mine" ${this.filters.onlyMine ? 'checked' : ''}> Tik mano
-      </label>
-      <button type="button" class="registry-reset" id="registry-reset">Išvalyti</button>
-      <span class="registry-count" id="registry-count"></span>`;
-
-    const search = host.querySelector('#registry-search');
-    search.value = this.filters.search;
-    search.addEventListener('input', () => { this.filters.search = search.value; this._renderTable(); });
-
-    this._buildDropdown(host.querySelector('#reg-filter-hospital'), 'Ligoninė', hospitals, this.filters.hospitals);
-    this._buildDropdown(host.querySelector('#reg-filter-doctor'), 'Gydytojas', doctors, this.filters.doctors);
-
-    const mine = host.querySelector('#registry-only-mine');
-    mine.addEventListener('change', () => {
-      this.filters.onlyMine = mine.checked;
-      mine.closest('.registry-only-mine').classList.toggle('is-on', mine.checked);
-      this._renderTable();
-    });
-
-    host.querySelector('#registry-reset').addEventListener('click', () => {
-      this.filters = { search: '', hospitals: new Set(), doctors: new Set(), onlyMine: false };
-      this._buildFilterBar();
-      this._renderTable();
-    });
-
-    if (!this._outsideBound) {
-      this._outsideBound = true;
-      document.addEventListener('click', (e) => {
-        document.querySelectorAll('.reg-filter.is-open').forEach(el => {
-          if (!el.contains(e.target)) el.classList.remove('is-open');
-        });
-      });
-    }
+  _thHtml(c) {
+    if (!c.tools) return `<th class="${c.sticky ? 'reg-sticky' : ''}">${this._esc(c.label)}</th>`;
+    const sorted = this.sort && this.sort.key === c.key;
+    const sortGlyph = sorted ? (this.sort.dir === 'desc' ? '↓' : '↑') : '⇅';
+    const filterOn = this.colFilters[c.key] && this.colFilters[c.key].size;
+    return `<th>
+      <div class="reg-th">
+        <span class="reg-th-label">${this._esc(c.label)}</span>
+        <span class="reg-th-tools">
+          <button type="button" class="reg-th-sort${sorted ? ' is-active' : ''}" data-key="${this._esc(c.key)}" title="Rūšiuoti">${sortGlyph}</button>
+          <button type="button" class="reg-th-filter${filterOn ? ' is-active' : ''}" data-key="${this._esc(c.key)}" title="Filtruoti">☰</button>
+        </span>
+      </div>
+    </th>`;
   }
 
-  _buildDropdown(host, labelBase, values, selectedSet) {
-    const label = () => labelBase + (selectedSet.size ? ` (${selectedSet.size})` : '');
-    host.innerHTML = `
-      <button type="button" class="reg-filter-btn">${this._esc(label())} ▾</button>
-      <div class="reg-filter-menu">
-        ${values.length
-          ? values.map(v => `<label class="reg-filter-opt"><input type="checkbox" value="${this._esc(v)}" ${selectedSet.has(v) ? 'checked' : ''}> ${this._esc(v)}</label>`).join('')
-          : '<div class="reg-filter-opt" style="opacity:.6;cursor:default;">Nėra reikšmių</div>'}
-      </div>`;
-    const btn = host.querySelector('.reg-filter-btn');
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const wasOpen = host.classList.contains('is-open');
-      document.querySelectorAll('.reg-filter.is-open').forEach(el => el.classList.remove('is-open'));
-      host.classList.toggle('is-open', !wasOpen);
-    });
-    host.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-      cb.addEventListener('change', () => {
-        if (cb.checked) selectedSet.add(cb.value); else selectedSet.delete(cb.value);
-        btn.innerHTML = this._esc(label()) + ' ▾';
-        this._renderTable();
-      });
-    });
+  _tdHtml(c, p) {
+    if (c.key === '__patient') {
+      const nm = this._displayName(p);
+      return `<td class="reg-sticky"><div class="reg-name-main">${this._esc(nm.main)}</div>${nm.sub ? `<div class="reg-name-sub">${this._esc(nm.sub)}</div>` : ''}</td>`;
+    }
+    if (c.key === 'study_patient_code') {
+      return p.study_patient_code
+        ? `<td><span class="reg-tag reg-tag-linked">${this._esc(p.study_patient_code)}</span></td>`
+        : '<td><span class="reg-tag">—</span></td>';
+    }
+    const cls = (c.key === 'hospital_name' || c.key === '__owner') ? ' class="reg-owner"' : '';
+    return `<td${cls}>${this._esc(c.display(p))}</td>`;
   }
 
   _renderTable() {
     const wrap = document.getElementById('registry-table-wrap');
     if (!wrap) return;
-    const fields = this._fields();
-    const rows = this._applyFilters(this.cached, fields);
+    const cols = this._columns();
+    let rows = this._sortRows(this._applyColFilters(this.cached));
 
     const countEl = document.getElementById('registry-count');
     if (countEl) countEl.textContent = `Rodoma ${rows.length} iš ${this.cached.length}`;
@@ -204,41 +202,102 @@ class RegistryListView {
       return;
     }
 
-    const head = `
-      <thead>
-        <tr>
-          <th class="reg-sticky">Pacientas</th>
-          <th>Asmens ID</th>
-          ${fields.map(f => `<th>${this._esc(f.label)}</th>`).join('')}
-          <th>Ligoninė</th>
-          <th>Gydytojas</th>
-          <th>Tyrimas</th>
-        </tr>
-      </thead>`;
+    const head = '<tr>' + cols.map(c => this._thHtml(c)).join('') + '</tr>';
+    const body = rows.map(p => '<tr data-id="' + this._esc(p.id) + '">' + cols.map(c => this._tdHtml(c, p)).join('') + '</tr>').join('');
+    wrap.innerHTML = `<table class="registry-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
 
-    const body = rows.map(p => {
-      const nm = this._displayName(p);
-      const nameCell = `<div class="reg-name-main">${this._esc(nm.main)}</div>${nm.sub ? `<div class="reg-name-sub">${this._esc(nm.sub)}</div>` : ''}`;
-      const cells = fields.map(f => `<td>${this._esc(ILARS_REGISTRY.formatValue(f.key, p[f.key]))}</td>`).join('');
-      const study = p.study_patient_code ? `<span class="reg-tag reg-tag-linked">${this._esc(p.study_patient_code)}</span>` : '<span class="reg-tag">—</span>';
-      return `
-        <tr data-id="${this._esc(p.id)}">
-          <td class="reg-sticky">${nameCell}</td>
-          <td>${this._esc(p.personal_id_code || '')}</td>
-          ${cells}
-          <td class="reg-owner">${this._esc(p.hospital_name || '')}</td>
-          <td class="reg-owner">${this._esc(this._ownerLabel(p))}</td>
-          <td>${study}</td>
-        </tr>`;
-    }).join('');
-
-    wrap.innerHTML = `<table class="registry-table">${head}<tbody>${body}</tbody></table>`;
     wrap.querySelectorAll('tbody tr').forEach(tr => {
       tr.addEventListener('click', () => {
         const id = tr.getAttribute('data-id');
         if (id) window.app.navigate('registry/' + id);
       });
     });
+    wrap.querySelectorAll('.reg-th-sort').forEach(b => {
+      b.addEventListener('click', (e) => { e.stopPropagation(); this._toggleSort(b.getAttribute('data-key')); });
+    });
+    wrap.querySelectorAll('.reg-th-filter').forEach(b => {
+      b.addEventListener('click', (e) => { e.stopPropagation(); this._openFilter(b.getAttribute('data-key'), b); });
+    });
+  }
+
+  _toggleSort(key) {
+    if (!this.sort || this.sort.key !== key) this.sort = { key, dir: 'asc' };
+    else if (this.sort.dir === 'asc') this.sort.dir = 'desc';
+    else this.sort = null;
+    this._closePopover();
+    this._renderTable();
+  }
+
+  // ---- Per-column filter popover ----
+  _distinct(key) {
+    const col = this.colByKey[key];
+    const set = new Set(this.cached.map(p => col.display(p)));
+    return Array.from(set).sort((a, b) => String(a).localeCompare(String(b), 'lt'));
+  }
+
+  _openFilter(key, btn) {
+    const open = this._pop && this._pop._key === key;
+    this._closePopover();
+    if (open) return; // toggle off
+    const cur = this.colFilters[key] || null;
+    const vals = this._distinct(key);
+    const pop = document.createElement('div');
+    pop.className = 'reg-col-pop';
+    pop._key = key;
+    pop.innerHTML = `
+      <input type="text" class="reg-pop-search" placeholder="Ieškoti…">
+      <div class="reg-pop-actions">
+        <button type="button" data-act="all">Visi</button>
+        <button type="button" data-act="none">Jokio</button>
+      </div>
+      <div class="reg-pop-list">
+        ${vals.map(v => `<label class="reg-filter-opt"><input type="checkbox" value="${this._esc(v)}" ${(!cur || cur.has(v)) ? 'checked' : ''}> ${this._esc(v === '' ? '(tuščia)' : v)}</label>`).join('')}
+      </div>
+      <div class="reg-pop-foot">
+        <button type="button" class="reg-pop-apply">Taikyti</button>
+      </div>`;
+    document.body.appendChild(pop);
+    this._pop = pop;
+
+    const r = btn.getBoundingClientRect();
+    pop.style.top = (r.bottom + 4) + 'px';
+    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 280)) + 'px';
+
+    const search = pop.querySelector('.reg-pop-search');
+    search.addEventListener('input', () => {
+      const q = search.value.trim().toLowerCase();
+      pop.querySelectorAll('.reg-pop-list .reg-filter-opt').forEach(opt => {
+        opt.style.display = opt.textContent.toLowerCase().indexOf(q) === -1 ? 'none' : '';
+      });
+    });
+    pop.querySelector('[data-act="all"]').addEventListener('click', () => {
+      pop.querySelectorAll('.reg-pop-list .reg-filter-opt').forEach(opt => {
+        if (opt.style.display !== 'none') opt.querySelector('input').checked = true;
+      });
+    });
+    pop.querySelector('[data-act="none"]').addEventListener('click', () => {
+      pop.querySelectorAll('.reg-pop-list .reg-filter-opt').forEach(opt => {
+        if (opt.style.display !== 'none') opt.querySelector('input').checked = false;
+      });
+    });
+    pop.querySelector('.reg-pop-apply').addEventListener('click', () => {
+      const checked = Array.from(pop.querySelectorAll('.reg-pop-list input:checked')).map(i => i.value);
+      if (checked.length === vals.length) delete this.colFilters[key];
+      else this.colFilters[key] = new Set(checked);
+      this._closePopover();
+      this._renderTable();
+    });
+    pop.addEventListener('click', (e) => e.stopPropagation());
+  }
+
+  _closePopover() {
+    if (this._pop) { this._pop.remove(); this._pop = null; }
+  }
+
+  _bindOutside() {
+    if (this._outsideBound) return;
+    this._outsideBound = true;
+    document.addEventListener('click', () => this._closePopover());
   }
 
   async createPatient() {
@@ -247,7 +306,7 @@ class RegistryListView {
     try {
       const res = await this.api.createRegistryPatient();
       if (res && res.id) {
-        this.cached = null; // refresh list when we come back
+        this.cached = null;
         window.app.navigate('registry/' + res.id);
       }
     } catch (e) {
