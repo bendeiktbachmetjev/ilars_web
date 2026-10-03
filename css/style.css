@@ -746,6 +746,7 @@ section {
   .ai-device {
     width: min(360px, 100%);
   }
+}
 
 /* Generic email form (used on Home and other sections) */
 .email-form {
