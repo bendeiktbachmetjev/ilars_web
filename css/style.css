@@ -1345,7 +1345,7 @@ section {
 }
 
 .doctor-device {
-  width: min(520px, 90vw);
+  width: min(520px, calc(100vw - 6rem));
   border-radius: 20px;
   background: #0b0b10;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
