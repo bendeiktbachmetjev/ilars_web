@@ -24,6 +24,12 @@
     return ctx.t('doctor.cm.ov.traj_block', { from: r.week, to: r.week + 3 }) + ' · ' + ctx.tp('doctor.cm.common.n_patients', r.n, { n: r.n });
   }
   function blockLabel(i) { return (i * 4) + '–' + (i * 4 + 3); }   // short form of doctor.cm.ov.traj_block
+  /** Phones: when a block gets less than 40 px, it is labelled with its first week ("12" for 12–15) so every block
+      keeps a label without overlap; the axis name says "Weeks since registration". width = plot width in px. */
+  function blockLabeler(width, nBlocks) {
+    var narrow = width != null && nBlocks > 0 && width / nBlocks < 40;
+    return narrow ? function (i) { return String(i * 4); } : blockLabel;
+  }
 
   // ------------------------------------------------------------------ LARS category now
   /**
@@ -115,10 +121,12 @@
    * strip column and label away from its median point above. The band series never enter the emphasis
    * state: zrender cannot lighten the space-syntax --viz-band-neutral and would drop the fill on hover.
    */
-  function cohortTrajectory(traj, ctx, description) {
+  function cohortTrajectory(traj, ctx, description, width) {
     var T = ctx.tok, o = base(ctx, description);
     var b = (traj.blocks || []).filter(function (r) { return r.n >= C.COHORT_MIN_N; });
     var maxB = b.length ? b[b.length - 1].block : 0;
+    var label = blockLabeler(width == null ? null : width - 32 - 82, maxB + 0.8);
+    var narrow = label !== blockLabel;
     var byB = {}; b.forEach(function (r) { byB[r.block] = r; });
     var xs = []; for (var i = 0; i <= maxB; i++) xs.push(i);
     var col = function (f) { return xs.map(function (j) { return [j, byB[j] ? f(byB[j]) : null]; }); };
@@ -131,7 +139,7 @@
           axisLine: { lineStyle: { color: T.axis } }, splitLine: { show: false } },
         { type: 'value', gridIndex: 1, min: -0.4, max: maxB + 0.4, interval: 1, axisLine: { show: false }, axisTick: { show: false }, splitLine: { show: false },
           name: ctx.t('doctor.cm.ov.traj_axis'), nameLocation: 'middle', nameGap: 26, nameTextStyle: { color: T.ink3, fontSize: 11 },
-          axisLabel: axisLabel(ctx, { show: true, customValues: xs, margin: 6, hideOverlap: false, formatter: function (v) { return blockLabel(Math.round(v)); } }) }
+          axisLabel: axisLabel(ctx, { show: true, customValues: xs, margin: 6, hideOverlap: false, formatter: function (v) { return label(Math.round(v)); } }) }
       ],
       yAxis: [
         yValue(ctx, { gridIndex: 0, min: 0, max: C.LARS_MAX, interval: 10, axisLabel: axisLabel(ctx, { showMaxLabel: false }) }),
@@ -161,7 +169,7 @@
             var w = Math.min(18, api.size([0.6, 0])[0]);
             return { type: 'group', children: [
               { type: 'rect', shape: { x: top[0] - w / 2, y: top[1], width: w, height: Math.max(1, foot[1] - top[1]), r: [2, 2, 0, 0] }, style: { fill: T.axis } },
-              { type: 'text', x: top[0], y: top[1] - 2, style: { text: 'n ' + n, align: 'center', verticalAlign: 'bottom', fill: T.ink2, font: '10px ' + T.font } }
+              { type: 'text', x: top[0], y: top[1] - 2, style: { text: narrow ? String(n) : 'n ' + n, align: 'center', verticalAlign: 'bottom', fill: T.ink2, font: '10px ' + T.font } }
             ] };
           } }
       ]
@@ -172,9 +180,10 @@
    * Categories view: 100 % stacked none/minor/major per 4-week block (n ≥ COHORT_MIN_N). traj as cohortTrajectory.
    * Full category colours (a tint fails the colour-blind check), but bars as narrow as the other stacks (16 px).
    */
-  function cohortCategoryShare(traj, ctx, description) {
+  function cohortCategoryShare(traj, ctx, description, width) {
     var T = ctx.tok, o = base(ctx, description);
     var b = (traj.blocks || []).filter(function (r) { return r.n >= C.COHORT_MIN_N; });
+    var label = blockLabeler(width == null ? null : width - 36 - 12, b.length);
     var cats = ['none', 'minor', 'major'];
     return Object.assign(o, {
       grid: grid({ left: 36, right: 12, top: 10, bottom: 40 }),
@@ -183,7 +192,7 @@
         var html = tipHead(blockHead(ctx, b[ps[0].dataIndex]));
         ps.slice().reverse().forEach(function (p) { html += tipRow(p.color, p.value + '%', p.seriesName, 'rect'); });
         return html; } }),
-      xAxis: categoryAxis(ctx, b.map(function (r) { return blockLabel(r.block); }),
+      xAxis: categoryAxis(ctx, b.map(function (r) { return label(r.block); }),
         { name: ctx.t('doctor.cm.ov.traj_axis'), nameLocation: 'middle', nameGap: 26, nameTextStyle: { color: T.ink3, fontSize: 11 }, axisLabel: axisLabel(ctx, { interval: 0 }) }),
       yAxis: yValue(ctx, { min: 0, max: 100, interval: 50, axisLabel: axisLabel(ctx, { formatter: '{value}%' }) }),
       series: cats.map(function (c) {

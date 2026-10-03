@@ -1,0 +1,65 @@
+/* iLARS · Overview tab (.ov-*) — DESIGN-SPEC §4.3. Golden reference: design/golden/css/doctor/views/patients.css
+   (overview part). The attention table reuses the list's cell classes (.pl-who*, .pl-lars*) from patients.css.
+   Tokens only; geometry and states are classes; JS hands over only custom properties (--w, --v, --cols). */
+@layer views {
+  .ov-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: var(--space-4); }
+  .ov-kpis { margin-bottom: 0; }
+  .ov-kpi-meter { width: 72px; flex: none; }
+
+  /* ---------------------------------------------------------------- C1 needs attention */
+  .ov-attn-scroll { margin-top: 10px; overflow-x: auto; }
+  .ov-attn-table td { height: 52px; }
+  .ov-attn-table th:first-child, .ov-attn-table td:first-child { padding-left: 20px; }
+  .ov-attn-table th:last-child, .ov-attn-table td:last-child { padding-right: 20px; }
+  .ov-attn-table th { position: static; }
+  .ov-attn-empty { padding: 28px 20px 24px; }
+  .ov-rules { display: flex; gap: 6px; align-items: flex-start; padding: 12px 20px 16px; border-top: 1px solid var(--color-hairline); font: 400 12px/16px var(--font-ui); color: var(--color-text-secondary); }
+  .ov-rules .i { flex: none; width: 14px; height: 14px; margin-top: 1px; }
+
+  /* ---------------------------------------------------------------- C2 LARS category: chart + counts list */
+  .ov-legend-list { display: grid; gap: 0; margin: 4px 20px 0; padding: 0; list-style: none; }
+  .ov-legend-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto 44px; align-items: center; gap: 10px; height: 32px; font: 400 13px/1 var(--font-ui); }
+  .ov-legend-list li + li { border-top: 1px solid var(--color-hairline); }
+  .ov-legend-list .n { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  .ov-legend-list .p { text-align: right; color: var(--color-text-secondary); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .ov-lars-split { display: grid; }
+  .ui-chart:is(.is-table, .is-empty) .ov-lars-split { display: none; }   /* the table view lists the same counts */
+  /* donut and counts share one row when the card is wide (laptop / tablet: the card spans the full grid) */
+  @container chart (min-width: 620px) {
+    .ov-lars-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: var(--space-5); }
+    .ov-lars-split .ov-legend-list { margin: 0 20px 0 0; max-width: 380px; }
+  }
+
+  /* ---------------------------------------------------------------- C4 trajectory placeholder while lars_history loads */
+  .ov-traj-skel { --chart-h: 300px; }
+
+  /* ---------------------------------------------------------------- nobody in scope */
+  .ov-empty .ui-empty { padding: 48px 20px; }
+
+  /* ---------------------------------------------------------------- loading skeleton (KPI tiles + one card) */
+  .ov-skel { display: grid; gap: var(--layout-gap); }
+  .ov-skel .ov-skel__seg { width: 180px; height: 32px; margin-bottom: calc(var(--space-4) - var(--layout-gap)); }
+  .ov-skel .ui-skel--text { width: var(--w, 60%); }
+  .ov-skel .ov-skel__num { margin-top: 10px; }
+  .ov-skel .ov-skel__meta { width: 70%; height: 10px; margin-top: 12px; }
+  .ov-skel__card { display: grid; gap: 18px; padding: 22px 20px; }
+  .ov-skel__row { display: flex; align-items: center; gap: 10%; }
+  .ov-skel__row .ui-skel--text { flex: none; }
+
+  /* phones: the attention table becomes stacked items — patient + LARS on line 1, reasons + last entry on line 2 */
+  @media (max-width: 767px) {
+    .ov-toolbar .ui-seg { width: 100%; }
+    .ov-attn .ui-card__head { flex-wrap: wrap; }
+    .ov-attn-scroll { overflow: visible; }
+    .ov-attn-table thead { display: none; }
+    .ov-attn-table, .ov-attn-table tbody { display: block; }
+    .ov-attn-table tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "who lars" "attn last"; align-items: center; gap: 8px 12px; padding: 12px 16px; border-bottom: 1px solid var(--color-hairline); }
+    .ov-attn-table td[data-col] { display: block; height: auto; padding: 0; border: 0; }
+    .ov-attn-table td[data-col="patient"] { grid-area: who; }
+    .ov-attn-table td[data-col="lars"] { grid-area: lars; justify-self: end; }
+    .ov-attn-table td[data-col="attention"] { grid-area: attn; }
+    .ov-attn-table td[data-col="last"] { grid-area: last; justify-self: end; font-size: 12px; white-space: nowrap; }
+    .ov-attn-table td[data-col="last"]::before { content: attr(data-label) " · "; }
+    .ov-rules { padding: 12px 16px 16px; }
+  }
+}

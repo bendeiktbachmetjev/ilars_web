@@ -1,0 +1,268 @@
+/* National registry (LT) — VISUAL CHANGES ONLY (DESIGN-SPEC §3.7–3.10, §4.5–4.7). Every selector below is a
+   JS/DOM-contract class from registry-list.js / registry-form.js (research 02 §3), restyled in place.
+   Lithuanian chrome stays as it is. Tokens only (css/doctor/tokens.css).
+   Lead restraint override: a selected choice is accent tint + accent ink + accent edge + 600 (not a solid fill). */
+@layer views {
+  /* =============================== LIST =============================== */
+  .registry-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .registry-filters:empty { display: none; }               /* contract: JS clears it for the empty registry */
+  .registry-reset.is-active { color: var(--color-accent); background: var(--color-accent-tint); }
+  .registry-reset.is-active:hover { background: var(--color-accent-tint-hover); }
+  .registry-export-btn .i:last-child { width: 14px; height: 14px; margin-left: -2px; color: var(--color-text-secondary); }
+  .registry-count { margin-left: auto; font: 500 13px/1 var(--font-ui); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #registry-error { margin-bottom: 12px; }
+
+  .registry-table-card { position: relative; }
+  /* right-edge fade: more columns scroll in (removed when scrolled to the end) */
+  .registry-table-card::after {
+    content: ""; position: absolute; z-index: var(--z-sticky-corner); top: 0; right: 0; bottom: 0; width: 40px; pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--color-surface)); transition: opacity var(--dur-fade);
+  }
+  .registry-table-card.is-at-end::after, .registry-table-card:has(.registry-loading, .registry-empty)::after { opacity: 0; }
+  .registry-table-wrap { overflow: auto; max-height: calc(100vh - 236px); min-height: 360px; overscroll-behavior: contain; }
+  .registry-table { min-width: 100%; font: 400 13px/18px var(--font-ui); color: var(--color-text); }
+  .registry-table th {
+    position: sticky; top: 0; z-index: var(--z-sticky-head); height: 40px; padding: 0 6px 0 12px; text-align: left; white-space: nowrap; vertical-align: middle;
+    background: var(--color-surface-subtle); border-bottom: 1px solid var(--color-separator); font: var(--type-caption); color: var(--color-text-secondary);
+  }
+  .registry-table td { height: var(--layout-row-h-dense); padding: 0 12px; border-bottom: 1px solid var(--color-hairline); white-space: nowrap; vertical-align: middle; }
+  .registry-table tbody tr:last-child td { border-bottom-color: transparent; }
+  .registry-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .registry-table tbody tr { cursor: pointer; }
+  .registry-table tbody tr:hover td { background: var(--color-surface-subtle); }
+  /* keyboard focus (rows are focusable, Enter opens): a ring drawn on the cells, so the sticky cell cannot cover it */
+  .registry-table tbody tr:focus-visible { outline: none; }
+  .registry-table tbody tr:focus-visible td { background: var(--color-selected); box-shadow: inset 0 2px 0 var(--color-focus-ring), inset 0 -2px 0 var(--color-focus-ring); }
+  .registry-table tbody tr:focus-visible td:first-child { box-shadow: inset 2px 0 0 var(--color-focus-ring), inset 0 2px 0 var(--color-focus-ring), inset 0 -2px 0 var(--color-focus-ring), inset -1px 0 0 var(--color-separator); }
+  .registry-table tbody tr:focus-visible td:last-child { box-shadow: inset -2px 0 0 var(--color-focus-ring), inset 0 2px 0 var(--color-focus-ring), inset 0 -2px 0 var(--color-focus-ring); }
+  .registry-table .reg-sticky { position: sticky; left: 0; z-index: var(--z-sticky-col); min-width: 220px; max-width: 320px; white-space: normal; background: var(--color-surface); box-shadow: inset -1px 0 0 var(--color-separator); }
+  .registry-table th.reg-sticky { z-index: var(--z-sticky-corner); background: var(--color-surface-subtle); }
+  .reg-th { display: flex; align-items: center; gap: 2px; }
+  .reg-th-label { margin-right: 4px; }
+  .reg-th-tools { display: inline-flex; gap: 0; }
+  /* 24×24 targets (WCAG 2.2 SC 2.5.8); stroke icons instead of ⇅ ↑ ↓ ☰; aria-label "Rūšiuoti: …" / "Filtruoti: …" */
+  .reg-th-sort, .reg-th-filter {
+    width: 24px; height: 24px; display: inline-grid; place-items: center; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--color-text-secondary);
+    transition: background-color var(--dur-press), color var(--dur-press);
+  }
+  .reg-th-sort .i, .reg-th-filter .i { width: 14px; height: 14px; stroke-width: 2; }
+  .reg-th-sort:hover, .reg-th-filter:hover { background: var(--color-fill); color: var(--color-text); }
+  .reg-th-sort.is-active, .reg-th-filter.is-active { background: var(--color-accent-tint); color: var(--color-accent); }
+  .reg-th-sort:focus-visible, .reg-th-filter:focus-visible { outline-offset: 0; }
+  .reg-name-main { font-weight: 600; line-height: 17px; }
+  .reg-name-sub { margin-top: 1px; font: 400 12px/15px var(--font-mono); font-variant-numeric: tabular-nums slashed-zero; color: var(--color-text-secondary); }
+  .reg-owner { color: var(--color-text); }
+  .reg-tag { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--r-xs); font: 600 12px/1 var(--font-mono); color: var(--color-text-secondary); }
+  .reg-tag-linked { color: var(--color-success-ink); background: var(--color-success-bg); }
+  .registry-loading, .registry-empty { display: grid; place-items: center; min-height: 240px; padding: 40px 24px; text-align: center; font: var(--type-body); color: var(--color-text-secondary); }
+  /* load error: registry-list.js shows #registry-error with style.display='block' but leaves "Kraunama…" in the
+     table (research 02 A2). CSS-only fix keyed on the frozen inline display (visual change, no JS change).
+     The card goes too while it holds only that placeholder (a failed first load), so no empty card sits under the
+     banner; an export/create error over a loaded table leaves the table alone. */
+  #registry-error[style*="block"] ~ .registry-table-card .registry-loading,
+  #registry-error[style*="block"] ~ .registry-table-card:has(.registry-loading) { display: none; }
+
+  /* column filter + export popovers (appended to <body>, position:fixed by JS; width ≤ 280 = JS clamp). Glass recipe C.
+     JS sets only top/left and clamps left to innerWidth − 280 (frozen). right: 8px + width auto + max-width keeps the
+     full 280 px wherever it fits and, when the clamp pins it to the window edge, leaves an 8 px gap instead of a cut-off shadow. */
+  .reg-col-pop {
+    position: fixed; z-index: var(--z-popover); right: 8px; width: auto; max-width: 280px; padding: 10px; border-radius: 14px;
+    background: var(--color-surface-raised); box-shadow: var(--elevation-menu); color: var(--color-text);
+  }
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .reg-col-pop { background: var(--color-glass-menu); -webkit-backdrop-filter: var(--glass-filter-menu); backdrop-filter: var(--glass-filter-menu); }
+  }
+  @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) { .reg-col-pop { background: var(--color-surface-raised); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+  .reg-pop-search { width: 100%; height: 34px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--color-border-control); background: var(--color-surface); font: 400 13px/1 var(--font-ui); color: var(--color-text); }
+  .reg-pop-search::placeholder { color: var(--color-text-placeholder); }
+  .reg-pop-search:focus { border-color: var(--color-focus-ring); box-shadow: 0 0 0 4px var(--color-focus-halo); outline: 2px solid transparent; outline-offset: 2px; }
+  .reg-pop-actions { display: flex; gap: 2px; margin: 6px 0; }
+  .reg-pop-actions button { height: 28px; padding: 0 10px; border: 0; border-radius: 7px; background: none; font: 500 13px/1 var(--font-ui); color: var(--color-text-link); }
+  .reg-pop-actions button:hover { background: var(--color-accent-tint); }
+  .reg-pop-list { max-height: 232px; overflow: auto; margin: 0 -4px; padding: 0 4px; overscroll-behavior: contain; }
+  .reg-filter-opt { display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 4px 8px; border-radius: 8px; font: 400 13px/17px var(--font-ui); cursor: pointer; }
+  .reg-filter-opt:hover { background: var(--color-fill); }
+  .reg-filter-opt input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none; margin: 0; width: 18px; height: 18px; flex: none; border-radius: 5px; cursor: pointer;
+    background: var(--color-surface); border: 1.5px solid var(--color-border-control);
+  }
+  .reg-filter-opt input[type="checkbox"]:checked {
+    border-color: var(--color-accent);
+    background: var(--color-accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5.5 12.5 4 4L18.5 7.5'/%3E%3C/svg%3E") center / 13px no-repeat;
+  }
+  .reg-pop-foot { display: flex; justify-content: flex-end; padding-top: 10px; margin-top: 6px; border-top: 1px solid var(--color-hairline); }
+  .reg-export-pop { max-width: 260px; padding: 6px; }
+  .reg-export-opt { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: none; text-align: left; font: 400 14px/1.2 var(--font-ui); color: var(--color-text); }
+  .reg-export-opt:hover, .reg-export-opt:focus-visible { background: var(--color-fill); }
+  .reg-export-opt:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
+
+  /* =============================== RECORD FORM =============================== */
+  .registry-form { display: block; }
+  .registry-page-topbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .registry-page-topbar .back-btn { justify-self: start; display: inline-flex; align-items: center; gap: 2px; height: 30px; padding: 0 10px 0 4px; margin-left: -4px; border: 0; border-radius: var(--r-sm); background: none; font: 500 14px/1 var(--font-ui); color: var(--color-text-link); white-space: nowrap; }
+  .registry-page-topbar .back-btn:hover { color: var(--color-text-link-hover); background: var(--color-accent-tint); }
+  .registry-page-title { font: var(--type-title2); letter-spacing: var(--track-title2); text-align: center; overflow-wrap: anywhere; }
+  .registry-page-title:focus { outline: none; }
+  .registry-page-topbar > :last-child { justify-self: end; }
+  .registry-delete-btn { display: inline-flex; align-items: center; gap: 6px; height: var(--layout-control-h-sm); padding: 0 12px; border: 0; border-radius: var(--r-pill); font: 600 13px/1 var(--font-ui); color: var(--color-danger-ink); background: var(--color-danger-bg); white-space: nowrap; }
+  .registry-delete-btn:hover { background: var(--color-danger-bg-strong); }
+  .registry-delete-btn .i { width: 16px; height: 16px; }
+  .reg-readonly-badge { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--r-pill); font: 600 12px/1 var(--font-ui); color: var(--color-tag-neutral-ink); background: var(--color-tag-neutral-bg); white-space: nowrap; }
+  .reg-readonly-badge .i { width: 15px; height: 15px; }
+
+  .registry-form-layout { display: grid; grid-template-columns: var(--layout-form-nav-w) minmax(0, 1fr); gap: 28px; align-items: start; }
+  .registry-nav { position: sticky; top: calc(var(--layout-topbar-h) + 20px); display: grid; gap: 2px; }
+  .registry-nav__who { padding: 0 12px 10px; margin-bottom: 6px; border-bottom: 1px solid var(--color-separator); }
+  .registry-nav__who b { display: block; font: 600 14px/18px var(--font-ui); overflow-wrap: anywhere; }
+  .registry-nav__who span { font: 400 12px/16px var(--font-mono); font-variant-numeric: slashed-zero; color: var(--color-text-secondary); }
+  .registry-nav-chip { display: flex; align-items: center; min-height: 34px; padding: 7px 12px; border: 0; border-radius: 10px; background: none; text-align: left; font: 500 13px/17px var(--font-ui); color: var(--color-text-secondary); transition: background-color var(--dur-press), color var(--dur-press); }
+  .registry-nav-chip:hover { background: var(--color-fill); color: var(--color-text); }
+  .registry-nav-chip.is-current { background: var(--color-surface); color: var(--color-text); font-weight: 600; box-shadow: var(--elevation-card); }
+  .registry-form-main { display: grid; gap: 14px; min-width: 0; }
+
+  .registry-identity-card, .reg-section { background: var(--color-surface); border-radius: var(--r-lg); box-shadow: var(--elevation-card); }
+  .registry-identity-card { padding: 20px; }
+  .reg-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 18px; }
+  .reg-field { min-width: 0; }
+  .reg-field.is-wide { grid-column: span 2; }
+  .reg-field > label { display: block; margin-bottom: 6px; font: var(--type-caption); color: var(--color-text-secondary); }
+  .reg-field input, .reg-field select, .reg-field textarea {
+    display: block; width: 100%; height: var(--layout-field-h); margin: 0; padding: 0 12px; border-radius: var(--r-field); border: 1px solid var(--color-border-control); background: var(--color-surface);
+    font: var(--type-body); font-variant-numeric: tabular-nums; color: var(--color-text);
+    transition: border-color var(--dur-fade), box-shadow var(--dur-fade);
+  }
+  .reg-field textarea { height: auto; min-height: 64px; padding: 9px 12px; resize: vertical; }
+  .reg-field select { appearance: none; -webkit-appearance: none; padding-right: 34px; background: var(--color-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2366666b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E") no-repeat right 11px center; }
+  .reg-field input::placeholder, .reg-field textarea::placeholder { color: var(--color-text-placeholder); }
+  .reg-field input:hover, .reg-field select:hover, .reg-field textarea:hover { border-color: var(--color-border-control-hover); }
+  .reg-field input:focus, .reg-field select:focus, .reg-field textarea:focus { border-color: var(--color-focus-ring); box-shadow: 0 0 0 4px var(--color-focus-halo); outline: 2px solid transparent; outline-offset: 2px; }
+  /* read-only record (another doctor's): disabled controls keep FULL ink (read-only ≠ disabled) */
+  .reg-field :is(input, select, textarea):disabled { color: var(--color-text-readonly); -webkit-text-fill-color: var(--color-text-readonly); background-color: var(--color-surface-subtle); border-color: var(--color-border); opacity: 1; }
+  .reg-field select:disabled { background-image: none; }
+  .reg-field input.reg-auto { background: var(--color-surface-subtle); border-style: dashed; border-color: var(--color-border-strong); }
+  .reg-field input.reg-invalid, .reg-field input.reg-invalid:focus { border-color: var(--color-invalid); box-shadow: 0 0 0 4px var(--color-invalid-halo); }
+  .reg-gdpr { display: flex; gap: 6px; align-items: center; margin-top: 12px; font: 400 12px/16px var(--font-ui); color: var(--color-text-secondary); }
+  .reg-link-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin-top: 16px; padding: 8px 8px 8px 14px; border-radius: 12px; background: var(--color-surface-subtle); box-shadow: inset 0 0 0 1px var(--color-hairline); font: 500 13px/18px var(--font-ui); }
+  .reg-link-code { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: var(--r-xs); font: 600 12px/1 var(--font-mono); color: var(--color-success-ink); background: var(--color-success-bg); }
+  .reg-link-row .reg-btn { margin-left: auto; }
+  .reg-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: var(--layout-control-h-sm); padding: 0 12px; border: 0; border-radius: var(--r-pill); font: 600 13px/1 var(--font-ui); white-space: nowrap; }
+  .reg-btn-link { color: var(--color-text); background: var(--color-surface); box-shadow: 0 0 0 1px var(--color-border), 0 1px 2px rgb(0 0 0 / .04); }
+  .reg-btn-link:hover { background: var(--color-surface-subtle); box-shadow: 0 0 0 1px var(--color-border-strong); }
+  .reg-btn-secondary { color: var(--color-text); background: var(--color-fill); }
+  .reg-btn-secondary:hover { color: var(--color-text); background: var(--color-fill-hover); }
+
+  /* sections: collapse stays pure CSS on .is-open (contract); height animates with the grid-rows trick */
+  .reg-section { overflow: clip; scroll-margin-top: calc(var(--layout-topbar-h) + 20px); }
+  .reg-section-head { width: 100%; min-height: 60px; display: flex; align-items: center; gap: 12px; padding: 14px 16px 14px 20px; border: 0; background: none; text-align: left; font: var(--type-headline); letter-spacing: var(--track-headline); color: var(--color-text); }
+  .reg-section-head:hover { background: var(--color-surface-subtle); }
+  .reg-section-head:focus-visible { outline-offset: -3px; border-radius: var(--r-lg); }
+  /* the ▾ glyph in the markup is hidden (font-size 0); the chevron is drawn, centred in a 28 px round button */
+  .reg-section-chevron { margin-left: auto; flex: none; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--color-fill); color: var(--color-text-secondary); font-size: 0; line-height: 0; }
+  .reg-section-chevron::before { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-1.5px) rotate(45deg); transition: transform var(--dur-ui) var(--spring-smooth); }
+  .reg-section.is-open .reg-section-chevron::before { transform: translateY(1.5px) rotate(225deg); }
+  .reg-section-head:hover .reg-section-chevron { background: var(--color-fill-hover); color: var(--color-text); }
+  .reg-section-body { display: grid; grid-template-rows: 0fr; visibility: hidden; transition: grid-template-rows var(--dur-ui) var(--spring-smooth), visibility 0s linear var(--dur-ui); }
+  .reg-section.is-open .reg-section-body { grid-template-rows: 1fr; visibility: visible; transition: grid-template-rows var(--dur-ui) var(--spring-smooth), visibility 0s; }
+  .reg-section-body > .reg-grid { min-height: 0; overflow: hidden; padding: 0 20px; }
+  .reg-section.is-open .reg-section-body > .reg-grid { padding: 18px 20px 22px; border-top: 1px solid var(--color-hairline); overflow: visible; }
+
+  /* data-entry choice buttons (Ne/Taip, ≤ 6 options): one bordered group (control border) with a 3 px inner track;
+     the selected option is a rounded thumb = accent tint + accent ink + 1 px accent edge + 600 (lead restraint
+     override; pair checked in tokens.css). Click on the selected one clears it (behaviour unchanged). */
+  .reg-seg {
+    position: relative; display: flex; flex-wrap: wrap; min-height: var(--layout-field-h); padding: 3px;
+    border-radius: var(--r-field); box-shadow: inset 0 0 0 1px var(--color-border-control); background: var(--color-surface);
+  }
+  .reg-seg-btn {
+    position: relative; flex: 1 1 auto; min-width: 0; min-height: calc(var(--layout-field-h) - 6px); padding: 0 12px; border: 0; border-radius: 7px;
+    background: transparent; color: var(--color-text); font: 500 13px/1.2 var(--font-ui); white-space: nowrap;
+    transition: background-color var(--dur-press) var(--ease-out), color var(--dur-press), box-shadow var(--dur-press);
+  }
+  /* hairline dividers between options, hidden next to the thumb and the hovered option (Apple segmented style) */
+  .reg-seg-btn + .reg-seg-btn::before {
+    content: ""; position: absolute; left: -1px; top: 9px; bottom: 9px; width: 1px; background: var(--color-border); pointer-events: none;
+    transition: opacity var(--dur-press);
+  }
+  .reg-seg-btn.is-on::before, .reg-seg-btn.is-on + .reg-seg-btn::before,
+  .reg-seg-btn:hover:not(:disabled)::before, .reg-seg-btn:hover:not(:disabled) + .reg-seg-btn::before { opacity: 0; }
+  .reg-seg-btn:hover:not(:disabled) { background: var(--color-fill); }
+  .reg-seg-btn.is-on { background: var(--color-accent-tint); color: var(--color-accent); font-weight: 600; box-shadow: inset 0 0 0 1px var(--color-accent); }
+  .reg-seg-btn.is-on:hover:not(:disabled) { background: var(--color-accent-tint-hover); }
+  .reg-seg-btn:focus-visible { outline-offset: 0; }
+  /* read-only record: the group lightens, the chosen value stays readable on the tint (no edge = not editable) */
+  .reg-seg:has(.reg-seg-btn:disabled) { box-shadow: inset 0 0 0 1px var(--color-border); background: var(--color-surface-subtle); }
+  .reg-seg-btn:disabled { color: var(--color-text-secondary); cursor: default; }
+  .reg-seg-btn.is-on:disabled { background: var(--color-accent-tint); color: var(--color-accent); box-shadow: none; }
+  @media (forced-colors: active) {
+    .reg-seg { border: 1px solid ButtonText; }
+    .reg-seg-btn.is-on { outline: 2px solid Highlight; outline-offset: -2px; }
+  }
+
+  /* floating glass save bar (appended to #registry-detail-view, outside any filtered ancestor; recipe B) */
+  .registry-savebar { position: fixed; z-index: var(--z-savebar); left: 50%; bottom: 24px; transform: translateX(calc(-50% + (var(--layout-form-nav-w) + 28px) / 2)); display: flex; align-items: center; gap: 12px; min-height: var(--layout-savebar-h); padding: 8px 8px 8px 20px; }
+  .registry-savebar:has(.registry-form-msg:empty) { padding-left: 8px; }
+  .registry-form-msg { display: none; font: 500 13px/18px var(--font-ui); color: var(--color-text-on-glass-secondary); white-space: nowrap; }
+  .registry-form-msg.ok { color: var(--color-success-ink); }
+  .registry-form-msg.err { color: var(--color-danger-ink); }
+  .registry-save-btn { height: 40px; padding: 0 24px; border: 0; border-radius: var(--r-pill); font: 600 14px/1 var(--font-ui); color: var(--color-text-on-accent); background: var(--gradient-action); box-shadow: var(--shadow-action); transition: transform var(--dur-press) var(--ease-out), box-shadow var(--dur-fade); }
+  .registry-save-btn:hover { background: var(--gradient-action-hover); box-shadow: var(--shadow-action-hover); }
+  .registry-save-btn:active:not(:disabled) { transform: scale(.97); background: var(--gradient-action-pressed); }
+  .registry-save-btn:disabled { color: var(--color-action-disabled-text); background: var(--color-action-disabled-bg); box-shadow: none; }
+  .registry-page-spacer { height: 96px; }
+
+  /* overlays (now native <dialog class="registry-picker ui-dialog">; also the patient page's registry picker) */
+  .registry-picker-content { padding: 24px 24px 20px; display: grid; gap: 14px; }
+  .registry-picker-title { font: var(--type-title3); letter-spacing: var(--track-title3); }
+  .registry-confirm-text { font: 400 14px/20px var(--font-ui); color: var(--color-text-secondary); }
+  .registry-confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+  .registry-confirm-actions > *, .registry-picker-content > .reg-btn-secondary { height: 44px; justify-content: center; font-size: 15px; }
+  .registry-confirm-actions .registry-delete-btn { color: var(--color-text-on-accent); background: var(--color-danger-solid); }
+  .registry-confirm-actions .registry-delete-btn:hover { background: var(--color-danger-solid-hover); }
+  .registry-picker-list { display: grid; gap: 2px; max-height: 340px; overflow: auto; margin: 0 -8px; padding: 2px 0; }
+  .reg-pick-item { display: flex; align-items: center; min-height: 40px; padding: 0 10px; border: 0; border-radius: 10px; background: none; text-align: left; font: var(--type-body); color: var(--color-text); }
+  .reg-pick-item:hover { background: var(--color-fill); }
+  .reg-pick-item:focus-visible { outline-offset: -2px; }
+  .reg-empty { padding: 12px 10px; color: var(--color-text-secondary); }
+
+  /* Windows high contrast: shadows are dropped, so cards, popovers and the current index entry get real edges */
+  @media (forced-colors: active) {
+    .registry-identity-card, .reg-section, .reg-col-pop, .reg-link-row { border: 1px solid CanvasText; }
+    .registry-nav-chip.is-current { outline: 2px solid Highlight; outline-offset: -2px; }
+    .registry-table tbody tr:focus-visible td { outline: 2px solid Highlight; outline-offset: -2px; }
+  }
+
+  /* laptop 1024–1279: the index becomes a wrapping row of pill chips above the form; save bar centred on the page */
+  @media (max-width: 1279px) {
+    .registry-form-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .registry-nav { position: static; display: flex; flex-wrap: wrap; gap: 6px; }
+    .registry-nav__who { display: none; }
+    .registry-nav-chip { min-height: 30px; padding: 6px 12px; border-radius: var(--r-pill); box-shadow: inset 0 0 0 1px var(--color-border); }
+    .registry-nav-chip.is-current { box-shadow: var(--elevation-card); }
+    .registry-savebar { transform: translateX(-50%); }
+  }
+  @media (max-width: 1023px) { .reg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 767px) {
+    .registry-identity-card { padding: 16px; }
+    .reg-section-head { padding-left: 16px; }
+    .reg-section.is-open .reg-section-body > .reg-grid { padding: 16px 16px 20px; }
+    .reg-grid { grid-template-columns: minmax(0, 1fr); }
+    .reg-field.is-wide { grid-column: auto; }
+    /* choice buttons wrap three per line and their labels wrap, never clip ("Nearly complete") */
+    .reg-seg { row-gap: 3px; }
+    /* min-width auto + break-word: a button is never narrower than its longest word, so "Laparoskopinė" stays whole
+       (anywhere would split it as "Laparoskopin|ė"); a word wider than the whole line still breaks instead of clipping */
+    .reg-seg-btn { flex-basis: 30%; min-width: auto; white-space: normal; overflow-wrap: break-word; line-height: 16px; padding: 6px 8px; }
+    .reg-seg-btn:nth-child(3n + 1)::before { display: none; }                      /* first option of a line: no divider */
+    .reg-seg-btn:nth-child(n + 4)::after {                                        /* lines after the first: a hairline above */
+      content: ""; position: absolute; top: -2px; left: 9px; right: 9px; height: 1px; background: var(--color-border); pointer-events: none;
+    }
+    .reg-seg-btn.is-on::after, .reg-seg-btn:hover:not(:disabled)::after { opacity: 0; }
+    .registry-page-topbar { grid-template-columns: 1fr auto; row-gap: 8px; margin-bottom: 16px; }
+    .registry-page-title { grid-column: 1 / -1; grid-row: 2; text-align: left; }
+    .registry-savebar { left: 16px; right: 16px; bottom: 16px; transform: none; justify-content: space-between; }
+    .registry-savebar:has(.registry-form-msg:empty) { justify-content: flex-end; }
+    .registry-form-msg { white-space: normal; }
+    /* 390 px: the sticky Pacientas column keeps >= 55 % of the width for data */
+    .registry-table .reg-sticky { min-width: min(220px, 45vw); }
+  }
+}

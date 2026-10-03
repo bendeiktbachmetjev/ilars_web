@@ -15,7 +15,9 @@ class RegistryDetailView {
     this._lastName = '';
   }
 
-  _esc(s) { const d = document.createElement('div'); d.textContent = (s === null || s === undefined) ? '' : s; return d.innerHTML; }
+  // REDESIGN (security): escapes quotes too — values go into value="…" / data-*="…" attributes.
+  _esc(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  _icon(n) { return window.ILARS_ICONS ? window.ILARS_ICONS.icon(n) : ''; }
   _cont() { return document.getElementById('registry-detail-container'); }
 
   async load(id) {
@@ -51,8 +53,8 @@ class RegistryDetailView {
     const sections = ILARS_REGISTRY.sections.map(sec => {
       const fields = sec.fields.map(f => this._fieldHtml(f, r[f.key], ro)).join('');
       return `<div class="reg-section is-open" id="sec-${sec.id}">
-          <button type="button" class="reg-section-head">${this._esc(sec.title)}<span class="reg-section-chevron">▾</span></button>
-          <div class="reg-section-body"><div class="reg-grid">${fields}</div></div>
+          <button type="button" class="reg-section-head" aria-expanded="true" aria-controls="sec-${sec.id}-body">${this._esc(sec.title)}<span class="reg-section-chevron" aria-hidden="true">▾</span></button>
+          <div class="reg-section-body" id="sec-${sec.id}-body"><div class="reg-grid">${fields}</div></div>
         </div>`;
     }).join('');
 
@@ -62,15 +64,17 @@ class RegistryDetailView {
 
     cont.innerHTML = `
       <div class="registry-page-topbar">
-        <button type="button" class="back-btn" id="reg-back">← Atgal į registrą</button>
-        <div class="registry-page-title" id="registry-page-title">Pacientas</div>
+        <button type="button" class="back-btn" id="reg-back">${this._icon('chev-left')}<span>Atgal į registrą</span></button>
+        <h1 class="registry-page-title" id="registry-page-title">Pacientas</h1>
         ${this.isMine
-          ? `<button type="button" class="registry-delete-btn" id="reg-delete">Ištrinti</button>`
-          : `<span class="reg-readonly-badge">Tik peržiūra</span>`}
+          ? `<button type="button" class="registry-delete-btn" id="reg-delete">${this._icon('trash')}<span>Ištrinti</span></button>`
+          : `<span class="reg-readonly-badge">${this._icon('eye')}<span>Tik peržiūra</span></span>`}
       </div>
 
-      <div class="registry-nav">${navChips}</div>
+      <div class="registry-form-layout">
+      <nav class="registry-nav" aria-label="Skyriai"><div class="registry-nav__who" aria-hidden="true"><b data-who-name></b><span>${this._esc(r.lin || r.personal_id_code || '')}</span></div>${navChips}</nav>
 
+      <div class="registry-form-main">
       <div class="registry-identity-card">
         <div class="reg-grid">
           ${nameRow}
@@ -83,6 +87,7 @@ class RegistryDetailView {
 
       ${sections}
       <div class="registry-page-spacer"></div>
+      </div></div>
     `;
 
     // Floating save bar must live OUTSIDE the glassy .container: the container's
@@ -94,8 +99,8 @@ class RegistryDetailView {
     if (this.isMine && view) {
       const bar = document.createElement('div');
       bar.id = 'registry-savebar-el';
-      bar.className = 'registry-savebar';
-      bar.innerHTML = `<span class="registry-form-msg" id="registry-form-msg"></span>
+      bar.className = 'registry-savebar ui-glass-float';
+      bar.innerHTML = `<span class="registry-form-msg" id="registry-form-msg" role="status" aria-live="polite"></span>
         <button type="button" class="registry-save-btn" id="reg-save">Išsaugoti</button>`;
       view.appendChild(bar);
       bar.querySelector('#reg-save').addEventListener('click', () => this.save());
@@ -105,12 +110,21 @@ class RegistryDetailView {
     const delBtn = cont.querySelector('#reg-delete');
     if (delBtn) delBtn.addEventListener('click', () => this._confirmDelete());
     cont.querySelectorAll('.reg-section-head').forEach(h =>
-      h.addEventListener('click', () => h.parentElement.classList.toggle('is-open')));
+      h.addEventListener('click', () => { const open = h.parentElement.classList.toggle('is-open'); h.setAttribute('aria-expanded', String(open)); }));
     cont.querySelectorAll('.registry-nav-chip').forEach(ch =>
       ch.addEventListener('click', () => {
         const el = document.getElementById('sec-' + ch.getAttribute('data-sec'));
-        if (el) { el.classList.add('is-open'); el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+        if (el) { el.classList.add('is-open'); el.querySelector('.reg-section-head').setAttribute('aria-expanded', 'true'); el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); }
       }));
+    // REDESIGN (visual): the section index marks the section in view (no behaviour change)
+    if ('IntersectionObserver' in window) {
+      if (this._spy) this._spy.disconnect();
+      this._spy = new IntersectionObserver((entries) => entries.forEach(en => {
+        if (!en.isIntersecting) return;
+        cont.querySelectorAll('.registry-nav-chip').forEach(ch => { const on = 'sec-' + ch.getAttribute('data-sec') === en.target.id; ch.classList.toggle('is-current', on); if (on) ch.setAttribute('aria-current', 'true'); else ch.removeAttribute('aria-current'); });
+      }), { rootMargin: '-120px 0px -60% 0px' });
+      cont.querySelectorAll('.reg-section').forEach(sec => this._spy.observe(sec));
+    }
     this._bindLink();
     this._updateTitle();
 
@@ -133,7 +147,7 @@ class RegistryDetailView {
         const val = btn.getAttribute('data-val');
         const isSame = group.dataset.value === val;
         group.dataset.value = isSame ? '' : val;
-        group.querySelectorAll('.reg-seg-btn').forEach(b => b.classList.toggle('is-on', !isSame && b === btn));
+        group.querySelectorAll('.reg-seg-btn').forEach(b => { b.classList.toggle('is-on', !isSame && b === btn); b.setAttribute('aria-pressed', String(!isSame && b === btn)); });
       });
     });
   }
@@ -148,9 +162,11 @@ class RegistryDetailView {
     else if (f.type === 'select' && f.options && f.options.length <= 6) segOpts = f.options;
     if (segOpts) {
       const btns = segOpts.map(o =>
-        `<button type="button" class="reg-seg-btn${String(o.v) === String(v) ? ' is-on' : ''}" data-val="${this._esc(o.v)}" ${ro}>${this._esc(o.l)}</button>`
+        `<button type="button" class="reg-seg-btn${String(o.v) === String(v) ? ' is-on' : ''}" aria-pressed="${String(o.v) === String(v)}" data-val="${this._esc(o.v)}" ${ro}>${this._esc(o.l)}</button>`
       ).join('');
-      return `<div class="reg-field"><label>${this._esc(f.label)}</label><div class="reg-seg" id="${id}" data-value="${this._esc(v)}">${btns}</div></div>`;
+      // REDESIGN (visual): long option sets span two grid columns (field ORDER unchanged); a11y: group named by its label
+      const wide = segOpts.length > 3 || segOpts.map(o => o.l).join('').length > 22 ? ' is-wide' : '';
+      return `<div class="reg-field${wide}"><label id="reg-l-${f.key}">${this._esc(f.label)}</label><div class="reg-seg" id="${id}" role="group" aria-labelledby="reg-l-${f.key}" data-value="${this._esc(v)}">${btns}</div></div>`;
     }
 
     let input;
@@ -172,7 +188,7 @@ class RegistryDetailView {
     } else {
       input = `<input type="text" id="${id}" value="${this._esc(v)}" ${ro}>`;
     }
-    return `<div class="reg-field"><label for="${id}">${this._esc(f.label)}</label>${input}</div>`;
+    return `<div class="reg-field${f.type === 'textarea' ? ' is-wide' : ''}"><label for="${id}">${this._esc(f.label)}</label>${input}</div>`;
   }
 
   _val(key) {
@@ -252,8 +268,8 @@ class RegistryDetailView {
       <div class="registry-picker-title">Ištrinti įrašą?</div>
       <p class="registry-confirm-text">Ar tikrai norite ištrinti šį registro įrašą? Šio veiksmo atšaukti nebus galima.</p>
       <div class="registry-confirm-actions">
-        <button type="button" class="reg-btn reg-btn-secondary" id="reg-del-cancel">Atšaukti</button>
-        <button type="button" class="registry-delete-btn" id="reg-del-confirm">Ištrinti</button>
+        <button type="button" class="reg-btn reg-btn-secondary ui-btn" id="reg-del-cancel">Atšaukti</button>
+        <button type="button" class="registry-delete-btn ui-btn" id="reg-del-confirm">Ištrinti</button>
       </div>`);
     this._picker.querySelector('#reg-del-cancel').addEventListener('click', () => this._closeOverlay());
     this._picker.querySelector('#reg-del-confirm').addEventListener('click', () => this._doDelete());
@@ -318,6 +334,8 @@ class RegistryDetailView {
     const title = name || this.record.lin || this.record.personal_id_code || 'Pacientas';
     const el = document.getElementById('registry-page-title');
     if (el) el.textContent = title;
+    const who = document.querySelector('#registry-detail-container [data-who-name]');   // REDESIGN: identity stays visible in the index
+    if (who) { who.textContent = title; if (who.nextElementSibling) who.nextElementSibling.hidden = !name; }
   }
 
   // ---- Linking registry -> study ----
@@ -391,16 +409,20 @@ class RegistryDetailView {
   // ---- Overlay (link picker / delete confirm) ----
   _showOverlay(innerHtml) {
     this._closeOverlay();
-    const p = document.createElement('div');
-    p.className = 'registry-picker';
-    p.innerHTML = `<div class="registry-picker-backdrop"></div>
-      <div class="registry-picker-content">${innerHtml}</div>`;
+    const p = document.createElement('dialog');                  // REDESIGN (a11y): native modal dialog
+    p.className = 'registry-picker ui-dialog';
+    p.innerHTML = `<div class="registry-picker-content">${innerHtml}</div>`;
     document.body.appendChild(p);
     this._picker = p;
-    p.querySelector('.registry-picker-backdrop').addEventListener('click', () => this._closeOverlay());
+    const title = p.querySelector('.registry-picker-title');
+    if (title) { title.id = 'reg-overlay-title'; p.setAttribute('aria-labelledby', 'reg-overlay-title'); }
+    p.addEventListener('click', (e) => { if (e.target === p) this._closeOverlay(); });   // backdrop click closes, as before
+    p.addEventListener('cancel', (e) => { e.preventDefault(); this._closeOverlay(); });  // Esc closes
+    this._opener = document.activeElement;
+    p.showModal();
   }
 
   _closeOverlay() {
-    if (this._picker) { this._picker.remove(); this._picker = null; }
+    if (this._picker) { if (this._picker.open) this._picker.close(); this._picker.remove(); this._picker = null; if (this._opener && this._opener.focus) this._opener.focus(); }
   }
 }

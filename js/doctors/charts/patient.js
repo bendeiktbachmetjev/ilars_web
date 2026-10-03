@@ -41,10 +41,16 @@
       return [X(ctx, p.day), p.score];
     });
     var med = vm.median.filter(inRange(vm)).map(function (m) { return [X(ctx, m.day), m.value]; });
-    var refs = [];
-    if (vm.firstScore != null) refs.push({ yAxis: vm.firstScore, label: { formatter: ctx.t('doctor.cm.lars.first_ref', { score: vm.firstScore }) } });
+    var refs = [], placed = [];
+    var marks = pts.map(function (p) { return { day: p.day, y: p.score }; })
+      .concat(vm.median.filter(inRange(vm)).map(function (m) { return { day: m.day, y: m.value }; }));
+    if (vm.firstScore != null) {
+      refs.push({ yAxis: vm.firstScore, label: { formatter: ctx.t('doctor.cm.lars.first_ref', { score: vm.firstScore }),
+        position: refLabelPos(vm, vm.firstScore, marks, placed, ['insideStartTop', 'insideEndTop', 'insideStartBottom', 'insideEndBottom']) } });
+    }
     if (vm.preop != null && vm.preop !== vm.firstScore) {
-      refs.push({ yAxis: vm.preop, label: { formatter: ctx.t('doctor.cm.lars.preop_ref', { score: vm.preop }), position: 'insideEndTop' } });
+      refs.push({ yAxis: vm.preop, label: { formatter: ctx.t('doctor.cm.lars.preop_ref', { score: vm.preop }),
+        position: refLabelPos(vm, vm.preop, marks, placed, ['insideEndTop', 'insideStartTop', 'insideEndBottom', 'insideStartBottom']) } });
     }
     var byX = new Map(pts.map(function (p) { return [X(ctx, p.day), p]; }));
     var medByX = new Map(med);
@@ -81,7 +87,7 @@
           markArea: { silent: true, data: _.larsBands(ctx) },
           markLine: refs.length ? {
             silent: true, symbol: 'none', lineStyle: { color: T.refLine, type: [4, 4], width: 1 },
-            label: { position: 'insideStartTop', color: T.refLine, fontSize: 11 }, data: refs
+            label: { color: T.refLine, fontSize: 11 }, data: refs
           } : undefined
         },
         {
@@ -93,7 +99,38 @@
     });
   }
 
-  /** vm as larsTrend; only points with items. Above LARS_ITEMS_MAX_BARS: 4-week blocks of mean points. */
+  /**
+   * Where a dashed reference label ("First 36", "Pre-op 12") goes: the first of `order` (start/end of the line,
+   * above/below it) with no score or median point under the text, else the one with the fewest. The text is
+   * about 12 % of the range wide and 4 score points tall (≈ 14 px of the 300 px chart). `placed` collects the
+   * chosen boxes, so two labels at the same end never overlap.
+   */
+  function refLabelPos(vm, v, marks, placed, order) {
+    var span = vm.to - vm.from + 1, win = Math.max(10, span * 0.12);
+    var box = function (pos) {
+      var end = /End/.test(pos) ? 'end' : 'start', up = /Top/.test(pos);
+      return { end: end, lo: up ? v - 1 : v - 4, hi: up ? v + 4 : v + 1 };
+    };
+    var cost = function (pos) {
+      var b = box(pos);
+      var n = marks.filter(function (m) {
+        var dx = b.end === 'start' ? m.day - vm.from : vm.to - m.day;
+        return m.y != null && dx >= 0 && dx <= win && m.y >= b.lo && m.y <= b.hi;
+      }).length;
+      placed.forEach(function (q) { if (q.end === b.end && q.lo < b.hi && b.lo < q.hi) n += 100; });
+      if (b.hi > C.LARS_MAX + 1 || b.lo < -1) n += 50;                        // the text would leave the plot
+      return n;
+    };
+    var best = order[0], bestCost = Infinity;
+    order.forEach(function (pos) { var c = cost(pos); if (c < bestCost) { best = pos; bestCost = c; } });
+    placed.push(box(best));
+    return best;
+  }
+
+  /**
+   * vm as larsTrend; only points with items. Above LARS_ITEMS_MAX_BARS: 4-week blocks of mean points.
+   * Calm segments (base.js): tint + full-colour edge; a zero item is no segment (null), not a 0 px edge line.
+   */
   function larsItems(vm, ctx, description) {
     var T = ctx.tok, o = base(ctx, description);
     var pts = vm.points.filter(function (p) { return p.items && p.day >= vm.from && p.day <= vm.to; });
@@ -132,13 +169,13 @@
         }
       }),
       series: ITEM_ORDER.map(function (k, i) {
+        var calm = _.calmBar(T, T.chart[ITEM_SLOT[k]], i === ITEM_ORDER.length - 1 ? [3, 3, 0, 0] : 0);
         return {
           id: 'item-' + k, name: ctx.t('doctor.cm.lars.' + ITEM_LABEL[k]), type: 'bar', stack: 'lars',
           barMaxWidth: 14, barMinWidth: 2,
-          itemStyle: { color: T.chart[ITEM_SLOT[k]], borderColor: T.surface, borderWidth: 1,
-            borderRadius: i === ITEM_ORDER.length - 1 ? [3, 3, 0, 0] : 0 },
-          emphasis: { focus: 'series' },
-          data: rows.map(function (r) { return [r.x, r.items[k]]; }),
+          itemStyle: calm.itemStyle,
+          emphasis: Object.assign({ focus: 'series' }, calm.emphasis),
+          data: rows.map(function (r) { return [r.x, r.items[k] || null]; }),
           markLine: i === 0 ? {
             silent: true, symbol: 'none', lineStyle: { color: T.ink3, type: [2, 3], width: 1 },
             label: { position: 'end', color: T.ink3, fontSize: 11 },
@@ -189,10 +226,24 @@
     var f = MONTH_YEAR[ctx.lang] || (MONTH_YEAR[ctx.lang] = new Intl.DateTimeFormat(ctx.lang, { month: 'short', year: 'numeric', timeZone: 'UTC' }));
     return f.format(new Date(day * _.DAY));
   }
-  /** Profile and VAS share one column layout (the card cross-fades between them). */
-  function eqGrid(widthPx, n) {
-    var w = widthPx || 900, left = w < 520 ? 84 : 132, right = _.capRight(w, left, Math.max(1, n), 64);
-    return { left: left, right: right, colW: (w - left - right) / Math.max(1, n) };
+  /** Width estimate of a label in the system UI font: narrow, wide and capital glyphs differ (× font size). */
+  function textPx(str, size) {
+    return String(str).split('').reduce(function (w, c) {
+      return w + (/[\s\/.,:;'’|!()\-iìíįîïjlłrtfI]/.test(c) ? 0.3 : /[mwMWŠŽ]/.test(c) ? 0.85 : /[A-ZÀ-Þ]/.test(c) ? 0.68 : 0.55);
+    }, 0) * size;
+  }
+  /**
+   * Profile and VAS share one column layout (the card cross-fades between them). The left column is 132 px,
+   * wider when the profile's dimension names need it (labelPx, at most 180). It narrows to 84 px (names wrap,
+   * the view gives phones taller rows) only when the visit columns would get less than 44 px: a half card at
+   * 1024–1279 px keeps one-line names in its 28 px rows.
+   */
+  function eqGrid(widthPx, n, labelPx) {
+    var w = widthPx || 900, cols = Math.max(1, n);
+    var need = Math.min(180, Math.max(132, Math.ceil((labelPx || 0) * 1.04) + 12));     // 4 % safety on the estimate, 8 px label margin
+    var left = w >= 520 || (w - need) / cols >= 44 ? need : 84;
+    var right = _.capRight(w, left, cols, 64);
+    return { left: left, right: right, colW: (w - left - right) / cols };
   }
   /** Category data + axisLabel for the visit axis: "Day 90" over its date, shortened to fit colW px. */
   function visitAxis(visits, ctx, colW) {
@@ -225,7 +276,8 @@
     });
     var vs = M.eqVsBaseline(vm.visits);
     var dims = DIM_KEYS.map(function (k) { return ctx.t(k); });
-    var g = eqGrid(widthPx, vm.visits.length), va = visitAxis(vm.visits, ctx, g.colW);
+    var labelPx = dims.reduce(function (m, s) { return Math.max(m, textPx(s, 12)); }, 0);
+    var g = eqGrid(widthPx, vm.visits.length, labelPx), va = visitAxis(vm.visits, ctx, g.colW);
     var words = vs.pchc.map(function (c) { return c ? ctx.t('doctor.cm.eq.pchc_' + c) : ''; });
     var staggerTop = widest(words, 11) + 6 > g.colW;                     // two lines: every other word one line up
     var opt = Object.assign(o, {
@@ -245,7 +297,7 @@
           position: 'top', axisLine: { show: false }, axisTick: { show: false }, axisLabel: axisLabel(ctx, { fontWeight: 600, interval: 0, lineHeight: 14 }) }
       ],
       yAxis: { type: 'category', data: dims, inverse: true, axisLine: { show: false }, axisTick: { show: false },
-        axisLabel: axisLabel(ctx, { fontSize: 12, width: g.left - 14, overflow: 'break', lineHeight: 13 }) },
+        axisLabel: axisLabel(ctx, { fontSize: 12, width: g.left - (g.left === 84 ? 14 : 10), overflow: 'break', lineHeight: 13 }) },
       visualMap: { type: 'piecewise', show: false, seriesIndex: 0, dimension: 2,
         pieces: [1, 2, 3, 4, 5].map(function (l) { return { value: l, color: T.eqLevel[l - 1] }; }) },
       series: [
@@ -266,12 +318,20 @@
     return opt;
   }
 
-  /** VAS line on the same visit axis; band = first VAS ± VAS_MID; breaks at missed visits; every point labelled. */
+  /**
+   * VAS line on the same visit axis; band = first VAS ± VAS_MID; breaks at missed visits; every point labelled.
+   * The band's name is in the legend beside the chart, not inside the plot (it would sit on the first point).
+   * A line with few visits keeps a readable plot (at least VAS_MIN_PLOT px) instead of the profile's 64 px columns.
+   */
+  var VAS_MIN_PLOT = 240;
   function eqVas(vm, ctx, description, widthPx) {
     var T = ctx.tok, o = base(ctx, description);
     var first = null;
     vm.visits.forEach(function (v) { if (first == null && v.vas != null) first = v.vas; });
-    var g = eqGrid(widthPx, vm.visits.length), va = visitAxis(vm.visits, ctx, g.colW);
+    var g = eqGrid(widthPx, vm.visits.length), w = widthPx || 900;
+    var minPlot = Math.min(VAS_MIN_PLOT, w - g.left - 16);
+    if (w - g.left - g.right < minPlot) { g.right = Math.max(16, w - g.left - minPlot); g.colW = (w - g.left - g.right) / Math.max(1, vm.visits.length); }
+    var va = visitAxis(vm.visits, ctx, g.colW);
     return Object.assign(o, {
       grid: grid({ left: g.left, right: g.right, top: 18, bottom: 34 }),
       tooltip: Object.assign(o.tooltip, {
@@ -293,7 +353,7 @@
         label: { show: true, position: 'top', color: T.ink, fontSize: 11, distance: 6 },
         markArea: first == null ? undefined : {
           silent: true, itemStyle: { color: T.bandNeutral }, emphasis: { disabled: true },   // space-syntax colour: no hover state
-          label: { position: 'insideTopRight', color: T.ink3, fontSize: 10 },
+          label: { show: false },
           data: [[{ yAxis: Math.max(0, first - C.VAS_MID), name: ctx.t('doctor.cm.eq.vas_band') }, { yAxis: Math.min(100, first + C.VAS_MID) }]]
         }
       }]
@@ -340,8 +400,21 @@
   }
 
   /**
-   * Calendar: one cell per day, coloured AND patterned by the day's priority type; no questionnaire = hollow
-   * dashed cell (--viz-cal-missed-border). vm = {from, to, today, act: Map(day -> type)}
+   * First day that is no longer tracked (exclusive end of the "expected" days): vm.end when the model gives it
+   * (a deceased patient: the day of the status change), else today (today is still open, never missed).
+   */
+  function trackEnd(vm) { return vm.end != null ? Math.min(vm.end, vm.today != null ? vm.today : vm.to + 1) : vm.today != null ? vm.today : vm.to + 1; }
+  /** Tracked days in from..to without an entry (has(day) false): the hollow dashed "missed" cells of a calendar. */
+  function missedDays(vm, from, has) {
+    var out = [], last = Math.min(vm.to, trackEnd(vm) - 1);
+    for (var d = from; d <= last; d++) if (!has(d)) out.push(d);
+    return out;
+  }
+
+  /**
+   * Calendar: one cell per day, coloured AND patterned by the day's priority type; a tracked day without a
+   * questionnaire = hollow dashed cell (--viz-cal-missed-border, base missedSeries). Today and the days after
+   * vm.end (deceased) are not missed. vm = {from, to, today, end?, act: Map(day -> type)}
    */
   function questionnaireCalendar(vm, ctx, description, widthPx) {
     var T = ctx.tok, o = base(ctx, description);
@@ -353,6 +426,7 @@
     vm.act.forEach(function (type, day) {
       if (day >= cf.from && day <= vm.to) data.push({ value: [M.dayToIso(day), Q_TYPES.indexOf(type) + 1, day], itemStyle: { decal: decals[type] } });
     });
+    var missed = _.missedSeries(ctx, missedDays(vm, cf.from, function (d) { return vm.act.has(d); }), cal);
     return Object.assign(o, {
       tooltip: Object.assign(o.tooltip, {
         trigger: 'item',
@@ -361,18 +435,18 @@
       visualMap: { type: 'piecewise', show: false, dimension: 1, seriesIndex: 0,
         pieces: Q_TYPES.map(function (k, i) { return { value: i + 1, color: T.q[k] }; }) },
       calendar: cal,
-      series: [{ id: 'q', type: 'heatmap', coordinateSystem: 'calendar', data: data, itemStyle: { borderColor: T.surface, borderWidth: 2, decal: { symbol: 'none' } } }]
+      series: [{ id: 'q', type: 'heatmap', coordinateSystem: 'calendar', data: data, itemStyle: { borderColor: T.surface, borderWidth: 2, decal: { symbol: 'none' } } }, missed]
     });
   }
 
-  /** Weekly view: stacked days per type (0-7) per ISO week (date mode) or 7-day block (relative modes). */
+  /** Weekly view: stacked days per type (0-7) per ISO week (date mode) or 7-day block (relative modes); expected days end at trackEnd. */
   function questionnaireWeekly(vm, ctx, description) {
     var T = ctx.tok, o = base(ctx, description);
     vm = _.diaryVm(vm);
     var bs = weekStartFn(ctx);
     var weeks = new Map();
     for (var w = bs(vm.from); w <= vm.to; w += 7) weeks.set(w, { daily: 0, weekly: 0, monthly: 0, eq5d5l: 0, expected: 0 });
-    for (var d = vm.from; d <= Math.min(vm.to, vm.today - 1); d++) {
+    for (var d = vm.from; d <= Math.min(vm.to, trackEnd(vm) - 1); d++) {
       var wk = weeks.get(bs(d)); if (!wk) continue;
       wk.expected++;
       if (vm.act.has(d)) wk[vm.act.get(d)]++;
@@ -403,6 +477,18 @@
   }
 
   // ------------------------------------------------------------------ bowel movements (+ pads)
+  /**
+   * The x-axis of the Bowel movements trend AND the symptom raster under it, so a day (or week) has the same
+   * x in both. It starts at the (diary-window) range start like every diary card; weekly ranges (> DAILY_MAX_DAYS)
+   * end with the current week, so its bar is not cut at the right edge. containShape off: ECharts 6 would
+   * otherwise widen only the axis that carries bars, and the raster's columns would drift away from the bars.
+   */
+  function diaryAxis(vm, ctx, extra) {
+    var max = vm.to + 0.5;
+    if (vm.to - vm.from + 1 > C.DAILY_MAX_DAYS) max = Math.max(max, weekStartFn(ctx)(vm.to) + 7);
+    return xTime(ctx, vm.from, vm.to, Object.assign({ min: X(ctx, vm.from - 0.5), max: X(ctx, max), containShape: false }, extra));
+  }
+
   /**
    * vm = {from, to, stool:[{day,value}], mean:[{day,value}], pads:[{day,value}]|null}
    * ≤ 92 days: soft daily bars (context) + the 7-day mean line; above: calm weekly-mean bars (faint when
@@ -440,10 +526,10 @@
         showSymbol: false, connectNulls: false, lineStyle: { width: 2, color: T.metricDiary }, itemStyle: { color: T.metricDiary } });
     }
     if (hasPads) series.push(barSeries(vm.pads, ctx.t('doctor.cm.stool.pads'), 'pads', 1));
-    var xAxes = [xTime(ctx, vm.from, vm.to, hasPads ? { gridIndex: 0, axisLabel: { show: false } } : { gridIndex: 0 })];
+    var xAxes = [diaryAxis(vm, ctx, hasPads ? { gridIndex: 0, axisLabel: { show: false } } : { gridIndex: 0 })];
     var yAxes = [yValue(ctx, { gridIndex: 0, min: 0, minInterval: 1 })];
     if (hasPads) {
-      xAxes.push(xTime(ctx, vm.from, vm.to, { gridIndex: 1 }));
+      xAxes.push(diaryAxis(vm, ctx, { gridIndex: 1 }));
       yAxes.push(yValue(ctx, { gridIndex: 1, min: 0, minInterval: 1, splitNumber: 2, name: ctx.t('doctor.cm.stool.pads'),
         nameLocation: 'end', nameTextStyle: { color: T.ink3, fontSize: 11, align: 'left' } }));
     }
@@ -471,7 +557,11 @@
     });
   }
 
-  /** Stool-count calendar on the calm ramp; 0 has its own lightest bin; small dots = another questionnaire. */
+  /**
+   * Stool-count calendar on the calm ramp; 0 has its own lightest bin; small dots = another questionnaire; a
+   * tracked day without an entry = hollow dashed cell (today and days after vm.end are not missed).
+   * Month view (1M, base calendarBig): the count is written in each cell and the dot moves to the top-right corner.
+   */
   function stoolCalendar(vm, ctx, description, widthPx) {
     var T = ctx.tok, o = base(ctx, description), R = _.calmRamp(T);
     vm = _.diaryVm(vm);
@@ -482,6 +572,9 @@
       { min: 7, max: 8, color: R[4], label: '7–8' }, { min: 9, color: R[5], label: '9+' }];
     var other = [];
     if (vm.act) vm.act.forEach(function (type, day) { if (type !== 'daily' && day >= cf.from && day <= vm.to) other.push([M.dayToIso(day), 1, type, day]); });
+    var cal = _.calendarBox(ctx, cf.from, vm.to, widthPx), big = _.calendarBig(cf.from, vm.to), cs = cal.cellSize;
+    var entry = new Set(vm.stool.map(function (p) { return p.day; }));
+    var missed = _.missedSeries(ctx, missedDays(vm, cf.from, function (d) { return entry.has(d); }), cal);
     return Object.assign(o, {
       tooltip: Object.assign(o.tooltip, {
         trigger: 'item',
@@ -490,24 +583,35 @@
           return tipValue(p.value[1]) + esc(ctx.t('doctor.cm.stool.title')) + tipHead(ctx.fmtDay(p.value[2], 'long'));
         }
       }),
-      visualMap: { type: 'piecewise', seriesIndex: 0, dimension: 1, orient: 'horizontal', left: (widthPx || 900) < 400 ? 0 : 30, bottom: 0, itemWidth: 12, itemHeight: 12,   // phone: room for '9+'
+      // the bin legend starts under the calendar's first column (phone: at the edge, room for '9+')
+      visualMap: { type: 'piecewise', seriesIndex: 0, dimension: 1, orient: 'horizontal', left: (widthPx || 900) < 400 ? 0 : cal.left, bottom: 0, itemWidth: 12, itemHeight: 12,
         itemGap: 8, textGap: 4, textStyle: { color: T.ink3, fontSize: 11 }, pieces: bins, selectedMode: false },
-      calendar: _.calendarBox(ctx, cf.from, vm.to, widthPx),
+      calendar: cal,
       series: [
         { id: 'stool-cal', type: 'heatmap', coordinateSystem: 'calendar', itemStyle: { borderColor: T.surface, borderWidth: 2, decal: { symbol: 'none' } },
-          data: vm.stool.filter(function (p) { return p.day >= cf.from && p.day <= vm.to; }).map(function (p) { return [M.dayToIso(p.day), p.value, p.day]; }) },
-        { id: 'other', type: 'scatter', coordinateSystem: 'calendar', symbolSize: 4, itemStyle: { color: T.otherQ }, data: other }
+          label: { show: big, fontSize: 11, fontWeight: 600, formatter: function (p) { return String(p.value[1]); } },
+          data: vm.stool.filter(function (p) { return p.day >= cf.from && p.day <= vm.to; }).map(function (p) {
+            return big ? { value: [M.dayToIso(p.day), p.value, p.day], label: { color: p.value >= 9 ? T.seqInkDark : T.seqInkLight } } : [M.dayToIso(p.day), p.value, p.day];
+          }) },
+        missed,
+        { id: 'other', type: 'scatter', coordinateSystem: 'calendar', symbolSize: big ? 5 : 4, itemStyle: { color: T.otherQ }, z: 4,
+          symbolOffset: big ? [cs[0] / 2 - 7, -cs[1] / 2 + 7] : [0, 0], data: other }
       ]
     });
   }
 
   /**
-   * Symptom raster (v2). Rows: urgency, night stools, incomplete emptying, leakage. Daily columns up to
+   * Symptom raster (v2). Rows: urgency, night stools, incomplete emptying, leakage. Daily cells up to
    * RASTER_DAILY_MAX_DAYS, else weekly "% of diary days" — both on the calm ramp. No diary that day = no cell.
+   * It sits under the Bowel movements trend and uses the trend's x-axis and grid (left 40, right 16): every
+   * column lies under its own bar (a week cell spans the week bar's slot), so a reader can scan straight down.
+   * The row names are written above each row (a left label column would shift the columns away from the bars).
    * vm = {from, to, rows:[{day, urgency, night_stools, incomplete_evacuation, leakage}]} ('Yes'/'No'/'None'/'Liquid'/'Solid')
    * widthPx (optional) thins the white cell gaps on narrow cards, so small cells keep their colour.
+   * Data per cell: [x0, x1, row, value, n|day, start] (x in axis units).
    */
   var SYM = [['urgency', 'urgency'], ['night_stools', 'night'], ['incomplete_evacuation', 'incomplete'], ['leakage', 'leakage']];
+  var RASTER_LABEL_H = 15, RASTER_ROW_GAP = 3;          // px above each row for its name; px below each row
   function symCode(field, v) {
     if (v == null) return null;
     if (field === 'leakage') return v === 'Liquid' ? 2 : v === 'Solid' ? 3 : 0;
@@ -517,58 +621,65 @@
     var T = ctx.tok, o = base(ctx, description), R = _.calmRamp(T);
     vm = _.diaryVm(vm);
     var names = SYM.map(function (s) { return ctx.t('doctor.cm.sym.' + s[1]); });
-    var common = {
-      grid: grid({ left: 140, right: 16, top: 4, bottom: 22 }),
-      yAxis: { type: 'category', data: names, inverse: true, axisLine: { show: false }, axisTick: { show: false }, axisLabel: axisLabel(ctx, { fontSize: 12 }) }
-    };
-    if (vm.to - vm.from + 1 <= C.RASTER_DAILY_MAX_DAYS) {
-      var cols = []; for (var d = vm.from; d <= vm.to; d++) cols.push(d);
-      var byDay = new Map(vm.rows.map(function (r) { return [r.day, r]; }));
-      var data = [];
-      cols.forEach(function (day, x) {
-        var r = byDay.get(day); if (!r) return;                         // no diary that day: no cell (not "No")
-        SYM.forEach(function (s, y) { var c = symCode(s[0], r[s[0]]); if (c != null) data.push([x, y, c]); });
+    var plotW = (widthPx || 900) - 56;
+    var daily = vm.to - vm.from + 1 <= C.RASTER_DAILY_MAX_DAYS;
+    var data = [], cols;
+    if (daily) {
+      cols = vm.to - vm.from + 1;
+      vm.rows.forEach(function (r) {
+        if (r.day < vm.from || r.day > vm.to) return;                 // no diary that day: no cell (not "No")
+        SYM.forEach(function (s, y) { var c = symCode(s[0], r[s[0]]); if (c != null) data.push([X(ctx, r.day - 0.5), X(ctx, r.day + 0.5), y, c, r.day, r.day]); });
       });
-      var label = function (y, c) {
-        if (SYM[y][0] === 'leakage') return ctx.t('doctor.cm.sym.' + ['leak_none', '', 'leak_liquid', 'leak_solid'][c]);
-        return ctx.t('doctor.cm.sym.' + (c ? 'yes' : 'no'));
-      };
-      return Object.assign(o, common, {
-        tooltip: Object.assign(o.tooltip, { trigger: 'item', formatter: function (p) {
-          return '<b>' + esc(label(p.value[1], p.value[2])) + '</b> ' + esc(names[p.value[1]]) + tipHead(ctx.fmtDay(cols[p.value[0]], 'long')); } }),
-        xAxis: { type: 'category', data: cols, axisLine: { lineStyle: { color: T.axis } }, axisTick: { show: false },
-          axisLabel: axisLabel(ctx, { interval: function (i) { return M.isoWeekStart(cols[i]) === cols[i]; },
-            formatter: function (v) { return ctx.fmtDay(+v, 'axis'); } }) },
-        visualMap: { type: 'piecewise', show: false, dimension: 2,              // no · yes · liquid · solid
-          pieces: [{ value: 0, color: R[0] }, { value: 1, color: R[4] }, { value: 2, color: R[3] }, { value: 3, color: R[5] }] },
-        series: [{ id: 'sym', type: 'heatmap', data: data,
-        itemStyle: { borderColor: T.surface, borderWidth: _.cellBorder(((widthPx || 900) - 156) / cols.length, 1), decal: { symbol: 'none' } } }]
+    } else {
+      var bs = weekStartFn(ctx), weeks = [];
+      for (var w = bs(vm.from); w <= vm.to; w += 7) weeks.push(w);
+      cols = weeks.length;
+      weeks.forEach(function (ws) {
+        var rs = vm.rows.filter(function (r) { return r.day >= ws && r.day < ws + 7 && r.day >= vm.from && r.day <= vm.to; });
+        SYM.forEach(function (s, y) {
+          var known = rs.filter(function (r) { return r[s[0]] != null; });
+          if (!known.length) return;
+          var hit = known.filter(function (r) { return symCode(s[0], r[s[0]]) > 0; }).length;
+          data.push([X(ctx, ws), X(ctx, ws + 7), y, Math.round(hit / known.length * 100), known.length, ws]);   // the week bar's slot (XB centre)
+        });
       });
     }
-    var bs = weekStartFn(ctx);
-    var weeks = [];
-    for (var w = bs(vm.from); w <= vm.to; w += 7) weeks.push(w);
-    var wdata = [];
-    weeks.forEach(function (ws, x) {
-      var rs = vm.rows.filter(function (r) { return r.day >= ws && r.day < ws + 7 && r.day >= vm.from && r.day <= vm.to; });
-      SYM.forEach(function (s, y) {
-        var known = rs.filter(function (r) { return r[s[0]] != null; });
-        if (!known.length) return;
-        var hit = known.filter(function (r) { return symCode(s[0], r[s[0]]) > 0; }).length;
-        wdata.push([x, y, Math.round(hit / known.length * 100), known.length]);
-      });
-    });
-    return Object.assign(o, common, {
+    var gap = _.cellBorder(plotW / Math.max(1, cols), daily ? 1 : 2);
+    var leak = ['leak_none', '', 'leak_liquid', 'leak_solid'];
+    return Object.assign(o, {
+      grid: grid({ left: 40, right: 16, top: 2, bottom: 22 }),
+      xAxis: diaryAxis(vm, ctx, { axisLine: { show: false } }),            // the trend's axis; no baseline under empty columns
+      yAxis: { type: 'category', data: names, inverse: true, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { show: false }, splitLine: { show: false } },
       tooltip: Object.assign(o.tooltip, { trigger: 'item', formatter: function (p) {
-        return '<b>' + esc(ctx.tp('doctor.cm.sym.weekly_pct', p.value[3], { pct: p.value[2] + '%', n: p.value[3] })) + '</b><br>' + esc(names[p.value[1]]) +
-          tipHead(ctx.t('doctor.cm.common.week_of', { date: ctx.fmtDay(weeks[p.value[0]], 'short') })); } }),
-      xAxis: { type: 'category', data: weeks, axisLine: { lineStyle: { color: T.axis } }, axisTick: { show: false },
-        axisLabel: axisLabel(ctx, { hideOverlap: true, formatter: function (v) { return ctx.fmtDay(+v, 'axis'); } }) },
-      visualMap: { type: 'piecewise', show: false, dimension: 2,
-        pieces: [{ value: 0, color: R[0] }, { min: 1, max: 25, color: R[1] }, { min: 26, max: 50, color: R[2] },
-          { min: 51, max: 75, color: R[4] }, { min: 76, max: 100, color: R[5] }] },
-      series: [{ id: 'sym', type: 'heatmap', data: wdata,
-        itemStyle: { borderColor: T.surface, borderWidth: _.cellBorder(((widthPx || 900) - 156) / weeks.length, 2), borderRadius: 3, decal: { symbol: 'none' } } }]
+        var v = p.value, row = names[v[2]];
+        if (daily) return '<b>' + esc(SYM[v[2]][0] === 'leakage' ? ctx.t('doctor.cm.sym.' + leak[v[3]]) : ctx.t('doctor.cm.sym.' + (v[3] ? 'yes' : 'no'))) + '</b> ' + esc(row) + tipHead(ctx.fmtDay(v[4], 'long'));
+        return '<b>' + esc(ctx.tp('doctor.cm.sym.weekly_pct', v[4], { pct: v[3] + '%', n: v[4] })) + '</b><br>' + esc(row) +
+          tipHead(ctx.t('doctor.cm.common.week_of', { date: ctx.fmtDay(v[5], 'short') }));
+      } }),
+      visualMap: daily
+        ? { type: 'piecewise', show: false, dimension: 3, seriesIndex: 0,              // no · yes · liquid · solid
+          pieces: [{ value: 0, color: R[0] }, { value: 1, color: R[4] }, { value: 2, color: R[3] }, { value: 3, color: R[5] }] }
+        : { type: 'piecewise', show: false, dimension: 3, seriesIndex: 0,
+          pieces: [{ value: 0, color: R[0] }, { min: 1, max: 25, color: R[1] }, { min: 26, max: 50, color: R[2] },
+            { min: 51, max: 75, color: R[4] }, { min: 76, max: 100, color: R[5] }] },
+      series: [
+        { id: 'sym', type: 'custom', data: data, encode: { x: [0, 1], y: 2, tooltip: [3] },
+          itemStyle: { borderColor: T.surface, borderWidth: gap, decal: { symbol: 'none' } },
+          renderItem: function (params, api) {
+            var a = api.coord([api.value(0), api.value(2)]), b = api.coord([api.value(1), api.value(2)]);
+            var cs = params.coordSys, bh = api.size([0, 1])[1];
+            var x0 = Math.max(a[0], cs.x), x1 = Math.min(b[0], cs.x + cs.width);
+            if (!(x1 - x0 > 0.5)) return null;
+            var y = a[1] - bh / 2 + RASTER_LABEL_H, h = Math.max(4, bh - RASTER_LABEL_H - RASTER_ROW_GAP);
+            return { type: 'rect', shape: { x: x0, y: y, width: x1 - x0, height: h, r: !daily && x1 - x0 >= 8 ? 3 : 0 }, style: api.style() };
+          } },
+        { id: 'sym-rows', type: 'custom', silent: true, data: names.map(function (n, i) { return [X(ctx, vm.from), i]; }), encode: { x: 0, y: 1 },
+          renderItem: function (params, api) {
+            var p = api.coord([api.value(0), api.value(1)]), bh = api.size([0, 1])[1];
+            return { type: 'text', silent: true, x: params.coordSys.x, y: p[1] - bh / 2 + 1,
+              style: { text: names[params.dataIndex], fill: T.ink2, font: '500 11px ' + T.font, align: 'left', verticalAlign: 'top' } };
+          } }
+      ]
     });
   }
 
@@ -618,7 +729,8 @@
 
   /**
    * Zone shares per week; above BRISTOL_WEEKLY_MAX_BARS weeks per 4-week block (summed counts), so long ranges
-   * keep readable stacks instead of 1 px hairlines.
+   * keep readable stacks instead of 1 px hairlines. Calm segments like the Types view (tint + full-colour edge);
+   * an empty zone is no segment (null).
    */
   function bristolWeekly(vm, ctx, description) {
     var T = ctx.tok, o = base(ctx, description);
@@ -645,15 +757,15 @@
           var w = rows[ps[0].dataIndex];
           var html = tipHead(ctx.t(size === 7 ? 'doctor.cm.common.week_of' : 'doctor.cm.common.block_of', { date: ctx.fmtDay(w.start, 'short') }) +
             ' · ' + ctx.tp('doctor.cm.common.n_diary_days', w.n, { n: w.n }));
-          ps.slice().reverse().forEach(function (p) { html += tipRow(p.color, p.value[1] + '%', p.seriesName, 'rect'); });
+          ps.slice().reverse().forEach(function (p) { html += tipRow(T.bristolZone[p.seriesIndex] || p.color, (p.value[1] || 0) + '%', p.seriesName, 'rect'); });
           return html;
         } }),
       xAxis: xTime(ctx, vm.from, vm.to),
       yAxis: yValue(ctx, { min: 0, max: 100, interval: 50, axisLabel: axisLabel(ctx, { formatter: '{value}%' }) }),
-      series: zones.map(function (z) {
-        return { id: 'bw-' + z[0], name: ctx.t('doctor.cm.bristol.zone_' + z[0] + '_range'), type: 'bar', stack: 'b', barMaxWidth: 16,
-          itemStyle: { color: T.bristolZone[z[1]], borderColor: T.surface, borderWidth: 1 },
-          data: rows.map(function (w) { return [XB(ctx, w.start, size), Math.round(w.counts[z[0]] / w.n * 100)]; }) };
+      series: zones.map(function (z, i) {
+        return Object.assign({ id: 'bw-' + z[0], name: ctx.t('doctor.cm.bristol.zone_' + z[0] + '_range'), type: 'bar', stack: 'b', barMaxWidth: 16,
+          data: rows.map(function (w) { return [XB(ctx, w.start, size), Math.round(w.counts[z[0]] / w.n * 100) || null]; }) },
+          _.calmBar(T, T.bristolZone[z[1]], i === zones.length - 1 ? [3, 3, 0, 0] : 0));
       })
     });
   }
@@ -739,7 +851,7 @@
    * on the calm ramp seq-100…600 (A8). A week without diary = empty dashed cell with "–" (never inside the
    * diary window's past: the table starts at the window; never for the week/block that holds today, which is
    * still open). In-cell ink follows the fill.
-   * vm = {from, to, today?, rows: daily_entries with .day} (today defaults to `to`)
+   * vm = {from, to, today?, end?, rows: daily_entries with .day} (today defaults to `to`; from `end` on = not tracked)
    */
   function dietHeat(vm, ctx, description, widthPx) {
     var T = ctx.tok, o = base(ctx, description), R = _.calmRamp(T);
@@ -754,6 +866,7 @@
     cols.forEach(function (start, x) {
       var rs = vm.rows.filter(function (r) { return r.day >= start && r.day < start + size && r.day >= vm.from && r.day <= vm.to; });
       if (!rs.length && today >= start && today < start + size) return;        // the current week/block is still open: not "no diary"
+      if (!rs.length && vm.end != null && start + size > vm.end) return;        // not tracked any more (deceased): not "no diary"
       DIET_ROWS.forEach(function (row, y) {
         if (!rs.length) { missing.push([x, y, 0]); return; }                    // no diary that week: empty cell with a dash
         var st = M.dietItemStats(rs, row[0], row[1]);
@@ -769,7 +882,7 @@
         return tipValue(ctx.fmtNum(p.value[2], 1)) + esc(labels[p.value[1]]) +
           tipHead(head + ' · ' + ctx.tp('doctor.cm.common.n_diary_days', p.value[3], { n: p.value[3] })); } }),
       xAxis: { type: 'category', data: cols, axisLine: { show: false }, axisTick: { show: false },
-        axisLabel: axisLabel(ctx, { hideOverlap: true, formatter: function (v) { return ctx.fmtDay(+v, 'axis'); } }) },
+        axisLabel: axisLabel(ctx, { hideOverlap: true, formatter: function (v) { return _.axisDay(ctx, +v); } }) },
       yAxis: { type: 'category', data: labels, inverse: true, axisLine: { show: false }, axisTick: { show: false }, axisLabel: axisLabel(ctx) },
       visualMap: { type: 'piecewise', show: false, dimension: 2, seriesIndex: 0, pieces: [
         { min: 0, max: 0, color: R[0] }, { gt: 0, lte: 1, color: R[1] }, { gt: 1, lte: 2, color: R[2] },

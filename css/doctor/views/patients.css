@@ -1,0 +1,122 @@
+/* iLARS · Patients tab (.pl-*) — DESIGN-SPEC §4.2. Golden reference: design/golden/css/doctor/views/patients.css.
+   Shared by the overview: the patient cell (.pl-who*), the LARS cell (.pl-lars*) and .pl-muted.
+   Tokens only; geometry and states are classes; JS hands over only custom properties (--w, --v). */
+@layer views {
+  .pl-error { margin-bottom: var(--space-4); }
+  .pl-card { view-transition-name: list; overflow: visible; }
+
+  /* ---------------------------------------------------------------- toolbar */
+  .pl-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; padding: 16px 20px; border-bottom: 1px solid var(--color-separator); }
+  .pl-toolbar[hidden], .pl-toolbar:empty { display: none; }
+  .pl-toolbar > .ui-seg { min-width: 0; }
+  .pl-toolbar__search { margin-left: auto; width: 260px; }
+  .pl-sort-btn { display: none; }
+
+  /* ---------------------------------------------------------------- table
+     The table lives in ONE bounded scroll box at every width ≥ 768 (like the registry): the header sticks at the
+     top of the box, the Patient column at its left, and the PAGE never scrolls sideways (1280 / 1366 / 1440 for
+     every status × scope). The box is almost a viewport tall: the page scrolls to the card first, then the rows. */
+  .pl-scroll { overflow: auto; max-height: calc(100dvh - var(--layout-topbar-h) - 24px); overscroll-behavior: auto; }
+  .pl-table th { top: 0; }
+  .pl-table td, .pl-table th { padding-left: 12px; padding-right: 12px; }
+  .pl-table th:first-child, .pl-table td:first-child { padding-left: 20px; }
+  .pl-table th:last-child, .pl-table td:last-child { padding-right: 20px; }
+  .pl-table [data-col="patient"] { position: sticky; left: 0; z-index: var(--z-sticky-col); background: var(--color-surface); box-shadow: inset -1px 0 0 var(--color-separator); }
+  .pl-table thead [data-col="patient"] { z-index: var(--z-sticky-corner); background: var(--color-surface-subtle); }
+  .pl-table tbody tr:hover td[data-col="patient"], .pl-table tbody tr:focus-within td[data-col="patient"] { background: var(--color-surface-subtle); }
+  /* column budget: the 8 v2 columns (Patient · Attention/… · Day · LARS · Trend · EQ VAS · Adherence · Last entry)
+     fit the 1216 px card of a 1280 px screen; cells wrap to a second line instead of widening */
+  .pl-table [data-col="patient"] { width: 236px; min-width: 200px; white-space: normal; }
+  .pl-table [data-col="day"] { width: 72px; }
+  .pl-table [data-col="lars"] { min-width: 196px; }
+  .pl-table td[data-col="lars"] .sub { white-space: normal; max-width: 260px; }
+  .pl-table [data-col="trend"] { width: 104px; }
+  .pl-table [data-col="vas"] { width: 92px; }
+  .pl-table [data-col="adherence"] { width: 150px; }
+  .pl-table [data-col="last"] { width: 112px; }
+  .pl-table [data-col="attention"] { min-width: 150px; max-width: 220px; white-space: normal; }
+  .pl-table td[data-col="attention"] .ui-attn-list { padding: 6px 0; }
+  .pl-empty-row td { height: auto; }
+  .pl-spark { display: block; line-height: 0; }
+  .pl-spark svg { display: block; }
+
+  /* ---------------------------------------------------------------- patient cell (also the overview's attention table) */
+  .pl-who { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .pl-who__text { display: grid; gap: 1px; min-width: 0; }
+  /* names wrap to a second line instead of being cut: a truncated name is an identification risk */
+  .pl-who__name { font: 600 14px/18px var(--font-ui); letter-spacing: -0.01em; overflow-wrap: anywhere; }
+  .pl-who__name.code { font: 600 13px/18px var(--font-mono); letter-spacing: .03em; }
+  .pl-who__code { font: 500 12px/16px var(--font-mono); font-variant-numeric: tabular-nums slashed-zero; letter-spacing: .03em; color: var(--color-text-secondary); }
+  /* line 2: code (or "No name stored" / "Colleague's patient") + the colleague's doctor under "All visible" + the
+     status under "All". Separator dots are drawn before each item and clipped at line starts, so a wrapped line
+     never starts with a dot (the .pd-meta technique). */
+  .pl-who__sub { display: block; overflow: hidden; font: 400 12px/16px var(--font-ui); color: var(--color-text-secondary); }
+  .pl-who__in { display: flex; flex-wrap: wrap; align-items: center; row-gap: 1px; margin-left: -13px; }
+  .pl-who__item { position: relative; display: inline-flex; align-items: center; padding-left: 13px; white-space: nowrap; }
+  .pl-who__item::before { content: ""; position: absolute; left: 5px; top: 50%; width: 3px; height: 3px; margin-top: -1.5px; border-radius: 50%; background: var(--color-text-tertiary); }
+  .pl-who__sub .ui-pstatus { font-size: 12px; gap: 5px; }
+  .pl-who__sub .ui-pstatus::before { width: 7px; height: 7px; }
+
+  /* ---------------------------------------------------------------- value cells */
+  .pl-lars { display: flex; align-items: center; gap: 8px; }
+  .pl-lars__n { min-width: 20px; font: 600 16px/20px var(--font-ui); font-variant-numeric: tabular-nums; }
+  .pl-vas { display: flex; align-items: center; gap: 8px; }
+  .pl-vas__n { font: 600 14px/20px var(--font-ui); font-variant-numeric: tabular-nums; }
+  .pl-adh { display: flex; align-items: center; gap: 8px; font: 500 13px/1 var(--font-ui); font-variant-numeric: tabular-nums; }
+  .pl-adh .ui-meter { width: 48px; flex: none; }
+  .pl-adh .low { display: inline-flex; align-items: center; gap: 3px; color: var(--color-adherence-poor-ink); font-weight: 600; }
+  .pl-last.warn { display: inline-flex; align-items: center; gap: 5px; color: var(--color-warning-ink); font-weight: 500; }
+  .pl-muted { color: var(--color-text-secondary); }
+  .is-vt-source { view-transition-name: pt-name; }
+
+  /* ---------------------------------------------------------------- footer, empty state */
+  .pl-foot { display: flex; flex-wrap: wrap; gap: 4px 18px; padding: 12px 20px 16px; border-top: 1px solid var(--color-separator); font: 400 12px/16px var(--font-ui); color: var(--color-text-secondary); }
+  .pl-empty { padding: 48px 20px; }
+
+  /* ---------------------------------------------------------------- loading skeleton (8 rows, the column rhythm) */
+  .pl-skel__row { display: flex; align-items: center; gap: 14px; height: 56px; padding: 0 20px; border-bottom: 1px solid var(--color-hairline); }
+  .pl-skel__avatar { flex: none; width: 34px; height: 34px; }
+  .pl-skel__who { display: grid; gap: 6px; width: 22%; }
+  .pl-skel .ui-skel--text { width: var(--w, 60%); }
+  .pl-skel .pl-skel__sub { width: 40%; height: 9px; }
+  .pl-skel .pl-skel__col { flex: none; }
+
+  /* Windows high contrast: shadows are dropped, so the sticky column keeps a real edge */
+  @media (forced-colors: active) {
+    .pl-table [data-col="patient"] { border-right: 1px solid CanvasText; }
+  }
+
+  /* ---------------------------------------------------------------- breakpoints */
+  @media (max-width: 1279px) {
+    .pl-toolbar__search { margin-left: 0; width: 100%; order: 10; }
+  }
+  /* phones (< 768, the token breakpoint): rows become stacked items (Patient · LARS · Adherence · Attention);
+     Day, Trend, EQ VAS and Last entry hidden (A22); no headers, so a Sort menu button appears; segmented controls
+     take the full width (and scroll sideways when the labels do not fit) */
+  @media (max-width: 767px) {
+    .pl-toolbar { padding: 14px 16px; }
+    .pl-toolbar .ui-seg { width: 100%; }
+    .pl-toolbar .ui-seg > button { padding: 0 8px; font-size: 12.5px; }
+    .pl-sort-btn { display: inline-flex; }
+    .pl-scroll { overflow: visible; max-height: none; }
+    .pl-table thead { display: none; }
+    .pl-table, .pl-table tbody { display: block; }
+    .pl-table tr { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; gap: 6px; padding: 14px 16px; border-bottom: 1px solid var(--color-hairline); }
+    .pl-table tbody tr:last-child { border-bottom: 0; }
+    .pl-table td[data-col] { display: block; width: auto; min-width: 0; max-width: none; height: auto; padding: 0; border: 0; position: static; box-shadow: none; background: none; }
+    .pl-table tbody tr:hover td[data-col="patient"], .pl-table tbody tr:focus-within td[data-col="patient"] { background: none; }
+    .pl-table td[data-col="patient"] { margin-bottom: 4px; order: -2; }
+    .pl-table td[data-col="lars"] { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
+    .pl-table td[data-col="lars"] .sub { display: inline-flex; max-width: none; }
+    .pl-table td[data-col="attention"] { order: 5; }
+    .pl-table td:is([data-col="day"], [data-col="trend"], [data-col="last"], [data-col="vas"]) { display: none; }
+    .pl-table td[data-col="attention"]:not(:has(.ui-attn)) { display: none; }
+    .pl-table td[data-col="adherence"] { display: flex; align-items: center; }
+    .pl-table td[data-col="adherence"]::before { content: attr(data-label); margin-right: 8px; font: 400 12px/1 var(--font-ui); color: var(--color-text-secondary); }
+    .pl-empty-row { display: block; padding: 0; }
+    .pl-foot { padding: 12px 16px 16px; }
+    .pl-skel__row { padding: 0 16px; }
+    .pl-skel .pl-skel__col:nth-of-type(n+4) { display: none; }
+    .pl-skel__who { width: 46%; }
+  }
+}

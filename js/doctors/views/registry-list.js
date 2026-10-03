@@ -20,7 +20,10 @@ class RegistryListView {
     this.colByKey = {};
   }
 
-  _esc(s) { const d = document.createElement('div'); d.textContent = (s === null || s === undefined) ? '' : s; return d.innerHTML; }
+  // REDESIGN (security): escapes quotes too — values are written into attributes (value="…", data-key="…").
+  _esc(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  // REDESIGN (visual): stroke icons from the shared sprite instead of ⇩ ↺ ⇅ ↑ ↓ ☰ glyphs
+  _icon(n) { return window.ILARS_ICONS ? window.ILARS_ICONS.icon(n) : ''; }
 
   async load(force) {
     const wrap = document.getElementById('registry-table-wrap');
@@ -95,7 +98,7 @@ class RegistryListView {
     ILARS_REGISTRY.sections.forEach(s => s.fields.forEach(f => {
       const numeric = (f.type === 'int' || f.type === 'num' || f.type === 'bool');
       cols.push({
-        key: f.key, label: f.label, tools: true, numeric,
+        key: f.key, label: f.label, tools: true, numeric, alignRight: f.type === 'int' || f.type === 'num',
         display: p => ILARS_REGISTRY.formatValue(f.key, p[f.key]),
         raw: p => numeric ? ((p[f.key] === '' || p[f.key] == null) ? null : Number(p[f.key]))
                           : ILARS_REGISTRY.formatValue(f.key, p[f.key])
@@ -148,9 +151,9 @@ class RegistryListView {
       return;
     }
     if (bar) {
-      bar.innerHTML = `<button type="button" class="registry-export-btn" id="registry-export">⇩ Eksportuoti</button>
-        <button type="button" class="registry-reset" id="registry-reset">↺ Atstatyti</button>
-        <span class="registry-count" id="registry-count"></span>`;
+      bar.innerHTML = `<button type="button" class="registry-export-btn ui-btn ui-btn--secondary ui-btn--sm" id="registry-export" aria-haspopup="menu" aria-expanded="false">${this._icon('download')}<span>Eksportuoti</span>${this._icon('chev-down')}</button>
+        <button type="button" class="registry-reset ui-btn ui-btn--plain ui-btn--sm" id="registry-reset">${this._icon('reset')}<span>Atstatyti</span></button>
+        <span class="registry-count" id="registry-count" aria-live="polite"></span>`;
       bar.querySelector('#registry-reset').addEventListener('click', () => {
         this.sort = null; this.colFilters = {}; this._closePopover(); this._renderTable();
       });
@@ -159,19 +162,27 @@ class RegistryListView {
     }
     this._bindOutside();
     this._renderTable();
+    // REDESIGN (visual): right-edge fade on the scroll box until the last column is visible
+    if (!wrap._fadeBound) {
+      wrap._fadeBound = true;
+      const card = wrap.closest('.registry-table-card');
+      const upd = () => { if (card) card.classList.toggle('is-at-end', wrap.scrollLeft + wrap.clientWidth >= wrap.scrollWidth - 2); };
+      wrap.addEventListener('scroll', upd, { passive: true }); window.addEventListener('resize', upd); requestAnimationFrame(upd);
+    }
   }
 
   _thHtml(c) {
-    if (!c.tools) return `<th class="${c.sticky ? 'reg-sticky' : ''}">${this._esc(c.label)}</th>`;
+    if (!c.tools) return `<th scope="col" class="${c.sticky ? 'reg-sticky' : ''}">${this._esc(c.label)}</th>`;
     const sorted = this.sort && this.sort.key === c.key;
-    const sortGlyph = sorted ? (this.sort.dir === 'desc' ? '↓' : '↑') : '⇅';
+    const sortIcon = sorted ? (this.sort.dir === 'desc' ? 'sort-desc' : 'sort-asc') : 'sort';
     const filterOn = this.colFilters[c.key] && this.colFilters[c.key].size;
-    return `<th>
+    const ariaSort = sorted ? ` aria-sort="${this.sort.dir === 'desc' ? 'descending' : 'ascending'}"` : '';
+    return `<th scope="col"${ariaSort}>
       <div class="reg-th">
         <span class="reg-th-label">${this._esc(c.label)}</span>
         <span class="reg-th-tools">
-          <button type="button" class="reg-th-sort${sorted ? ' is-active' : ''}" data-key="${this._esc(c.key)}" title="Rūšiuoti">${sortGlyph}</button>
-          <button type="button" class="reg-th-filter${filterOn ? ' is-active' : ''}" data-key="${this._esc(c.key)}" title="Filtruoti">☰</button>
+          <button type="button" class="reg-th-sort${sorted ? ' is-active' : ''}" data-key="${this._esc(c.key)}" title="Rūšiuoti" aria-label="Rūšiuoti: ${this._esc(c.label)}">${this._icon(sortIcon)}</button>
+          <button type="button" class="reg-th-filter${filterOn ? ' is-active' : ''}" data-key="${this._esc(c.key)}" title="Filtruoti" aria-label="Filtruoti: ${this._esc(c.label)}" aria-haspopup="dialog" aria-expanded="false">${this._icon('filter')}</button>
         </span>
       </div>
     </th>`;
@@ -187,7 +198,7 @@ class RegistryListView {
         ? `<td><span class="reg-tag reg-tag-linked">${this._esc(p.study_patient_code)}</span></td>`
         : '<td><span class="reg-tag">—</span></td>';
     }
-    const cls = (c.key === 'hospital_name' || c.key === '__owner') ? ' class="reg-owner"' : '';
+    const cls = (c.key === 'hospital_name' || c.key === '__owner') ? ' class="reg-owner"' : (c.alignRight ? ' class="num"' : '');
     return `<td${cls}>${this._esc(c.display(p))}</td>`;
   }
 
@@ -199,6 +210,8 @@ class RegistryListView {
 
     const countEl = document.getElementById('registry-count');
     if (countEl) countEl.textContent = `Rodoma ${rows.length} iš ${this.cached.length}`;
+    const resetEl = document.getElementById('registry-reset');   // REDESIGN (visual): tinted while a sort/filter is active
+    if (resetEl) resetEl.classList.toggle('is-active', !!this.sort || this._activeFilterKeys().length > 0);
 
     if (rows.length === 0) {
       wrap.innerHTML = '<div class="registry-empty">Pagal filtrą nieko nerasta.</div>';
@@ -206,7 +219,7 @@ class RegistryListView {
     }
 
     const head = '<tr>' + cols.map(c => this._thHtml(c)).join('') + '</tr>';
-    const body = rows.map(p => '<tr data-id="' + this._esc(p.id) + '">' + cols.map(c => this._tdHtml(c, p)).join('') + '</tr>').join('');
+    const body = rows.map(p => '<tr data-id="' + this._esc(p.id) + '" tabindex="0">' + cols.map(c => this._tdHtml(c, p)).join('') + '</tr>').join('');
     wrap.innerHTML = `<table class="registry-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
 
     wrap.querySelectorAll('tbody tr').forEach(tr => {
@@ -214,6 +227,7 @@ class RegistryListView {
         const id = tr.getAttribute('data-id');
         if (id) window.app.navigate('registry/' + id);
       });
+      tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target === tr) tr.click(); });   // REDESIGN (a11y)
     });
     wrap.querySelectorAll('.reg-th-sort').forEach(b => {
       b.addEventListener('click', (e) => { e.stopPropagation(); this._toggleSort(b.getAttribute('data-key')); });
@@ -247,6 +261,8 @@ class RegistryListView {
     const pop = document.createElement('div');
     pop.className = 'reg-col-pop';
     pop._key = key;
+    pop.setAttribute('role', 'dialog');                                   // REDESIGN (a11y)
+    pop.setAttribute('aria-label', 'Filtruoti: ' + this.colByKey[key].label);
     pop.innerHTML = `
       <input type="text" class="reg-pop-search" placeholder="Ieškoti…">
       <div class="reg-pop-actions">
@@ -257,7 +273,7 @@ class RegistryListView {
         ${vals.map(v => `<label class="reg-filter-opt"><input type="checkbox" value="${this._esc(v)}" ${(!cur || cur.has(v)) ? 'checked' : ''}> ${this._esc(v === '' ? '(tuščia)' : v)}</label>`).join('')}
       </div>
       <div class="reg-pop-foot">
-        <button type="button" class="reg-pop-apply">Taikyti</button>
+        <button type="button" class="reg-pop-apply ui-btn ui-btn--primary ui-btn--sm">Taikyti</button>
       </div>`;
     document.body.appendChild(pop);
     this._pop = pop;
@@ -265,8 +281,12 @@ class RegistryListView {
     const r = btn.getBoundingClientRect();
     pop.style.top = (r.bottom + 4) + 'px';
     pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 280)) + 'px';
+    btn.setAttribute('aria-expanded', 'true'); pop._btn = btn;           // REDESIGN (a11y): focus in, Esc out
+    pop.addEventListener('keydown', (e) => { if (e.key === 'Escape') { this._closePopover(); btn.focus(); } });
 
     const search = pop.querySelector('.reg-pop-search');
+    search.setAttribute('aria-label', 'Ieškoti');
+    setTimeout(() => search.focus(), 0);
     search.addEventListener('input', () => {
       const q = search.value.trim().toLowerCase();
       pop.querySelectorAll('.reg-pop-list .reg-filter-opt').forEach(opt => {
@@ -294,7 +314,7 @@ class RegistryListView {
   }
 
   _closePopover() {
-    if (this._pop) { this._pop.remove(); this._pop = null; }
+    if (this._pop) { if (this._pop._btn) this._pop._btn.setAttribute('aria-expanded', 'false'); this._pop.remove(); this._pop = null; }
   }
 
   _bindOutside() {
@@ -371,18 +391,30 @@ class RegistryListView {
     const pop = document.createElement('div');
     pop.className = 'reg-col-pop reg-export-pop';
     pop._export = true;
+    pop.setAttribute('role', 'menu'); pop._btn = btn; btn.setAttribute('aria-expanded', 'true');   // REDESIGN (a11y)
     pop.innerHTML = `
-      <button type="button" class="reg-export-opt" data-scope="all">Visi duomenys (${all})</button>
-      <button type="button" class="reg-export-opt" data-scope="view">Tik rodomi / filtruoti (${shown})</button>`;
+      <button type="button" class="reg-export-opt" role="menuitem" data-scope="all">Visi duomenys (${all})</button>
+      <button type="button" class="reg-export-opt" role="menuitem" data-scope="view">Tik rodomi / filtruoti (${shown})</button>`;
     document.body.appendChild(pop);
     this._pop = pop;
     const r = btn.getBoundingClientRect();
     pop.style.top = (r.bottom + 4) + 'px';
     pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 260)) + 'px';
     pop.querySelectorAll('.reg-export-opt').forEach(b => {
-      b.addEventListener('click', () => { const sc = b.getAttribute('data-scope'); this._closePopover(); this._export(sc); });
+      b.addEventListener('click', () => { const sc = b.getAttribute('data-scope'); this._closePopover(); btn.focus(); this._export(sc); });
     });
     pop.addEventListener('click', (e) => e.stopPropagation());
+    // REDESIGN (a11y): a real menu — focus moves in, ↑/↓/Home/End move, Esc closes and returns focus, Tab closes
+    const items = Array.from(pop.querySelectorAll('.reg-export-opt'));
+    items.forEach((b, i) => { b.tabIndex = i === 0 ? 0 : -1; });
+    pop.addEventListener('keydown', (e) => {
+      const i = items.indexOf(document.activeElement);
+      const n = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: items.length - 1 }[e.key];
+      if (n !== undefined) { items[(n + items.length) % items.length].focus(); e.preventDefault(); }
+      if (e.key === 'Escape') { this._closePopover(); btn.focus(); e.preventDefault(); }
+      if (e.key === 'Tab') this._closePopover();
+    });
+    setTimeout(() => items[0].focus(), 0);
   }
 
   async createPatient() {

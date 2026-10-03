@@ -1,0 +1,176 @@
+/* iLARS entry pages (login.html, doctor-setup.html) — TOKEN ALIGNMENT ONLY. DESIGN-SPEC §4.8, COLOR.md §9.8.
+   Loaded last: after css/style.css, css/pages/login.css, the page's own <style> and css/doctor/tokens.css.
+   Deliberately UNLAYERED, so it beats the unlayered page CSS by source order (and !important only where the
+   page CSS itself uses !important). Colours, fonts, borders and shadows only: every box keeps its size and
+   position (the one exception: a visible error message becomes a tinted box, so it gains padding),
+   markup, ids and classes are untouched (login.js / setup.js rely on them). No web font (system stack). */
+
+/* ============================== document ============================== */
+body { font-family: var(--font-ui); background: var(--color-bg); }
+
+.login-page, .setup-page {
+  /* login.css and the setup <style> read the marketing ink variables: point them at the portal tokens for
+     this subtree only (the dark footer keeps --text-primary as its background) */
+  --text-primary: var(--color-text);
+  --text-secondary: var(--color-text-secondary);
+  /* the portal's page glow, same geometry as doctor.html (a 560 px band at the top, base.css body::before) */
+  background: var(--gradient-aurora), var(--color-bg);
+  background-size: 100% 560px;
+  background-repeat: no-repeat;
+}
+
+/* page and window titles (>= 20 px) use the display cut, like the portal's title tokens */
+.login-heading, .login-window__title, .setup-title { font-family: var(--font-display); }
+.lang-btn, .lang-dropdown button { font-family: var(--font-ui); }
+
+/* ============================== windows ============================== */
+/* login.css builds every window from these variables; .setup-window repeats them as literals */
+:root {
+  --login-window-bg: var(--color-surface);
+  --login-window-shadow: var(--elevation-raised);
+  --login-window-border: 1px solid transparent;   /* the ring is in the elevation; the 1 px box stays */
+}
+.setup-window {
+  background: var(--login-window-bg);
+  box-shadow: var(--login-window-shadow);
+  border: var(--login-window-border);
+}
+
+/* role choice: two quiet tiles (they are buttons) in the portal's grouped-well grey; darker on hover / press,
+   no lift. The 2 px transparent border of login.css stays: it is the edge forced colours paint. */
+.login-role-card { background: var(--color-surface-sunken); }
+.login-role-card:hover { background: var(--color-fill-hover); border-color: transparent; box-shadow: none; transform: none; }
+.login-role-card:active { background: var(--color-fill-pressed); }
+/* decorative icon circles: one brand gradient for both roles */
+.login-role-card__icon,
+.login-role-card[data-role="doctor"] .login-role-card__icon { background: var(--gradient-brand-app); }
+
+/* ============================== buttons ============================== */
+/* primary: the action gradient (white text >= 4.70:1) instead of the 5-stop hero gradient (2.0-3.7:1);
+   darker on hover / press, never a lift */
+.login-window__btn, .setup-btn {
+  color: var(--color-text-on-accent) !important;   /* the page CSS sets #fff !important */
+  background: var(--gradient-action);
+  background-size: auto;
+  box-shadow: var(--shadow-action);
+}
+.login-window__btn:hover:not(:disabled), .setup-btn:hover:not(:disabled) {
+  background: var(--gradient-action-hover); box-shadow: var(--shadow-action-hover); transform: none;
+}
+.login-window__btn:active:not(:disabled), .setup-btn:active:not(:disabled) { background: var(--gradient-action-pressed); }
+.login-window__btn:disabled {
+  color: var(--color-action-disabled-text) !important; background: var(--color-action-disabled-bg); box-shadow: none; cursor: not-allowed;
+}
+/* the setup button is disabled only while it saves (setup.js setLoading): it stays the busy primary
+   button with a white spinner and label instead of fading out */
+.setup-btn:disabled { opacity: 1; cursor: progress; }
+.setup-btn .setup-loading { color: inherit; }
+.setup-btn .setup-spinner { border-color: rgb(255 255 255 / 0.35); border-top-color: var(--color-text-on-accent); }
+
+/* secondary: white + quiet ring, ink text. The old ring was 2 px; 1 px + 1 px more padding keeps the box. */
+.login-window__btn--secondary {
+  color: var(--color-text) !important;
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04) !important;
+  padding: calc(0.75rem + 1px) calc(1.25rem + 1px);
+}
+.login-window__btn--secondary:hover:not(:disabled) {
+  background: var(--color-surface-subtle) !important; border-color: var(--color-border-strong) !important;
+}
+.login-window__btn--secondary:disabled {
+  color: var(--color-text-disabled) !important; background: var(--color-surface) !important; box-shadow: none !important;
+}
+/* Google sign-in: the same neutral secondary look (it hovered into the old indigo ring); 1 px border kept */
+.login-window__google-btn {
+  color: var(--color-text); background: var(--color-surface); border-color: var(--color-border);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+.login-window__google-btn:hover:not(:disabled) {
+  background: var(--color-surface-subtle); border-color: var(--color-border-strong); box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+/* no lift on any button state, disabled included (login.css lifts every .login-window__btn on hover) */
+.login-window__btn:hover, .setup-btn:hover { transform: none; }
+
+/* text buttons */
+.login-window__link-btn, .login-window__change-role-btn { color: var(--color-text-link); }
+.login-window__link-btn:hover, .login-window__change-role-btn:hover { color: var(--color-text-link-hover); }
+
+/* the "Log out" pill of doctor-setup: a quiet neutral pill instead of orange + black ring.
+   The 2 px border stays (transparent) so the pill keeps its size; style.css uses !important here. */
+.navbar-cta a.btn-logout {
+  color: var(--color-text) !important;
+  background-color: var(--color-fill) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+.navbar-cta a.btn-logout:hover {
+  color: var(--color-text) !important; background-color: var(--color-fill-hover) !important; box-shadow: none !important; transform: none;
+}
+.navbar-cta a.btn-logout:active { background-color: var(--color-fill-pressed) !important; }
+
+/* ============================== fields ============================== */
+/* visible 3:1 boundary, accent border + halo on focus (the transparent outline is what forced colours paint) */
+.login-window__form input, .setup-form-group input, .setup-form-group select {
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border-color: var(--color-border-control);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.login-window__form input::placeholder, .setup-form-group input::placeholder { color: var(--color-text-placeholder); opacity: 1; }
+.login-window__form input:hover, .setup-form-group input:hover, .setup-form-group select:hover { border-color: var(--color-border-control-hover); }
+.login-window__form input:focus, .setup-form-group input:focus, .setup-form-group select:focus {
+  outline: 2px solid transparent; outline-offset: 2px;
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 4px var(--color-focus-halo);
+}
+.login-window__form input:disabled {
+  color: var(--color-text-disabled); background-color: var(--color-surface-subtle); border-color: var(--color-border);
+}
+/* the hospital shown after a valid code is read-only data, not a control: full ink on the portal's quiet
+   read-only surface (the inline style paints #f5f5f5, hence !important) */
+.setup-form-group input[readonly] {
+  color: var(--color-text-readonly); border-color: var(--color-border); background-color: var(--color-surface-subtle) !important;
+}
+/* hospital code: codes use the portal's mono face; the placeholder is a sentence, so it reads as one
+   (the inline style sets monospace + uppercase + wide tracking, which also clipped it at 390 px) */
+#setup-hospital-code { font-family: var(--font-mono) !important; font-variant-numeric: tabular-nums slashed-zero; line-height: 1.125; }  /* 44 px like its siblings */
+#setup-hospital-code::placeholder { font-family: var(--font-ui); text-transform: none; letter-spacing: normal; }
+
+/* ============================== text ============================== */
+.setup-form-group .required { color: var(--color-danger-ink); }
+.login-window__info { color: var(--color-success-ink); }
+.login-window__error, .setup-error { color: var(--color-danger-ink); }
+.login-window__error.is-visible, .setup-error.is-visible {
+  background: var(--color-danger-bg); border: 1px solid var(--color-danger-border); border-radius: var(--r-md);
+  padding: 9px 12px;
+}
+/* patient form: the box sat 4 px above "Continue" and 24 px below the field; even 16 px gaps instead
+   (the field above keeps its 1 rem margin; only the visible error state changes height) */
+.login-window__form .login-window__error.is-visible { margin: 0 0 0.75rem; }
+.login-window__divider::before, .login-window__divider::after { background: var(--color-hairline); }
+.login-window__change-role { border-top-color: var(--color-hairline); }
+.login-window__spinner { border-color: var(--color-accent-tint-hover); border-top-color: var(--color-accent); }
+
+/* ============================== focus ============================== */
+/* one ring for everything (replaces the #667eea outlines) */
+.login-window :focus-visible, .setup-window :focus-visible, .navbar-cta a.btn-logout:focus-visible {
+  outline: 2px solid var(--color-focus-ring); outline-offset: 2px;
+}
+.login-role-card:focus, .login-window__close:focus { outline-color: var(--color-focus-ring); }
+.login-role-card:focus:not(:focus-visible) { outline: none; }
+
+/* ============================== preferences ============================== */
+@media (prefers-contrast: more) {
+  .login-page, .setup-page { background: var(--color-bg); }   /* no glow, like the portal */
+}
+@media (forced-colors: active) {
+  .login-page, .setup-page { background: Canvas; }
+  /* filled buttons have no border: give them a system edge (outline, so the box does not change);
+     the role tiles and the logout pill already have a transparent border, which forced colours paint */
+  .login-window__btn:not(.login-window__btn--secondary), .setup-btn { outline: 1px solid ButtonText; outline-offset: -1px; }
+  /* ...but a focused control still gets the full system ring (the edge rule above would otherwise win) */
+  .login-window :focus-visible, .setup-window :focus-visible, .navbar-cta a.btn-logout:focus-visible {
+    outline: 2px solid Highlight; outline-offset: 2px;
+  }
+}

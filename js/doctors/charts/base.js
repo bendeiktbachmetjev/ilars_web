@@ -15,8 +15,11 @@
  * Calm look (lead decision "restraint"): large data areas are never loud.
  *  - Single-colour bars (one series, or one colour per bar) are drawn as a TINT of their colour with a 1 px
  *    border in the full colour (the border keeps the >= 3:1 edge of COLOR.md); hover shows the full colour.
- *  - Stacks of several identity colours (LARS items, EQ levels, questionnaire types, Bristol zones, LARS
- *    categories) keep their full token colours: their colour-blind separation was validated on those values.
+ *  - Time stacks that fill a whole plot (LARS items per score, Bristol zones over time) use the same calm
+ *    style per segment: tint + 1 px full-colour edge (the edge keeps the identity colour and its colour-blind
+ *    separation); a zero segment is left out, so no stray edge line is drawn.
+ *  - Small identity marks (EQ levels, questionnaire types, LARS categories, donut slices) keep their full
+ *    token colours: their colour-blind separation was validated on those values.
  *  - Magnitude heat tables use the calm ramp --viz-seq-100…600 (A8); numbers on step 600 use the dark-step ink.
  *  - No universalTransition / divideShape 'clone' anywhere (A7): charts/card.js cross-fades between coordinate systems.
  */
@@ -87,7 +90,8 @@
       animationDuration: 500, animationDurationUpdate: 450,
       animationEasing: 'cubicOut', animationEasingUpdate: 'cubicInOut',
       textStyle: { fontFamily: T.font, fontSize: 12, color: T.ink2 },
-      aria: { enabled: true, label: { description: description || '' }, decal: { show: !!ctx.patterns } },
+      // no description: ECharts must not write its own English label of raw values over the card's aria-label
+      aria: { enabled: true, label: description ? { description: description } : { enabled: false }, decal: { show: !!ctx.patterns } },
       tooltip: {
         confine: true, backgroundColor: T.surface, borderColor: T.hairline, borderWidth: 1,
         padding: [8, 10], textStyle: { color: T.ink, fontSize: 12, fontFamily: T.font },
@@ -107,6 +111,22 @@
   /** Category-axis label style: every axis label uses --viz-axis-label (tok.ink3). */
   function axisLabel(ctx, o) { return Object.assign({ color: ctx.tok.ink3, fontSize: 11 }, o); }
 
+  // ------------------------------------------------------------------ month names on axes and calendars
+  var LONG_MONTH = {};
+  function longMonth(lang, d) {
+    var f = LONG_MONTH[lang] || (LONG_MONTH[lang] = new Intl.DateTimeFormat(lang, { month: 'long', timeZone: 'UTC' }));
+    return f.format(d);
+  }
+  /**
+   * Axis label of a day ("5 Sept", a month name on the 1st, the year on 1 January). Some languages have only a
+   * number as the short month (Lithuanian CLDR: "06", while days read "06-08"): a lone "06" would read as a day,
+   * so the month start then shows the month's name ("birželis").
+   */
+  function axisDay(ctx, day) {
+    var s = ctx.fmtDay(day, 'axis'), d = new Date(day * DAY);
+    return d.getUTCDate() === 1 && d.getUTCMonth() > 0 && /^\d+\.?$/.test(s) ? longMonth(ctx.lang, d) : s;
+  }
+
   /** The time x-axis every time-based chart uses (crosshair-synced charts must use the same one). */
   function xTime(ctx, from, to, extra) {
     var common = {
@@ -116,7 +136,7 @@
     if (ctx.x.mode === 'date') {
       return Object.assign(common, {
         type: 'time', min: (from - 0.5) * DAY, max: (to + 0.5) * DAY,
-        axisLabel: Object.assign(common.axisLabel, { formatter: function (v) { return ctx.fmtDay(Math.round(v / DAY), 'axis'); } })
+        axisLabel: Object.assign(common.axisLabel, { formatter: function (v) { return axisDay(ctx, Math.round(v / DAY)); } })
       }, extra);
     }
     return Object.assign(common, {
@@ -160,11 +180,13 @@
   /**
    * The ring shared by the three donuts (LARS share, Bristol zones, cohort LARS category). The ring leaves room
    * for the outside percentage labels on narrow cards, and the labels never truncate ("4…"). One slice draws a
-   * closed ring (no pad gap at the top). Callers add id, label.formatter and data.
+   * closed ring: no pad gap and no rounded ends (they would cut a notch at 12 o'clock), and no "100%" label on a
+   * leader line (the centre, the legend and the tooltip already say it). Callers add id, label.formatter and data.
    */
   function donut(T, slices) {
-    return { type: 'pie', radius: ['56%', '70%'], padAngle: slices > 1 ? 1.5 : 0, percentPrecision: 0, itemStyle: { borderRadius: 4 },
-      label: { color: T.ink2, fontSize: 12, overflow: 'none' }, labelLine: { length: 6, length2: 6, lineStyle: { color: T.axis } } };
+    var one = slices <= 1;
+    return { type: 'pie', radius: ['56%', '70%'], padAngle: one ? 0 : 1.5, percentPrecision: 0, itemStyle: { borderRadius: one ? 0 : 4 },
+      label: { show: !one, color: T.ink2, fontSize: 12, overflow: 'none' }, labelLine: { show: !one, length: 6, length2: 6, lineStyle: { color: T.axis } } };
   }
 
   var CAT_TOK = { none: 'larsNone', minor: 'larsMinor', major: 'larsMajor', nodata: 'larsUnknown' };
@@ -194,17 +216,18 @@
   }
 
   // ------------------------------------------------------------------ calendars
-  function weekdayNames(lang) {
-    var f = new Intl.DateTimeFormat(lang, { weekday: 'narrow', timeZone: 'UTC' });
+  function weekdayNames(lang, style) {
+    var f = new Intl.DateTimeFormat(lang, { weekday: style || 'narrow', timeZone: 'UTC' });
     var out = [];
     for (var i = 0; i < 7; i++) out.push(f.format(new Date(Date.UTC(2026, 0, 4 + i))));   // 2026-01-04 = Sunday
     return out;
   }
+  /** Short month names; a language whose short month is only a number ("06", Lithuanian) gets the long names. */
   function monthNames(lang) {
     var f = new Intl.DateTimeFormat(lang, { month: 'short', timeZone: 'UTC' });
     var out = [];
     for (var i = 0; i < 12; i++) out.push(f.format(new Date(Date.UTC(2026, i, 15))));
-    return out;
+    return /^\d+\.?$/.test(out[5]) ? out.map(function (s, i) { return longMonth(lang, new Date(Date.UTC(2026, i, 15))); }) : out;
   }
 
   /**
@@ -221,27 +244,68 @@
    * Calendar coordinate system. Range and data are 'YYYY-MM-DD' STRINGS (never ms: a timestamp lands one
    * cell early in UTC−5/−10). Cells never stretch: width ≤ 20 px from the card width, height = cellSize (no
    * `bottom`, which would stretch the rows to the box). left/top are whole multiples of the cell size, so a
-   * decal tile of one cell (the EQ-5D-5L ring) sits centred in every cell.
+   * decal tile of one cell (the EQ-5D-5L ring) sits centred in every cell. A calendar narrower than its card
+   * (1M, 3M on a wide card) is centred instead of hugging the left edge.
+   * A short range (calendarBig: at most BIG_CAL_WEEKS weeks, i.e. 1M) is a wall calendar: weekdays across the
+   * top, one row per week, cells up to 64 × 30 px; the first cell column holds the month names.
+   * The day grid itself is plain (no border): missed days are drawn by missedSeries() on top of the data, so the
+   * white gap of a neighbouring filled cell never paints over their dashed border.
    */
+  var BIG_CAL_WEEKS = 6;
+  function calendarWeeks(from, to) { return Math.ceil((M.isoWeekStart(to) - M.isoWeekStart(from)) / 7) + 1; }
+  /** True when the calendar of from..to is the month view (the view gives that chart a taller box). */
+  function calendarBig(from, to) { return calendarWeeks(from, to) <= BIG_CAL_WEEKS; }
   function calendarBox(ctx, from, to, widthPx) {
-    var T = ctx.tok;
-    var weeks = Math.ceil((M.isoWeekStart(to) - M.isoWeekStart(from)) / 7) + 1;
-    var cw = Math.max(6, Math.min(20, Math.floor(((widthPx || 900) - 34) / (weeks + 1))));
-    var ch = Math.max(10, Math.min(16, cw));
-    // a partial first / last month shows its name only when enough of it is on screen (about 26 px)
-    var minDays = Math.ceil(26 * 7 / cw), fd = new Date(from * DAY);
+    var T = ctx.tok, w = widthPx || 900;
+    var weeks = calendarWeeks(from, to), big = weeks <= BIG_CAL_WEEKS;
+    var cw, ch, left, top, minDays;
+    if (big) {
+      cw = Math.max(20, Math.min(64, Math.floor(w / 8)));
+      ch = 30;
+      left = Math.floor(Math.max(0, w - 8 * cw) / 2 / cw) * cw + cw;
+      top = ch;
+      minDays = 7;                                   // a month name needs about one row of its own
+    } else {
+      cw = Math.max(6, Math.min(20, Math.floor((w - 34) / (weeks + 1))));
+      ch = Math.max(10, Math.min(16, cw));
+      left = Math.ceil(30 / cw) * cw;
+      if (widthPx) left = Math.max(left, Math.floor((widthPx - weeks * cw) / 2 / cw) * cw);
+      top = Math.ceil(22 / ch) * ch;
+      minDays = Math.ceil(26 * 7 / cw);              // a partial first / last month needs about 26 px for its name
+    }
+    var fd = new Date(from * DAY);
     var firstDays = new Date(Date.UTC(fd.getUTCFullYear(), fd.getUTCMonth() + 1, 0)).getUTCDate() - fd.getUTCDate() + 1;
     return {
-      range: [M.dayToIso(from), M.dayToIso(to)], top: Math.ceil(22 / ch) * ch, left: Math.ceil(30 / cw) * cw,
-      cellSize: [cw, ch], orient: 'horizontal', splitLine: { show: false },
-      itemStyle: { color: T.surface, borderColor: T.calMissed, borderWidth: 1, borderType: 'dashed' },   // no entry: hollow, >= 3:1 (A27)
-      dayLabel: { firstDay: 1, nameMap: weekdayNames(ctx.lang), color: T.ink3, fontSize: 10 },
+      range: [M.dayToIso(from), M.dayToIso(to)], top: top, left: left,
+      cellSize: [cw, ch], orient: big ? 'vertical' : 'horizontal', splitLine: { show: false },
+      itemStyle: { color: T.surface, borderColor: T.calMissed, borderWidth: 0 },
+      dayLabel: { firstDay: 1, nameMap: weekdayNames(ctx.lang, big && cw >= 36 ? 'short' : 'narrow'), color: T.ink3, fontSize: big ? 11 : 10 },
       monthLabel: { color: T.ink3, fontSize: 11, formatter: function (p) {
         var names = monthNames(ctx.lang), first = M.dayToIso(from), last = M.dayToIso(to), ym = p.yyyy + '-' + p.MM;
         if (ym === last.slice(0, 7) && +last.slice(8) < minDays && ym !== first.slice(0, 7)) return '';   // partial last month
         if (ym === first.slice(0, 7) && firstDays < minDays && ym !== last.slice(0, 7)) return '';        // partial first month
         return names[+p.M - 1]; } },
       yearLabel: { show: false }
+    };
+  }
+
+  /**
+   * Missed days on a calendar (a tracked day without an entry): a hollow cell with a 1 px dashed border in
+   * --viz-cal-missed-border (>= 3:1, A27), inset like the filled cells and drawn above them. days = [dayKey].
+   */
+  function missedSeries(ctx, days, cal) {
+    var T = ctx.tok, iso = days.map(M.dayToIso), cs = cal.cellSize, inset = cs[0] < 10 || cs[1] < 10 ? 1 : 2;
+    return {
+      id: 'missed', type: 'custom', coordinateSystem: 'calendar', silent: true, z: 3,
+      data: iso.map(function (d) { return [d]; }),
+      renderItem: function (params, api) {
+        var p = api.coord([iso[params.dataIndex]]);
+        if (!p || isNaN(p[0])) return null;
+        var cw = params.coordSys.cellWidth, ch = params.coordSys.cellHeight;
+        return { type: 'rect', silent: true,
+          shape: { x: p[0] - cw / 2 + inset, y: p[1] - ch / 2 + inset, width: cw - 2 * inset, height: ch - 2 * inset, r: cw >= 20 ? 3 : 1 },
+          style: { fill: T.surface, stroke: T.calMissed, lineWidth: 1, lineDash: [2, 2] } };
+      }
     };
   }
 
@@ -261,7 +325,7 @@
       grid: grid, XB: XB, dayOfX: dayOfX, axisLabel: axisLabel, yValue: yValue, dateLine: dateLine,
       tipRow: tipRow, tipHead: tipHead, tipValue: tipValue, legendHidden: legendHidden, donut: donut,
       CAT_TOK: CAT_TOK, ADH_TOK: ADH_TOK, catLabel: catLabel, larsBands: larsBands, diaryVm: diaryVm,
-      calendarBox: calendarBox, capRight: capRight, cellBorder: cellBorder
+      calendarBox: calendarBox, calendarBig: calendarBig, missedSeries: missedSeries, capRight: capRight, cellBorder: cellBorder, axisDay: axisDay
     }
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = O;
