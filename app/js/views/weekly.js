@@ -37,7 +37,11 @@
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
+  var QUESTION_IDS = ['weekly-flatus', 'weekly-liquid', 'weekly-frequency', 'weekly-repeat', 'weekly-urgency'];
+
+  // Returns null until all five questions are answered.
   function totalScore(flatus, liquid, frequency, repeat, urgency) {
+    if (flatus === null || liquid === null || frequency === null || repeat === null || urgency === null) return null;
     return LARS_SCORES[0][flatus] + LARS_SCORES[1][liquid] + LARS_SCORES[2][frequency] + LARS_SCORES[3][repeat] + LARS_SCORES[4][urgency];
   }
 
@@ -74,7 +78,7 @@
       '<div class="app-form-group app-form-score">' +
       '<div class="app-score-card">' +
       '<p class="app-score-label">' + _t('app.total_lars_score') + '</p>' +
-      '<p class="app-score-value"><span id="weekly-total">0</span></p>' +
+      '<p class="app-score-value"><span id="weekly-total">—</span></p>' +
       '</div>' +
       '</div>' +
       '<div class="app-form-actions"><button type="submit" class="app-btn app-btn-primary">' + _t('app.submit') + '</button></div>' +
@@ -96,17 +100,20 @@
       btn.addEventListener('click', function () {
         parent.querySelectorAll('.app-form-option').forEach(function (b) { b.classList.remove('selected'); });
         btn.classList.add('selected');
+        parent.closest('.app-form-group').classList.remove('app-missing');
         updateTotal();
       });
       parent.appendChild(btn);
     });
   }
 
+  // null = not answered. Nothing is pre-selected, so an untouched question
+  // can never be saved as a real answer.
   function getSelectedIndex(parentId) {
     var parent = document.getElementById(parentId);
-    if (!parent) return 0;
+    if (!parent) return null;
     var sel = parent.querySelector('.app-form-option.selected');
-    return sel ? parseInt(sel.dataset.index, 10) : 0;
+    return sel ? parseInt(sel.dataset.index, 10) : null;
   }
 
   function updateTotal() {
@@ -118,7 +125,7 @@
       getSelectedIndex('weekly-urgency')
     );
     var el = document.getElementById('weekly-total');
-    if (el) el.textContent = t;
+    if (el) el.textContent = t === null ? '—' : t;
   }
 
   function show() {
@@ -146,6 +153,12 @@
       var frequency = getSelectedIndex('weekly-frequency');
       var repeat = getSelectedIndex('weekly-repeat');
       var urgency = getSelectedIndex('weekly-urgency');
+      var missing = QUESTION_IDS.filter(function (id) { return getSelectedIndex(id) === null; });
+      if (missing.length) {
+        missing.forEach(function (id) { document.getElementById(id).closest('.app-form-group').classList.add('app-missing'); });
+        if (opts.showToast) opts.showToast(_t('app.answer_all_questions'));
+        return;
+      }
       var payload = {
         flatus_control: flatus,
         liquid_stool_leakage: liquid,

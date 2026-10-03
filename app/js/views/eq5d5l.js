@@ -52,9 +52,9 @@
       + '<div class="app-form-group app-form-group-with-icon">'
       +   '<div class="app-slider-head">'
       +     '<div class="app-form-label-wrap"><span class="app-form-icon">❤️</span><label for="eq5d5l-vas">' + _t('app.eq_health_today') + '</label></div>'
-      +     '<span class="app-value-chip" id="eq5d5l-vas-v">50</span>'
+      +     '<span class="app-value-chip" id="eq5d5l-vas-v">—</span>'
       +   '</div>'
-      +   '<input class="app-range" type="range" id="eq5d5l-vas" min="0" max="100" value="50">'
+      +   '<input class="app-range app-range-unset" type="range" id="eq5d5l-vas" min="0" max="100" value="0">'
       +   '<p class="app-question-desc">' + _t('app.eq_health_desc') + '</p>'
       + '</div>';
     html += '<div class="app-form-actions"><button type="submit" class="app-btn app-btn-primary">' + _t('app.submit') + '</button></div></form></div>';
@@ -74,16 +74,36 @@
       btn.addEventListener('click', function () {
         parent.querySelectorAll('.app-form-option').forEach(function (b) { b.classList.remove('selected'); });
         btn.classList.add('selected');
+        parent.closest('.app-form-group').classList.remove('app-missing');
       });
       parent.appendChild(btn);
     });
   }
 
+  // null = not answered. Nothing is pre-selected, so an untouched question
+  // can never be saved as a real answer.
   function getSelectedIndex(parentId) {
     var parent = document.getElementById(parentId);
-    if (!parent) return 0;
+    if (!parent) return null;
     var sel = parent.querySelector('.app-form-option.selected');
-    return sel ? parseInt(sel.dataset.index, 10) : 0;
+    return sel ? parseInt(sel.dataset.index, 10) : null;
+  }
+
+  // A range input always has a value, so "not touched yet" is tracked with the
+  // app-range-unset class (greyed thumb, chip shows "—"). pointerdown counts as
+  // a touch, so tapping the thumb where it already sits records that value.
+  function bindRange(el, valEl) {
+    function touch() {
+      el.classList.remove('app-range-unset');
+      valEl.textContent = el.value;
+      el.closest('.app-form-group').classList.remove('app-missing');
+    }
+    el.addEventListener('input', touch);
+    el.addEventListener('pointerdown', touch);
+  }
+
+  function rangeValue(el) {
+    return el.classList.contains('app-range-unset') ? null : parseInt(el.value, 10);
   }
 
   function show() {
@@ -98,9 +118,7 @@
 
     var vasEl = document.getElementById('eq5d5l-vas');
     var vasV = document.getElementById('eq5d5l-vas-v');
-    if (vasEl && vasV) {
-      vasEl.addEventListener('input', function () { vasV.textContent = vasEl.value; });
-    }
+    if (vasEl && vasV) bindRange(vasEl, vasV);
 
     document.getElementById('eq5d5l-back').addEventListener('click', function (e) {
       e.preventDefault();
@@ -114,7 +132,15 @@
       var usual = getSelectedIndex('eq5d5l-usual');
       var pain = getSelectedIndex('eq5d5l-pain');
       var anxiety = getSelectedIndex('eq5d5l-anxiety');
-      var healthVas = parseInt(document.getElementById('eq5d5l-vas').value, 10) || 50;
+      var healthVas = rangeValue(vasEl);
+      var missing = dims.map(function (dim) { return 'eq5d5l-' + dim.id; })
+        .filter(function (id) { return getSelectedIndex(id) === null; });
+      if (healthVas === null) missing.push('eq5d5l-vas');
+      if (missing.length) {
+        missing.forEach(function (id) { document.getElementById(id).closest('.app-form-group').classList.add('app-missing'); });
+        if (opts.showToast) opts.showToast(_t('app.answer_all_questions'));
+        return;
+      }
       var payload = {
         mobility: mobility,
         self_care: selfCare,

@@ -64,18 +64,18 @@
       '</div>' +
       '<div class="app-form-group">' +
       '<label>' + _t('app.bloating') + ' (0–10)</label>' +
-      '<div class="app-form-slider-wrap"><input type="range" id="daily-bloating" min="0" max="10" value="0"></div>' +
-      '<span id="daily-bloating-val">0</span>' +
+      '<div class="app-form-slider-wrap"><input type="range" class="app-range-unset" id="daily-bloating" min="0" max="10" value="0"></div>' +
+      '<span id="daily-bloating-val">—</span>' +
       '</div>' +
       '<div class="app-form-group">' +
       '<label>' + _t('app.impact_score') + ' (0–10)</label>' +
-      '<div class="app-form-slider-wrap"><input type="range" id="daily-impact" min="0" max="10" value="0"></div>' +
-      '<span id="daily-impact-val">0</span>' +
+      '<div class="app-form-slider-wrap"><input type="range" class="app-range-unset" id="daily-impact" min="0" max="10" value="0"></div>' +
+      '<span id="daily-impact-val">—</span>' +
       '</div>' +
       '<div class="app-form-group">' +
       '<label>' + _t('app.activity_interference') + ' (0–10)</label>' +
-      '<div class="app-form-slider-wrap"><input type="range" id="daily-activity" min="0" max="10" value="0"></div>' +
-      '<span id="daily-activity-val">0</span>' +
+      '<div class="app-form-slider-wrap"><input type="range" class="app-range-unset" id="daily-activity" min="0" max="10" value="0"></div>' +
+      '<span id="daily-activity-val">—</span>' +
       '</div>' +
       '<div class="app-form-group">' +
       '<label>' + _t('app.food_consumption') + '</label>' +
@@ -88,7 +88,7 @@
       '<div class="app-form-group">' +
       '<label>' + _t('app.bristol_scale') + ' (1–7)</label>' +
       '<div class="app-bristol-scale" id="daily-bristol-scale"></div>' +
-      '<input type="number" id="daily-bristol" min="1" max="7" value="1" style="display:none;">' +
+      '<input type="number" id="daily-bristol" min="1" max="7" value="" style="display:none;">' +
       '</div>' +
       '<div class="app-form-actions">' +
       '<button type="submit" class="app-btn app-btn-primary">' + _t('app.submit') + '</button>' +
@@ -111,6 +111,7 @@
       btn.addEventListener('click', function () {
         parent.querySelectorAll('.app-form-option').forEach(function (b) { b.classList.remove('selected'); });
         btn.classList.add('selected');
+        parent.closest('.app-form-group').classList.remove('app-missing');
       });
       parent.appendChild(btn);
     });
@@ -147,7 +148,7 @@
     var html = '<div class="app-bristol-grid">';
     for (var i = 1; i <= 7; i++) {
       var imgPath = basePath + 'bristol_' + i + '.png';
-      html += '<div class="app-bristol-item' + (i === 1 ? ' selected' : '') + '" data-value="' + i + '">';
+      html += '<div class="app-bristol-item" data-value="' + i + '">';
       html += '<img src="' + imgPath + '" alt="Bristol ' + i + '" class="app-bristol-img" onerror="this.style.display=\'none\'">';
       html += '<span class="app-bristol-number">' + i + '</span>';
       html += '</div>';
@@ -192,19 +193,44 @@
     }
   }
 
+  // Required questions: answer buttons and sliders. Counters, food and drinks
+  // start at 0 (the patient sees the number); Bristol may be skipped.
+  var OPTION_IDS = ['daily-urgency', 'daily-night', 'daily-leakage', 'daily-incomplete'];
+  var SLIDER_IDS = ['daily-bloating', 'daily-impact', 'daily-activity'];
+
+  // null = not answered. Nothing is pre-selected, so an untouched question
+  // can never be saved as a real answer.
+  function selectedValue(parentId) {
+    var sel = document.querySelector('#' + parentId + ' .app-form-option.selected');
+    return sel ? sel.dataset.value : null;
+  }
+
+  // A range input always has a value, so "not touched yet" is tracked with the
+  // app-range-unset class (greyed thumb, value shows "—").
+  function rangeValue(id) {
+    var el = document.getElementById(id);
+    return el.classList.contains('app-range-unset') ? null : parseInt(el.value, 10);
+  }
+
+  function missingIds() {
+    return OPTION_IDS.filter(function (id) { return selectedValue(id) === null; })
+      .concat(SLIDER_IDS.filter(function (id) { return rangeValue(id) === null; }));
+  }
+
   function collectPayload() {
     var raw = {
       stool_count: parseInt(document.getElementById('daily-stool').value, 10) || 0,
       pads_used: parseInt(document.getElementById('daily-pads').value, 10) || 0,
-      urgency: (document.querySelector('#daily-urgency .app-form-option.selected') || {}).dataset?.value || 'No',
-      night_stools: (document.querySelector('#daily-night .app-form-option.selected') || {}).dataset?.value || 'No',
-      leakage: (document.querySelector('#daily-leakage .app-form-option.selected') || {}).dataset?.value || 'None',
-      incomplete_evacuation: (document.querySelector('#daily-incomplete .app-form-option.selected') || {}).dataset?.value || 'No',
-      bloating: parseInt(document.getElementById('daily-bloating').value, 10) || 0,
-      impact_score: parseInt(document.getElementById('daily-impact').value, 10) || 0,
-      activity_interfere: parseInt(document.getElementById('daily-activity').value, 10) || 0
+      urgency: selectedValue('daily-urgency'),
+      night_stools: selectedValue('daily-night'),
+      leakage: selectedValue('daily-leakage'),
+      incomplete_evacuation: selectedValue('daily-incomplete'),
+      bloating: rangeValue('daily-bloating'),
+      impact_score: rangeValue('daily-impact'),
+      activity_interfere: rangeValue('daily-activity')
     };
-    var bristol = parseInt(document.getElementById('daily-bristol').value, 10) || 1;
+    var bristolValue = document.getElementById('daily-bristol').value;
+    var bristol = bristolValue === '' ? null : parseInt(bristolValue, 10);
     var food = {};
     document.querySelectorAll('[data-food]').forEach(function (inp) {
       food[inp.dataset.food] = parseInt(inp.value, 10) || 0;
@@ -226,34 +252,27 @@
     container = document.getElementById('app-screen-daily');
     if (!container) return;
     container.innerHTML = buildForm();
-    renderOptions('daily-urgency', [{ value: 'Yes', label: _t('app.yes') }, { value: 'No', label: _t('app.no') }], 'No');
-    renderOptions('daily-night', [{ value: 'Yes', label: _t('app.yes') }, { value: 'No', label: _t('app.no') }], 'No');
-    renderOptions('daily-leakage', [{ value: 'None', label: _t('app.none') }, { value: 'Liquid', label: _t('app.liquid') }, { value: 'Solid', label: _t('app.solid') }], 'None');
-    renderOptions('daily-incomplete', [{ value: 'Yes', label: _t('app.yes') }, { value: 'No', label: _t('app.no') }], 'No');
+    renderOptions('daily-urgency', [{ value: 'Yes', label: _t('app.yes') }, { value: 'No', label: _t('app.no') }], null);
+    renderOptions('daily-night', [{ value: 'Yes', label: _t('app.yes') }, { value: 'No', label: _t('app.no') }], null);
+    renderOptions('daily-leakage', [{ value: 'None', label: _t('app.none') }, { value: 'Liquid', label: _t('app.liquid') }, { value: 'Solid', label: _t('app.solid') }], null);
+    renderOptions('daily-incomplete', [{ value: 'Yes', label: _t('app.yes') }, { value: 'No', label: _t('app.no') }], null);
     renderBristolScale();
     renderFoodDrink();
 
-    var bloatingEl = document.getElementById('daily-bloating');
-    var impactEl = document.getElementById('daily-impact');
-    var activityEl = document.getElementById('daily-activity');
-    if (bloatingEl) {
-      bloatingEl.addEventListener('input', function () {
-        var v = document.getElementById('daily-bloating-val');
-        if (v) v.textContent = bloatingEl.value;
-      });
-    }
-    if (impactEl) {
-      impactEl.addEventListener('input', function () {
-        var v = document.getElementById('daily-impact-val');
-        if (v) v.textContent = impactEl.value;
-      });
-    }
-    if (activityEl) {
-      activityEl.addEventListener('input', function () {
-        var v = document.getElementById('daily-activity-val');
-        if (v) v.textContent = activityEl.value;
-      });
-    }
+    SLIDER_IDS.forEach(function (id) {
+      var el = document.getElementById(id);
+      var valEl = document.getElementById(id + '-val');
+      if (!el || !valEl) return;
+      // pointerdown counts as a touch, so tapping the thumb where it already
+      // sits records that value.
+      var touch = function () {
+        el.classList.remove('app-range-unset');
+        valEl.textContent = el.value;
+        el.closest('.app-form-group').classList.remove('app-missing');
+      };
+      el.addEventListener('input', touch);
+      el.addEventListener('pointerdown', touch);
+    });
 
     document.getElementById('daily-back').addEventListener('click', function (e) {
       e.preventDefault();
@@ -262,6 +281,12 @@
 
     document.getElementById('daily-form').addEventListener('submit', function (e) {
       e.preventDefault();
+      var missing = missingIds();
+      if (missing.length) {
+        missing.forEach(function (id) { document.getElementById(id).closest('.app-form-group').classList.add('app-missing'); });
+        if (opts.showToast) opts.showToast(_t('app.answer_all_questions'));
+        return;
+      }
       var payload = collectPayload();
       API.sendDaily(null, payload, function (err) {
         if (err) {
