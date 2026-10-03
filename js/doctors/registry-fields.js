@@ -209,6 +209,18 @@
     if (BY_KEY[k]) { BY_KEY[k].min = RANGES[k][0]; BY_KEY[k].max = RANGES[k][1]; }
   });
 
+  // Input step = decimal places of the DB column (NUMERIC(p,1) -> 0.1, NUMERIC(p,2) -> 0.01).
+  // A coarser step than the DB would make the browser reject a stored value on save.
+  var STEPS = {
+    weight_kg: 0.1, cea_pre_treatment: 0.01, cea_post_op: 0.01,
+    tumor_distance_anus_cm: 0.1, tumor_distance_arj_cm: 0.1,
+    proximal_margin_cm: 0.1, distal_margin_cm: 0.1, specimen_length_cm: 0.1,
+    nrt_dose_gy: 0.1, art_dose_gy: 0.1
+  };
+  Object.keys(STEPS).forEach(function (k) {
+    if (BY_KEY[k]) BY_KEY[k].step = STEPS[k];
+  });
+
   // Columns shown by default in the registry table summary (before the scrollable rest).
   var PRIMARY_KEYS = ['sex', 'diagnosis_date', 'operation_date', 'clinical_stage', 'ptnm_stage'];
 
