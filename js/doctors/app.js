@@ -1,113 +1,116 @@
-// Main application router
+// Main application router (DESIGN-SPEC §4.1.1).
+// Routes: #patients · #overview · #registry · #patient/<code> · #registry/<id>; '' and #list → the default.
+// The hash is the only source of truth for the workspace and the iLARS tab. Routing starts after window.ILARS_BOOT
+// (gate + profile + translations, ui/boot.js) — no auth polling here.
 class App {
     constructor() {
-        this.api = new ApiService();
-        this.currentView = null;
-        this.init();
+        this.api = window.ILARS_DATA.store.api();
+        this.depth = null;          // 0 = list route, 1 = detail route; null before the first route
+        this.route = null;
     }
 
-    init() {
-        // Wait for Firebase auth to have a signed-in user before loading patients
-        const waitForAuth = () => {
-            try {
-                if (!window.ILARS_AUTH || !window.ILARS_AUTH.auth || !window.ILARS_AUTH.auth.currentUser) {
-                    // Auth not ready yet, retry shortly
-                    setTimeout(waitForAuth, 300);
-                    return;
-                }
-            } catch (e) {
-                // If something goes wrong, try again a bit later
-                setTimeout(waitForAuth, 300);
-                return;
-            }
-
-            // Auth is ready – set up routing and render initial view
-            window.addEventListener('hashchange', () => this.handleRoute());
-            this.handleRoute();
-        };
-
-        waitForAuth();
+    start() {
+        window.ILARS_TABS.init(this.api);
+        window.addEventListener('hashchange', () => this.handleRoute());
+        this.handleRoute(true);
     }
 
-    handleRoute() {
-        const hash = window.location.hash.slice(1);
-        const [route, ...params] = hash.split('/');
+    parse() {
+        const [route, arg] = window.location.hash.slice(1).split('/');
+        return { route: route || '', arg: arg ? decodeURIComponent(arg) : null };
+    }
 
-        // Hide all views
+    /** Default and forbidden routes are rewritten in place (replaceState: no extra history entry). */
+    canonical() {
+        const lt = !!window.ILARS_IS_LT;
+        const fallback = lt ? 'registry' : 'patients';
+        let h = this.parse();
+        const known = ['patients', 'overview', 'registry'].indexOf(h.route) > -1 || (h.route === 'patient' && h.arg);
+        if (!known) h = { route: fallback, arg: null };
+        if (h.route === 'patients' || h.route === 'overview') h.arg = null;
+        if (h.route === 'registry' && !lt) h = { route: 'patients', arg: null };   // the backend answers 403 for non-LT
+        const hash = '#' + h.route + (h.arg ? '/' + encodeURIComponent(h.arg) : '');
+        if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
+        return h;
+    }
+
+    /** '<view> · iLARS'; patient routes show the grouped code, never the name (titles land in history). */
+    title(h) {
+        const UI = window.ILARS_UI;
+        if (h.route === 'patient') return UI.fmtCode(h.arg).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        if (h.route === 'registry') return 'Registras';
+        return UI.t(h.route === 'overview' ? 'doctor.ui.overview.title' : 'doctor.ui.patients.title');
+    }
+
+    showView(id) {
+        let shown = null;
         document.querySelectorAll('.view').forEach(view => {
-            view.classList.remove('active');
-            view.style.display = 'none';
+            const on = view.id === id;
+            view.classList.toggle('active', on);
+            view.style.display = on ? 'block' : 'none';
+            if (on) shown = view;
         });
-
-        switch(route) {
-            case 'patient':
-                if (params[0]) {
-                    this.showPatientDetail(params[0]);
-                } else {
-                    this.showPatientList();
-                }
-                break;
-            case 'registry':
-                if (params[0]) {
-                    this.showRegistryDetail(params[0]);
-                } else {
-                    this.showPatientList();
-                }
-                break;
-            case '':
-            case 'list':
-            default:
-                this.showPatientList();
-                break;
-        }
+        return shown;
     }
 
-    showPatientList() {
-        const view = document.getElementById('patient-list-view');
-        if (view) {
-            view.classList.add('active');
-            view.style.display = 'block';
-            // Delegate to the tab controller (study vs Lithuanian registry).
-            if (window.ILARS_TABS && this.api) {
-                window.ILARS_TABS.show(this.api);
-            } else {
-                if (!window.PatientListView && this.api) {
-                    window.PatientListView = new PatientListView(this.api);
-                }
-                if (window.PatientListView) {
-                    window.PatientListView.load();
-                }
-            }
+    /** Renders the route into its view (no transition, no focus move). Returns the view element. */
+    render(h, restore) {
+        let view;
+        if (h.route === 'patient') {
+            view = this.showView('patient-detail-view');
+            if (!window.PatientDetailView) window.PatientDetailView = new PatientDetailView(this.api);
+            window.PatientDetailView.load(h.arg);
+        } else if (h.route === 'registry' && h.arg) {
+            view = this.showView('registry-detail-view');
+            if (!window.RegistryDetailView) window.RegistryDetailView = new RegistryDetailView(this.api);
+            window.RegistryDetailView.load(h.arg);
+        } else {
+            view = this.showView('patient-list-view');
+            window.ILARS_TABS.show(this.api, {
+                mode: h.route === 'registry' ? 'registry' : 'study',
+                tab: h.route === 'overview' ? 'overview' : 'patients',
+                restore: !!restore
+            });
         }
+        document.title = this.title(h) + ' · iLARS';
+        window.ILARS_UI.reveal(view);
+        return view;
     }
 
-    showPatientDetail(patientCode) {
-        const view = document.getElementById('patient-detail-view');
-        if (view) {
-            view.classList.add('active');
-            view.style.display = 'block';
-            // Initialize PatientDetailView if not exists
-            if (!window.PatientDetailView && this.api) {
-                window.PatientDetailView = new PatientDetailView(this.api);
-            }
-            if (window.PatientDetailView) {
-                window.PatientDetailView.load(patientCode);
-            }
-        }
+    handleRoute(first) {
+        const h = this.canonical();
+        const depth = h.arg ? 1 : 0;
+        const kind = first || this.depth === null ? null : depth > this.depth ? 'forward' : depth < this.depth ? 'back' : 'swap';
+        const prev = this.route;
+        const leftPatient = prev && prev.route === 'patient' && (h.route !== 'patient' || h.arg !== prev.arg);
+        this.depth = depth;
+        this.route = h;
+        // the chart library loads in parallel with the data request on chart routes (charts/loader.js)
+        if (h.route === 'patient' || h.route === 'overview') window.ILARS_CHARTS.load().catch(() => { /* cards fall back to tables */ });
+
+        let view;
+        const update = () => {
+            // inside the update: the outgoing view-transition snapshot still shows the charts
+            if (leftPatient) window.ILARS_CHARTS.disposeAll(document.getElementById('patient-detail-view'));
+            view = this.render(h, kind === 'back');
+            if (kind !== 'back') window.scrollTo(0, 0);
+        };
+        const done = () => {
+            if (!kind) return;                                   // first render: focus stays at the top (skip link first)
+            if (kind === 'back' && h.route === 'patients') return; // the list focuses the row of the patient just viewed
+            let target = view.querySelector('#registry-mode[style*="block"] h1, #study-mode[style*="block"] h1') || view.querySelector('h1');
+            if (!target) { view.tabIndex = -1; target = view; } else if (!target.hasAttribute('tabindex')) target.tabIndex = -1;
+            target.focus({ preventScroll: true });
+        };
+        if (kind) window.ILARS_UI.transition(update, kind).then(done);
+        else { update(); done(); }
     }
 
-    showRegistryDetail(id) {
-        const view = document.getElementById('registry-detail-view');
-        if (view) {
-            view.classList.add('active');
-            view.style.display = 'block';
-            if (!window.RegistryDetailView && this.api) {
-                window.RegistryDetailView = new RegistryDetailView(this.api);
-            }
-            if (window.RegistryDetailView) {
-                window.RegistryDetailView.load(id);
-            }
-        }
+    /** Language change: re-render the current view in place (no transition, focus and scroll stay). */
+    rerender() {
+        if (!this.route) return;
+        window.ILARS_UI.patchAria();
+        this.render(this.route, false);
     }
 
     navigate(path) {
@@ -115,17 +118,15 @@ class App {
     }
 }
 
-// Initialize app when DOM is ready
+// Initialize app when DOM is ready; routing starts after the gate (ui/boot.js)
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new App();
+    window.ILARS_BOOT.then(() => window.app.start());
 
-    // Re-render dynamic content when language changes (no extra API call)
+    // Re-render dynamic content when the language changes (i18n.js has re-applied the static texts)
     if (window.ILARS_I18N) {
         window.ILARS_I18N._onLangChange = function () {
-            if (window.PatientListView && window.PatientListView.cachedData) {
-                window.PatientListView.load();
-            }
+            window.app.rerender();
         };
     }
 });
-

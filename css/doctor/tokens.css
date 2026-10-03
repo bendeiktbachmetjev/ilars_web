@@ -1,0 +1,792 @@
+@layer tokens, base, layout, components, views, motion, utilities;  /* cascade order for the whole portal */
+/* ==========================================================================
+   iLARS doctor portal — DESIGN TOKENS  (v1, light theme)
+   Single source of truth for every colour, gradient, glass tint and
+   colour-bearing shadow in the portal (sections 1-14, colour lead), plus
+   type, spacing, radii, layout, z-index and motion (section 15, design
+   lead; see DESIGN-SPEC.md §2). Rationale and measured results:
+   design/COLOR.md. Visual check: design/tokens/swatches.html.
+
+   HOW IT IS BUILT
+   1. Primitives  (--gray-*, --indigo-*, --green-*, --amber-*, --red-*,
+      --slate-*, --brand-*, --cat-*, --bristol-*): raw values. Components
+      must NOT use them directly.
+   2. Semantic tokens (--color-*, --gradient-*, --glass-*, --viz-*,
+      --elevation-*): what components use. A future dark theme only
+      redefines this layer (see the stub at the end of the file).
+   Names never collide with web/css/style.css (--gradient-hero,
+   --text-primary, --shadow-card, ... are NOT redefined here), so this file
+   can also be loaded on login.html / doctor-setup.html safely.
+
+   CONTRAST CONTRACT (machine-checked)
+   Lines starting with "@check" are read by check-contrast.mjs:
+     @check <kind> <foreground> on <background>, <background>, ...
+   kind:  text  = 4.5:1  (WCAG 2.2 AA 1.4.3, normal text)
+          large = 3:1    (text >= 24px, or >= 18.66px bold)
+          ui    = 3:1    (WCAG 1.4.11: component boundaries, focus rings,
+                          meaningful icons/marks shown WITHOUT a text label)
+          soft  = 2:1    (own floor for marks that are always paired with a
+                          text label, and for disabled controls, which WCAG
+                          exempts)
+          info  = no threshold, printed for reference only
+   A background like  A@B  means "A (translucent) painted over B";
+   gradient(A,B) samples the whole A->B gradient (sRGB and OKLab).
+   "@cvd" and "@ordinal" lines feed the colour-blindness / ramp checks.
+   Run:  node design/tokens/check-contrast.mjs   (exit 1 if a check fails)
+   ========================================================================== */
+
+@layer tokens {
+  :root {
+    color-scheme: light;
+
+    /* ------------------------------------------------------------------
+       1. PRIMITIVES
+       ------------------------------------------------------------------ */
+
+    /* Neutrals — Apple's light grey ladder (apple.com, Flutter AppleStyle,
+       CupertinoColors). Only #66666b / #8a8a8f / #a1a1a6 are new steps,
+       added to meet contrast on tinted surfaces (see COLOR.md §2). */
+    --gray-0:   #ffffff;
+    --gray-25:  #fafafc;  /* apple.com nav glass base, subtle surface      */
+    --gray-50:  #f5f5f7;  /* Flutter AppleStyle.surface, apple.com canvas   */
+    --gray-75:  #f2f2f7;  /* Flutter inputFill, iOS systemGray6             */
+    --gray-100: #e5e5ea;  /* iOS systemGray5, separators                    */
+    --gray-200: #d1d1d6;  /* iOS systemGray4                                */
+    --gray-300: #c7c7cc;  /* iOS systemGray3                                */
+    --gray-400: #aeaeb2;  /* iOS systemGray2                                */
+    --gray-450: #a1a1a6;  /* disabled text (WCAG-exempt, >= 2:1)            */
+    --gray-500: #8e8e93;  /* iOS systemGray                                 */
+    --gray-550: #8a8a8f;  /* control boundary, >= 3:1 on every surface      */
+    --gray-600: #86868b;  /* style.css --text-muted: tertiary text          */
+    --gray-700: #66666b;  /* secondary text (was #6e6e73, see COLOR.md)     */
+    --gray-800: #48484a;  /* secondary text on glass                        */
+    --gray-900: #1d1d1f;  /* ink: style.css --text-primary, apple.com       */
+
+    /* Indigo — the brand ramp. OKLCH hue ~274. 500 = web brand #667eea,
+       600 = accent (the hue midpoint of the action gradient). Feeds the
+       accent states, tints, sequential ramp and the EQ-5D ordinal ramp. */
+    --indigo-50:  #f0f3ff;
+    --indigo-100: #e3e9fe;
+    --indigo-200: #c7d2fe;
+    --indigo-300: #a3b3f8;
+    --indigo-400: #8599fb;
+    --indigo-500: #667eea;
+    --indigo-600: #4f5bd5;
+    --indigo-700: #3e49b5;
+    --indigo-800: #30398e;
+    --indigo-900: #222a66;
+
+    /* Status families. Hues chosen for colour-blind separation
+       (green is a bluish green, like Okabe-Ito #009e73):
+       green h165 / amber h66-76 / red h27. 500 = mark (dot, pip, band,
+       arc), 700 = text ink, 50 = tint, 100 = strong tint, 200 = border. */
+    --green-50:  #e5faef;
+    --green-100: #caf3e0;
+    --green-200: #b1e7cf;
+    --green-500: #249c74;
+    --green-700: #147656;
+
+    --amber-50:  #fff1e5;
+    --amber-100: #ffe2c7;
+    --amber-200: #f7d1ac;
+    --amber-500: #d8961b;
+    --amber-700: #945801;
+
+    --red-50:  #fff0ee;
+    --red-100: #fee0dc;
+    --red-200: #fecbc4;
+    --red-500: #b33832;   /* mark, text ink AND solid button (5.95:1 with white) */
+    --red-600: #a22b27;   /* solid hover   */
+    --red-700: #901f1d;   /* solid pressed */
+
+    /* Slate — quiet blue-grey for "deceased" and read-only badges. */
+    --slate-50:  #f2f4f8;
+    --slate-100: #e5e8ef;
+    --slate-200: #d6d9e1;
+    --slate-500: #5c6375;
+    --slate-700: #414758;
+
+    /* Brand source colours (unchanged from the existing products). */
+    --brand-web-indigo: #667eea;  /* style.css --gradient-hero stop 1 */
+    --brand-web-purple: #764ba2;  /* stop 2 */
+    --brand-web-pink:   #f093fb;  /* stop 3 */
+    --brand-web-coral:  #f5576c;  /* stop 4 */
+    --brand-web-orange: #ff9a56;  /* stop 5 */
+    --brand-app-blue:   #3a8dff;  /* apple_style.dart gradientStart */
+    --brand-app-violet: #8f5cff;  /* apple_style.dart gradientEnd / accent */
+
+    /* Action gradient stops: the app's blue->violet, darkened until white
+       text passes AA on every point of the gradient. */
+    --action-start:         #2f6fe0;
+    --action-end:           #7a4fe8;
+    --action-start-hover:   #2464d4;
+    --action-end-hover:     #7043dc;
+    --action-start-pressed: #1959c8;
+    --action-end-pressed:   #6736d0;
+
+    /* Categorical hues (data identity only). ORDER IS FIXED — it is what
+       keeps neighbours apart for colour-blind readers. */
+    --cat-indigo:  #4f5bd5;
+    --cat-cyan:    #0995b2;
+    --cat-orange:  #e16b2d;
+    --cat-magenta: #c43f95;
+    --cat-olive:   #7a8930;
+    --cat-purple:  #744091;
+    --cat-sky:     #3b9bd7;
+    --cat-rose:    #d75072;
+
+    /* Bristol diverging: brown (hard) <- neutral grey (normal) -> blue (loose). */
+    --bristol-hard-strong: #85490f;
+    --bristol-hard:        #bc7732;
+    --bristol-neutral:     #b6b7bb;
+    --bristol-loose:       #5399d1;
+    --bristol-loose-strong:#215da5;
+
+    /* ------------------------------------------------------------------
+       2. SURFACES, LINES, OVERLAYS
+       ------------------------------------------------------------------ */
+    --color-bg:              var(--gray-50);   /* page */
+    --color-surface:         var(--gray-0);    /* cards, tables, charts, forms */
+    --color-surface-raised:  var(--gray-0);    /* menus, popovers, dialogs (solid) */
+    --color-surface-subtle:  var(--gray-25);   /* table header, form section head */
+    --color-surface-sunken:  var(--gray-75);   /* input fill, wells, code tags */
+
+    --color-fill:          rgb(118 118 128 / 0.12); /* segmented track, secondary button */
+    --color-fill-hover:    rgb(118 118 128 / 0.16);
+    --color-fill-pressed:  rgb(118 118 128 / 0.22);
+    --color-row-hover:     rgb(118 118 128 / 0.06); /* table row hover */
+    --color-selected:      var(--indigo-50);        /* selected row / chip */
+    --color-selected-hover:var(--indigo-100);
+    --color-text-selection:var(--indigo-200);       /* ::selection background */
+
+    /* Decorative lines (cards, rows, dividers): exempt from 1.4.11 because
+       they are not interactive components. */
+    --color-hairline:      rgb(60 60 67 / 0.12);
+    --color-separator:     var(--gray-100);
+    --color-border:        var(--gray-200);
+    --color-border-strong: var(--gray-300);
+    /* Interactive boundaries (text fields, selects, checkboxes, radios,
+       unselected registry segmented buttons, toggles): >= 3:1. */
+    --color-border-control:       var(--gray-550);
+    --color-border-control-hover: var(--gray-600);
+
+    /* Modal backdrop (with blur 6px) and the no-blur fallback. */
+    --color-backdrop:       rgb(28 28 40 / 0.24);
+    --color-backdrop-solid: rgb(28 28 40 / 0.40);
+
+    /* Loading / empty */
+    --color-skeleton:        #ececef;
+    --color-skeleton-shine:  rgb(255 255 255 / 0.65);
+    --color-empty-bg:        var(--gray-25);   /* "not available yet" card body */
+    --color-empty-border:    var(--gray-200);  /* dashed */
+
+    /* @group Surfaces (reference)
+       @check info --color-surface-sunken on --color-surface
+       @check info --color-separator on --color-surface
+       @check info --color-hairline on --color-surface */
+
+    /* ------------------------------------------------------------------
+       3. TEXT
+       ------------------------------------------------------------------ */
+    --color-text:            var(--gray-900);
+    --color-text-secondary:  var(--gray-700);
+    --color-text-tertiary:   var(--gray-600);  /* large text / non-essential only */
+    --color-text-disabled:   var(--gray-450);  /* inactive controls only — never read-only data */
+    --color-text-placeholder:var(--gray-700);
+    --color-text-readonly:   var(--gray-900);  /* registry fields of another doctor's record */
+    --color-text-on-accent:  var(--gray-0);
+    --color-text-on-glass:            var(--gray-900);
+    --color-text-on-glass-secondary:  var(--gray-800);
+    --color-text-link:       var(--color-accent);
+    --color-text-link-hover: var(--color-accent-hover);
+
+    /* @group Text on surfaces
+       Worst cases included: --color-bg@aurora = darkest point of the page glow,
+       --color-row-hover / --color-fill / --color-selected(-hover) over a card.
+       @check text --color-text on --color-surface, --color-bg, --color-surface-subtle, --color-surface-sunken, --color-row-hover@--color-surface, --color-fill@--color-surface, --color-fill-hover@--color-surface, --color-fill-pressed@--color-surface, --color-selected, --color-selected-hover, #e7e9f6
+       @check text --color-text-secondary on --color-surface, --color-bg, --color-surface-subtle, --color-surface-sunken, --color-row-hover@--color-surface, --color-fill@--color-surface, --color-fill-hover@--color-surface, --color-selected, --color-selected-hover, #e7e9f6, --color-skeleton
+       @check text --color-text-placeholder on --color-surface-sunken, --color-surface
+       @check large --color-text-tertiary on --color-surface, --color-bg, --color-surface-subtle, --color-surface-sunken, --color-row-hover@--color-surface, --color-fill@--color-surface, --color-selected
+       @check soft --color-text-disabled on --color-surface, --color-surface-subtle, --color-surface-sunken, --color-bg
+       @check text --color-text-link on --color-surface, --color-bg, --color-surface-subtle, --color-surface-sunken, --color-row-hover@--color-surface, --color-fill@--color-surface, --color-fill-hover@--color-surface, --color-selected, --color-selected-hover, #e7e9f6
+       @check text --color-text-link-hover on --color-surface, --color-bg, --color-selected
+       @check text --color-text on --color-text-selection
+       @check info #6e6e73 on --color-selected-hover, --color-fill-hover@--color-surface, #e7e9f6
+       (#e7e9f6 = darkest pixel of --gradient-aurora over --color-bg, sampled on
+        1440x900 and 390x844 viewports; #6e6e73 = old secondary, for comparison) */
+
+    /* ------------------------------------------------------------------
+       4. BRAND, ACCENT, FOCUS, GRADIENTS
+       ------------------------------------------------------------------ */
+    --color-accent:          var(--indigo-600);  /* links, selected states, toggles, checkbox fill */
+    --color-accent-hover:    var(--indigo-700);
+    --color-accent-pressed:  var(--indigo-800);
+    --color-accent-tint:     var(--indigo-50);
+    --color-accent-tint-hover: var(--indigo-100);
+    --color-accent-border:   var(--indigo-200);
+    --color-focus-ring:      var(--indigo-600);  /* 2px solid, 2px offset */
+    --color-focus-halo:      rgb(79 91 213 / 0.18); /* extra glow on focused inputs, decorative */
+    --color-invalid:         var(--red-500);     /* invalid field border */
+    --color-invalid-halo:    rgb(179 56 50 / 0.16);
+
+    /* Primary button (one per view). White text passes on every point. */
+    --gradient-action:         linear-gradient(135deg, var(--action-start) 0%, var(--action-end) 100%);
+    --gradient-action-hover:   linear-gradient(135deg, var(--action-start-hover) 0%, var(--action-end-hover) 100%);
+    --gradient-action-pressed: linear-gradient(135deg, var(--action-start-pressed) 0%, var(--action-end-pressed) 100%);
+    --color-action-disabled-bg:   var(--gray-100);
+    --color-action-disabled-text: var(--gray-450);
+
+    /* DECORATIVE ONLY — never put text on these (white text fails). */
+    --gradient-brand-app:  linear-gradient(135deg, var(--brand-app-blue) 0%, var(--brand-app-violet) 100%);
+    --gradient-brand-hero: linear-gradient(135deg, var(--brand-web-indigo) 0%, var(--brand-web-purple) 25%, var(--brand-web-pink) 50%, var(--brand-web-coral) 75%, var(--brand-web-orange) 100%);
+    --gradient-wordmark:   var(--gradient-brand-app);   /* "iLARS" text clip; logo = exempt, still >= 3:1 */
+    --gradient-hairline:   var(--gradient-brand-app);   /* 1px border of the one hero KPI tile */
+    --gradient-nav-active: linear-gradient(90deg, var(--brand-app-blue), var(--brand-app-violet)); /* 2px underline */
+    /* Page glow: fixed, top of page, painted over --color-bg.
+       Alphas are capped so secondary text and links still pass at its darkest point. */
+    --gradient-aurora:
+      radial-gradient(60% 50% at 10% 0%,  rgb(102 126 234 / 0.10), transparent 70%),
+      radial-gradient(45% 40% at 55% 0%,  rgb(240 147 251 / 0.08), transparent 70%),
+      radial-gradient(40% 35% at 95% 5%,  rgb(255 154 86 / 0.08),  transparent 70%);
+    /* Chart area fill: series colour at this alpha at the top, fading to 0. */
+    --viz-area-alpha: 0.18;
+
+    /* @group Brand, accent, focus
+       @check text --color-text-on-accent on --color-accent, --color-accent-hover, --color-accent-pressed
+       @check text --color-text-on-accent on gradient(--action-start,--action-end), gradient(--action-start-hover,--action-end-hover), gradient(--action-start-pressed,--action-end-pressed)
+       @check text --color-accent on --color-accent-tint, --color-accent-tint-hover
+       (restrained selected states — registry choice buttons, chips, account avatar: accent ink + accent edge on the accent tint)
+       @check ui --color-accent on --color-accent-tint, --color-accent-tint-hover
+       @check ui --color-focus-ring on --color-surface, --color-bg, --color-surface-subtle, --color-surface-sunken, --color-selected, --color-selected-hover, #e7e9f6, --color-glass-bar@#1d1d1f, --color-glass-menu@#1d1d1f, --color-glass-float-bottom@#1d1d1f
+       @check ui --color-accent on --color-surface, --color-bg, --color-surface-sunken
+       @check ui --color-invalid on --color-surface, --color-surface-subtle, --color-bg
+       @check ui --color-border-control on --color-surface, --color-surface-subtle, --color-bg, --color-surface-sunken, --color-glass-bar@--color-bg, --color-glass-menu@--color-bg, --color-surface-raised
+       @check soft --color-action-disabled-text on --color-action-disabled-bg
+       @check large --brand-app-blue on --color-surface, --color-glass-bar@--color-bg
+       @check large --brand-app-violet on --color-surface, --color-glass-bar@--color-bg
+       @check info --color-text-on-accent on --brand-web-indigo, --brand-app-blue, --brand-app-violet, --brand-web-pink, --brand-web-orange */
+
+    /* ------------------------------------------------------------------
+       5. GLASS (navigation layer only: top bar, floating bars, menus,
+          modal backdrop — never tables, charts, cards or forms)
+       ------------------------------------------------------------------ */
+    --color-glass-bar:          rgb(250 250 252 / 0.80); /* with --glass-filter-bar */
+    --color-glass-bar-solid:    rgb(250 250 252 / 0.96); /* no backdrop-filter support */
+    --color-glass-menu:         rgb(255 255 255 / 0.92); /* menus, popovers, column filters */
+    --color-glass-float-top:    rgb(255 255 255 / 0.82); /* floating save / action bar, */
+    --color-glass-float-bottom: rgb(255 255 255 / 0.72); /* vertical gradient top->bottom */
+    --color-glass-dialog:       rgb(255 255 255 / 0.97); /* content-heavy dialogs stay near-opaque */
+    --color-glass-rim:          rgb(255 255 255 / 0.90); /* inset top specular line */
+    --color-glass-rim-soft:     rgb(255 255 255 / 0.35); /* inset bottom bounce light */
+    --color-glass-edge:         rgb(0 0 0 / 0.05);       /* 1px outer edge */
+    --glass-filter-bar:   saturate(180%) blur(20px);
+    --glass-filter-menu:  saturate(180%) blur(20px);
+    --glass-filter-float: saturate(180%) blur(16px) brightness(1.04);
+    --glass-filter-backdrop: blur(6px);
+
+    /* @group Glass (worst case = pure ink #1d1d1f right behind the glass)
+       @check text --color-text-on-glass on --color-glass-bar@#1d1d1f, --color-glass-bar-solid@#1d1d1f, --color-glass-menu@#1d1d1f, --color-glass-float-bottom@#1d1d1f, --color-glass-dialog@#1d1d1f
+       @check text --color-text-on-glass-secondary on --color-glass-bar@#1d1d1f, --color-glass-float-bottom@#1d1d1f, --color-glass-float-top@#1d1d1f, --color-glass-bar@--action-start
+       @check text --color-text-secondary on --color-glass-menu@#1d1d1f, --color-glass-dialog@#1d1d1f, --color-glass-bar-solid@#1d1d1f, --color-glass-bar@--color-bg
+       @check text --color-text-link on --color-glass-menu@#1d1d1f, --color-glass-dialog@#1d1d1f
+       @check info --color-text-secondary on --color-glass-bar@#1d1d1f, --color-glass-float-bottom@#1d1d1f
+       @check info --color-accent on --color-glass-bar@#1d1d1f, --color-glass-float-bottom@#1d1d1f */
+
+    /* ------------------------------------------------------------------
+       6. SEMANTIC STATUS (UI feedback: saved, overdue, error, notice)
+          Always: icon or dot + words. Text uses the -ink token; icons that
+          stand alone (no label next to them) also use the -ink token.
+       ------------------------------------------------------------------ */
+    --color-success:        var(--green-500);
+    --color-success-ink:    var(--green-700);
+    --color-success-bg:     var(--green-50);
+    --color-success-bg-strong: var(--green-100);
+    --color-success-border: var(--green-200);
+
+    --color-warning:        var(--amber-500);
+    --color-warning-ink:    var(--amber-700);
+    --color-warning-bg:     var(--amber-50);
+    --color-warning-bg-strong: var(--amber-100);
+    --color-warning-border: var(--amber-200);
+
+    --color-danger:         var(--red-500);
+    --color-danger-ink:     var(--red-500);
+    --color-danger-bg:      var(--red-50);
+    --color-danger-bg-strong: var(--red-100);
+    --color-danger-border:  var(--red-200);
+    --color-danger-solid:         var(--red-500); /* destructive button, white text */
+    --color-danger-solid-hover:   var(--red-600);
+    --color-danger-solid-pressed: var(--red-700);
+
+    /* Info deliberately reuses the brand indigo: fewer hues, calmer UI. */
+    --color-info:           var(--indigo-600);
+    --color-info-ink:       var(--indigo-700);
+    --color-info-bg:        var(--indigo-50);
+    --color-info-bg-strong: var(--indigo-100);
+    --color-info-border:    var(--indigo-200);
+
+    /* KPI deltas (arrow + word + colour; colour = whether the change is good) */
+    --color-delta-better:  var(--color-success-ink);
+    --color-delta-worse:   var(--color-danger-ink);
+    --color-delta-neutral: var(--color-text-secondary);
+
+    /* @group Semantic status
+       @check text --color-success-ink on --color-surface, --color-bg, --color-surface-sunken, --color-success-bg, --color-success-bg-strong, --color-glass-float-top@--color-bg
+       @check text --color-warning-ink on --color-surface, --color-bg, --color-surface-sunken, --color-warning-bg, --color-warning-bg-strong
+       @check text --color-danger-ink on --color-surface, --color-bg, --color-surface-sunken, --color-danger-bg, --color-danger-bg-strong
+       @check text --color-info-ink on --color-surface, --color-bg, --color-surface-sunken, --color-info-bg, --color-info-bg-strong
+       @check text --color-text on --color-success-bg, --color-warning-bg, --color-danger-bg, --color-info-bg
+       @check text --color-text-secondary on --color-success-bg, --color-warning-bg, --color-danger-bg, --color-info-bg
+       @check text --color-text-on-accent on --color-danger-solid, --color-danger-solid-hover, --color-danger-solid-pressed
+       @check ui --color-success on --color-surface, --color-bg
+       @check ui --color-danger on --color-surface, --color-bg, --color-danger-bg
+       @check ui --color-info on --color-surface, --color-bg
+       @check soft --color-warning on --color-surface, --color-bg
+       @check soft --color-success on --color-success-bg
+       @check soft --color-warning on --color-warning-bg
+       @check info --color-success-border on --color-surface
+       @check info --color-warning-border on --color-surface
+       @check info --color-danger-border on --color-surface */
+
+    /* ------------------------------------------------------------------
+       7. PATIENT STATUS  (always dot glyph + word)
+          active   = filled dot, green family
+          inactive = hollow ring, neutral grey
+          deceased = filled dot, quiet slate. Never red, never an alarm.
+       ------------------------------------------------------------------ */
+    --color-patient-active-dot:    var(--green-500);
+    --color-patient-active-ink:    var(--green-700);
+    --color-patient-active-bg:     var(--green-50);
+    --color-patient-inactive-dot:  var(--gray-550);
+    --color-patient-inactive-ink:  var(--gray-700);
+    --color-patient-inactive-bg:   var(--gray-75);
+    --color-patient-deceased-dot:  var(--slate-500);
+    --color-patient-deceased-ink:  var(--slate-700);
+    --color-patient-deceased-bg:   var(--slate-100);
+    /* read-only badge ("Tik peržiūra") and neutral tags reuse slate */
+    --color-tag-neutral-ink: var(--slate-700);
+    --color-tag-neutral-bg:  var(--slate-50);
+
+    /* @group Patient status
+       @check text --color-patient-active-ink on --color-patient-active-bg, --color-surface, --color-bg
+       @check text --color-patient-inactive-ink on --color-patient-inactive-bg, --color-surface, --color-bg
+       @check text --color-patient-deceased-ink on --color-patient-deceased-bg, --color-surface, --color-bg
+       @check text --color-tag-neutral-ink on --color-tag-neutral-bg, --color-surface-sunken
+       @check ui --color-patient-active-dot on --color-patient-active-bg, --color-surface
+       @check ui --color-patient-inactive-dot on --color-patient-inactive-bg, --color-surface
+       @check ui --color-patient-deceased-dot on --color-patient-deceased-bg, --color-surface */
+
+    /* ------------------------------------------------------------------
+       8. LARS CATEGORY  (No LARS 0-20 / Minor 21-29 / Major 30-42)
+          Muted green / amber / brick. Paired, always: the word ("No LARS",
+          "Minor LARS", "Major LARS") + 3 severity pips filled 1/2/3.
+          "No score yet" = grey, 3 hollow pips.
+       ------------------------------------------------------------------ */
+    --color-lars-none:          var(--green-500);
+    --color-lars-none-ink:      var(--green-700);
+    --color-lars-none-bg:       var(--green-50);
+    --color-lars-none-border:   var(--green-200);
+    --color-lars-minor:         var(--amber-500);
+    --color-lars-minor-ink:     var(--amber-700);
+    --color-lars-minor-bg:      var(--amber-50);
+    --color-lars-minor-border:  var(--amber-200);
+    --color-lars-major:         var(--red-500);
+    --color-lars-major-ink:     var(--red-500);
+    --color-lars-major-bg:      var(--red-50);
+    --color-lars-major-border:  var(--red-200);
+    --color-lars-unknown:       var(--gray-400);
+    --color-lars-unknown-ink:   var(--gray-700);
+    --color-lars-unknown-bg:    var(--gray-75);
+    --color-lars-pip-empty:     var(--gray-200);   /* unfilled pip */
+
+    /* Chart bands behind the LARS line (solid equivalents of a low-alpha
+       wash, so ECharts markArea and the CSS agree exactly). */
+    --viz-band-lars-none:  #edf7f4;   /* = --green-500 at 8% over white  */
+    --viz-band-lars-minor: #faf2e4;   /* = --amber-500 at 12% over white */
+    --viz-band-lars-major: #faf1f1;   /* = --red-500 at 7% over white    */
+
+    /* @group LARS category
+       @check text --color-lars-none-ink on --color-lars-none-bg, --color-surface, --viz-band-lars-none
+       @check text --color-lars-minor-ink on --color-lars-minor-bg, --color-surface, --viz-band-lars-minor
+       @check text --color-lars-major-ink on --color-lars-major-bg, --color-surface, --viz-band-lars-major
+       @check text --color-lars-unknown-ink on --color-lars-unknown-bg, --color-surface
+       @check ui --color-lars-none on --color-surface, --color-lars-none-bg
+       @check ui --color-lars-major on --color-surface, --color-lars-major-bg
+       @check soft --color-lars-minor on --color-surface, --color-lars-minor-bg
+       @check soft --color-lars-unknown on --color-surface
+       @check ui --viz-1 on --viz-band-lars-none, --viz-band-lars-minor, --viz-band-lars-major
+       @check text --viz-axis-label on --viz-band-lars-none, --viz-band-lars-minor, --viz-band-lars-major
+       @cvd all LARS marks (donut / stacked share, every pair can touch): --color-lars-none, --color-lars-minor, --color-lars-major
+       @cvd all LARS marks + no-score grey: --color-lars-none, --color-lars-minor, --color-lars-major, --color-lars-unknown */
+
+    /* ------------------------------------------------------------------
+       9. EQ-5D-5L LEVELS 1..5  (ordinal, one hue: light = no problems,
+          dark = extreme problems). The level number is printed in every
+          cell; use the matching -ink for it.
+       ------------------------------------------------------------------ */
+    --viz-eq-1: var(--indigo-300);
+    --viz-eq-2: var(--indigo-400);
+    --viz-eq-3: var(--indigo-500);
+    --viz-eq-4: var(--indigo-600);
+    --viz-eq-5: var(--indigo-700);
+    --viz-eq-1-ink: var(--gray-900);
+    --viz-eq-2-ink: var(--gray-900);
+    --viz-eq-3-ink: var(--gray-900);
+    --viz-eq-4-ink: var(--gray-0);
+    --viz-eq-5-ink: var(--gray-0);
+
+    /* @group EQ-5D-5L levels
+       @check text --viz-eq-1-ink on --viz-eq-1
+       @check text --viz-eq-2-ink on --viz-eq-2
+       @check text --viz-eq-3-ink on --viz-eq-3
+       @check text --viz-eq-4-ink on --viz-eq-4
+       @check text --viz-eq-5-ink on --viz-eq-5
+       @check soft --viz-eq-1 on --color-surface
+       @ordinal EQ-5D levels 1-5: --viz-eq-1, --viz-eq-2, --viz-eq-3, --viz-eq-4, --viz-eq-5 */
+
+    /* ------------------------------------------------------------------
+       10. ADHERENCE (questionnaire completion): good / partial / poor.
+           Always shown as "77 %" text + thin meter; "poor" adds an alert
+           icon in --color-adherence-poor-ink and the word.
+           (Thresholds belong to the data spec, not to this file.)
+       ------------------------------------------------------------------ */
+    --color-adherence-good:         var(--green-500);
+    --color-adherence-good-ink:     var(--green-700);
+    --color-adherence-partial:      var(--amber-500);
+    --color-adherence-partial-ink:  var(--amber-700);
+    --color-adherence-poor:         var(--red-500);
+    --color-adherence-poor-ink:     var(--red-500);
+    --color-adherence-track:        var(--gray-100);
+
+    /* @group Adherence
+       @check text --color-adherence-good-ink on --color-surface, --color-row-hover@--color-surface, --color-selected
+       @check text --color-adherence-partial-ink on --color-surface, --color-row-hover@--color-surface, --color-selected
+       @check text --color-adherence-poor-ink on --color-surface, --color-row-hover@--color-surface, --color-selected
+       @check soft --color-adherence-good on --color-adherence-track
+       @check soft --color-adherence-partial on --color-surface
+       @check ui --color-adherence-poor on --color-adherence-track */
+
+    /* ------------------------------------------------------------------
+       11. DATA VIZ
+       ------------------------------------------------------------------ */
+    /* 11a Categorical — identity only, fixed order, never cycled.
+       Line / bar / stacked charts: up to 8 series (adjacent-safe).
+       Scatter / small multiples / calendars (any two can touch): max 3 (slots 1-3). */
+    --viz-1: var(--cat-indigo);
+    --viz-2: var(--cat-cyan);
+    --viz-3: var(--cat-orange);
+    --viz-4: var(--cat-magenta);
+    --viz-5: var(--cat-olive);
+    --viz-6: var(--cat-purple);
+    --viz-7: var(--cat-sky);
+    --viz-8: var(--cat-rose);
+
+    /* Metric identity across cards (colour follows the metric everywhere). */
+    --viz-metric-lars:    var(--viz-1);
+    --viz-metric-eq5d:    var(--viz-2);
+    --viz-metric-monthly: var(--viz-3);
+    --viz-metric-diary:   var(--viz-4);
+    --viz-metric-steps:   var(--viz-5);
+    /* Adherence calendar: a normal diary day is a neutral grey that reaches 3:1 on white (WCAG 1.4.11:
+       done vs missed is the adherence signal); the rarer questionnaires use the three all-pairs-safe slots.
+       A day without any questionnaire is a hollow cell with a 1 px dashed --viz-cal-missed-border (also >= 3:1). */
+    --viz-cal-daily:   var(--gray-700);   /* gray-550 reaches 3:1 but sits 5.2 from the EQ cyan under protanopia; gray-700 passes all pairs */
+    --viz-cal-missed-border: var(--gray-550);
+    --viz-cal-weekly:  var(--viz-1);
+    --viz-cal-eq5d:    var(--viz-2);
+    --viz-cal-monthly: var(--viz-3);
+
+    /* @group Data viz — categorical
+       @check ui --viz-1 on --color-surface
+       @check ui --viz-2 on --color-surface
+       @check ui --viz-3 on --color-surface
+       @check ui --viz-4 on --color-surface
+       @check ui --viz-5 on --color-surface
+       @check ui --viz-6 on --color-surface
+       @check ui --viz-7 on --color-surface
+       @check ui --viz-8 on --color-surface
+       @cvd adjacent Categorical 1-8 (lines, bars, stacks): --viz-1, --viz-2, --viz-3, --viz-4, --viz-5, --viz-6, --viz-7, --viz-8
+       @cvd all Categorical 1-3 (scatter, small multiples): --viz-1, --viz-2, --viz-3
+       @cvd all Adherence calendar: --viz-cal-daily, --viz-cal-weekly, --viz-cal-eq5d, --viz-cal-monthly
+       @check ui --viz-cal-daily on --color-surface
+       @check ui --viz-cal-missed-border on --color-surface
+       @cvd info Categorical vs status (unsimulated, should stay far apart): --viz-1, --viz-2, --viz-3, --viz-4, --viz-5 | --color-success, --color-warning, --color-danger */
+
+    /* 11b Sequential — magnitude (calendar heatmap of stool count, diet
+       heat-table). One hue, light -> dark. "0" is a real value and gets
+       --viz-seq-100; a day with NO entry is not a colour: hollow cell with a
+       dashed --viz-empty-border. */
+    --viz-seq-100: var(--indigo-100);
+    --viz-seq-200: var(--indigo-200);
+    --viz-seq-300: var(--indigo-300);
+    --viz-seq-400: var(--indigo-400);
+    --viz-seq-500: var(--indigo-500);
+    --viz-seq-600: var(--indigo-600);
+    --viz-seq-700: var(--indigo-700);
+    --viz-seq-800: var(--indigo-800);
+    --viz-seq-900: var(--indigo-900);
+    --viz-seq-ink-light: var(--gray-900);  /* numbers on steps 100-500 */
+    --viz-seq-ink-dark:  var(--gray-0);    /* numbers on steps 600-900 */
+
+    /* @group Data viz — sequential
+       @check text --viz-seq-ink-light on --viz-seq-100, --viz-seq-200, --viz-seq-300, --viz-seq-400, --viz-seq-500
+       @check text --viz-seq-ink-dark on --viz-seq-600, --viz-seq-700, --viz-seq-800, --viz-seq-900
+       @ordinal Sequential 100-900 (monotone check; light end may recede): --viz-seq-100, --viz-seq-200, --viz-seq-300, --viz-seq-400, --viz-seq-500, --viz-seq-600, --viz-seq-700, --viz-seq-800, --viz-seq-900
+       @cvd info Empty cell vs lowest steps: --viz-empty | --viz-seq-100, --viz-seq-200 */
+
+    /* 11c Diverging — Bristol stool form 1..7 (hard <- normal -> loose).
+       Bars also carry the type number and zone word. */
+    --viz-bristol-1: var(--bristol-hard-strong);
+    --viz-bristol-2: var(--bristol-hard);
+    --viz-bristol-3: var(--bristol-neutral);
+    --viz-bristol-4: var(--bristol-neutral);
+    --viz-bristol-5: var(--bristol-neutral);
+    --viz-bristol-6: var(--bristol-loose);
+    --viz-bristol-7: var(--bristol-loose-strong);
+    --viz-bristol-hard-zone:   var(--bristol-hard);       /* zones donut */
+    --viz-bristol-normal-zone: var(--bristol-neutral);
+    --viz-bristol-loose-zone:  var(--bristol-loose);
+
+    /* @group Data viz — Bristol diverging
+       @check ui --viz-bristol-1 on --color-surface
+       @check ui --viz-bristol-2 on --color-surface
+       @check soft --viz-bristol-3 on --color-surface
+       @check ui --viz-bristol-6 on --color-surface
+       @check ui --viz-bristol-7 on --color-surface
+       @cvd adjacent Bristol 1,2,neutral,6,7: --viz-bristol-1, --viz-bristol-2, --viz-bristol-3, --viz-bristol-6, --viz-bristol-7
+       @cvd all Bristol zones donut: --viz-bristol-hard-zone, --viz-bristol-normal-zone, --viz-bristol-loose-zone
+       @ordinal Bristol hard arm: --viz-bristol-2, --viz-bristol-1
+       @ordinal Bristol loose arm: --viz-bristol-6, --viz-bristol-7 */
+
+    /* 11d Chart chrome */
+    --viz-surface:        var(--color-surface);
+    --viz-grid:           var(--gray-100);   /* 1px horizontal lines only */
+    --viz-axis:           var(--gray-300);   /* baseline */
+    --viz-zero:           var(--gray-700);   /* 2 px stub of a real zero bar: the only mark that separates 0 from missing */
+    --viz-axis-label:     var(--gray-700);   /* tick labels, axis names */
+    --viz-crosshair:      var(--gray-500);
+    --viz-ref-line:       var(--gray-700);   /* dashed "First 39", "Pre-op 12" */
+    --viz-band-neutral:   rgb(118 118 128 / 0.10); /* VAS +/-7 band, IQR band */
+    --viz-tooltip-bg:     var(--gray-0);
+    --viz-tooltip-border: rgb(0 0 0 / 0.08);
+    --viz-tooltip-text:   var(--gray-900);
+    --viz-tooltip-text-secondary: var(--gray-700);
+    --viz-point-ring:     var(--gray-0);     /* 2px ring around points */
+    --viz-empty:          var(--gray-25);    /* heat-table cell with "-" */
+    --viz-empty-border:   var(--gray-300);   /* dashed outline of an empty cell */
+    --viz-other-questionnaire: var(--gray-500); /* small dot: another questionnaire that day */
+    --viz-highlight:      var(--color-accent);
+    --viz-dim-opacity:    0.30;              /* non-hovered series */
+    --viz-sparkline:      var(--gray-450);
+    --viz-sparkline-last: var(--color-accent);
+    --viz-sparkline-guide:var(--gray-100);
+
+    /* @group Data viz — chrome
+       @check text --viz-axis-label on --viz-surface, --color-bg, --viz-band-neutral@--viz-surface
+       @check text --viz-tooltip-text on --viz-tooltip-bg
+       @check text --viz-tooltip-text-secondary on --viz-tooltip-bg
+       @check text --viz-ref-line on --viz-surface
+       @check soft --viz-crosshair on --viz-surface
+       @check soft --viz-sparkline on --color-surface, --color-row-hover@--color-surface, --color-selected
+       @check ui --viz-sparkline-last on --color-surface, --color-row-hover@--color-surface, --color-selected
+       @check ui --viz-1 on --viz-band-neutral@--viz-surface
+       @check ui --viz-2 on --viz-band-neutral@--viz-surface
+       @check info --viz-grid on --viz-surface
+       @check info --viz-axis on --viz-surface
+       @check ui --viz-zero on --viz-surface
+       @check info --viz-empty-border on --viz-surface */
+
+    /* ------------------------------------------------------------------
+       12. ELEVATION (colour-bearing shadows). Hairline-as-shadow + the
+           Flutter card shadow (0 8 24 rgba(0,0,0,.05)) so cards match the app.
+       ------------------------------------------------------------------ */
+    --elevation-card:   0 0 0 1px rgb(0 0 0 / 0.04), 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.05);
+    --elevation-raised: 0 0 0 1px rgb(0 0 0 / 0.05), 0 2px 4px rgb(0 0 0 / 0.04), 0 14px 36px rgb(0 0 0 / 0.08);
+    --elevation-menu:   0 0 0 1px rgb(0 0 0 / 0.06), 0 12px 32px -4px rgb(20 20 40 / 0.16);
+    --elevation-modal:  0 0 0 1px rgb(0 0 0 / 0.06), 0 24px 64px -12px rgb(20 20 40 / 0.28);
+    --elevation-float:  inset 0 1px 0 var(--color-glass-rim), inset 0 -1px 0 var(--color-glass-rim-soft), 0 0 0 1px var(--color-glass-edge), 0 10px 30px -6px rgb(30 30 60 / 0.18);
+    --shadow-action:       0 1px 2px rgb(47 111 224 / 0.25), 0 6px 16px -4px rgb(122 79 232 / 0.35);
+    --shadow-action-hover: 0 1px 2px rgb(47 111 224 / 0.30), 0 8px 20px -4px rgb(122 79 232 / 0.42);
+    --shadow-segment-thumb: 0 0 0 0.5px rgb(0 0 0 / 0.04), 0 3px 8px rgb(0 0 0 / 0.12), 0 3px 1px rgb(0 0 0 / 0.04);
+  }
+
+
+  /* ==================================================================
+     15. NON-COLOUR TOKENS (added by the design lead, DESIGN-SPEC.md §2)
+         Type, spacing, radii, layout, z-index and motion. Same rule as
+         above: components use these names, never raw values.
+         Names avoid every style.css custom property (--font-sans,
+         --radius, --radius-lg, --text-*, --shadow-*), so this file stays
+         safe on login.html / doctor-setup.html next to style.css.
+     ================================================================== */
+  :root {
+    /* 15a Fonts. System fonts only — no web font is downloaded (GDPR:
+       hospital PCs must not call Google; native feel on every OS).
+       Macs/iPads get SF Pro, Windows 11 Segoe UI Variable, older Windows
+       Segoe UI, Android/Linux Roboto. --font-display is for type >= 20 px
+       (titles, KPI values, takeaways): SF Pro Display / Segoe UI Variable
+       Display where installed. Numbers that sit in columns or count up
+       set font-variant-numeric: tabular-nums. */
+    --font-ui:      -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-display: "SF Pro Display", "Segoe UI Variable Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Roboto Mono", "Liberation Mono", monospace;
+
+    /* 15b Type scale (macOS 13 pt body -> 14 px web base). Shorthand
+       values for `font:`; pair each with its --track-* letter-spacing. */
+    --type-caption:  500 12px/16px var(--font-ui);  --track-caption: 0;
+    --type-footnote: 400 13px/18px var(--font-ui);  --track-footnote: -0.003em;
+    --type-body:     400 14px/20px var(--font-ui);  --track-body: -0.006em;
+    --type-callout:  500 15px/20px var(--font-ui);  --track-callout: -0.009em;
+    --type-headline: 600 17px/22px var(--font-ui);  --track-headline: -0.022em;
+    --type-title3:   600 20px/26px var(--font-display);  --track-title3: -0.017em;
+    --type-title2:   600 24px/30px var(--font-display);  --track-title2: -0.019em;
+    --type-title1:   700 28px/34px var(--font-display);  --track-title1: -0.021em;
+    --type-kpi:      600 34px/40px var(--font-display);  --track-kpi: -0.026em;
+    --type-kpi-sm:   600 22px/28px var(--font-display);  --track-kpi-sm: -0.02em;
+    --type-takeaway: 600 28px/32px var(--font-display);  --track-takeaway: -0.024em;
+    --type-code:     500 13px/18px var(--font-mono);   /* patient codes: tabular + slashed zero */
+    --type-axis:     400 11px/14px var(--font-ui);     /* chart ticks (ECharts reads 11) */
+
+    /* 15c Spacing (4 px base). Inside a group 8-16, between groups 24-40. */
+    --space-0: 0;   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+    --space-5: 20px; --space-6: 24px; --space-7: 28px; --space-8: 32px; --space-10: 40px;
+    --space-12: 48px; --space-16: 64px;
+
+    /* 15d Radii. Concentric rule: inner = outer - padding. */
+    --r-xs: 6px;    /* tags, skeleton bits, heat cells          */
+    --r-sm: 8px;    /* inner controls, segmented thumb, menu item*/
+    --r-md: 12px;   /* menus' inner items, non-pill buttons, alerts */
+    --r-field: 10px; /* text fields, selects, registry choice groups (38 px tall: 10 reads calmer than 12) */
+    --r-lg: 18px;   /* cards, KPI tiles                          */
+    --r-xl: 22px;   /* dialogs, sheets (= Flutter card radius)   */
+    --r-pill: 999px;
+
+    /* 15e Layout */
+    --layout-topbar-h: 56px;
+    --layout-page-max: 1376px;
+    --layout-gutter: 32px;        /* 24 at <1280, 16 at <768 */
+    --layout-gap: 20px;           /* 16 at <1024, 12 at <768 */
+    --layout-form-nav-w: 236px;   /* registry section index  */
+    --layout-row-h: 56px;         /* iLARS list rows         */
+    --layout-row-h-dense: 40px;   /* registry list rows      */
+    --layout-control-h: 36px;     /* buttons, segmented --lg */
+    --layout-field-h: 38px;       /* text fields, selects, registry choice groups */
+    --layout-savebar-h: 56px;     /* registry floating save bar (scroll-padding-bottom) */
+    --layout-control-h-sm: 30px;
+    --layout-target-min: 24px;    /* WCAG 2.2 SC 2.5.8 floor */
+
+    /* 15f Z-index scale (dialogs use the native top layer, no z-index) */
+    --z-sticky-head: 2;   /* table header inside its scroll box     */
+    --z-sticky-col: 3;    /* sticky first column                    */
+    --z-sticky-corner: 4; /* header cell of the sticky column       */
+    --z-range-bar: 30;    /* floating range / scope bar             */
+    --z-savebar: 40;      /* registry floating save bar             */
+    --z-topbar: 50;
+    --z-popover: 60;      /* menus, column filter, export menu      */
+    --z-tooltip: 70;
+    --z-toast: 80;
+    --z-boot: 90;         /* boot gate card                         */
+
+    /* 15g Motion. Exits ~70 % of entrances. Only transform/opacity
+       animate. Durations are the CSS values; ECharts uses chart-*. */
+    --dur-press: 120ms;   /* :active scale, row hover                */
+    --dur-fade: 200ms;    /* colour, opacity, tooltips               */
+    --dur-exit: 160ms;    /* out-going cross-fades                   */
+    --dur-ui: 320ms;      /* view switch, segmented thumb            */
+    --dur-sheet: 480ms;   /* dialog / sheet open                     */
+    --dur-chart: 500ms;   /* ECharts animationDuration               */
+    --dur-chart-update: 450ms;
+    --dur-count: 900ms;   /* KPI count-up                            */
+    --stagger: 40ms;      /* per item; JS caps the index at 10       */
+    --move: 10px;         /* reveal distance; 0 under reduced motion */
+    --skeleton-delay: 250ms;  /* skeleton appears only after this    */
+    --skeleton-min: 400ms;    /* ...and then stays at least this     */
+    --ease-standard: cubic-bezier(.4, 0, .6, 1);   /* fades, colour  */
+    --ease-out: cubic-bezier(.22, 1, .36, 1);      /* entrances      */
+    --ease-in: cubic-bezier(.4, 0, 1, 1);          /* exits          */
+    /* Apple springs (SwiftUI .smooth / .snappy / .bouncy) — cubic
+       fallbacks here, exact linear() curves in the @supports block. */
+    --spring-smooth: cubic-bezier(.28, .4, .08, 1);
+    --spring-snappy: cubic-bezier(.28, .4, .08, 1);
+    --spring-bouncy: cubic-bezier(.3, 1.3, .5, 1);
+  }
+
+  @supports (transition-timing-function: linear(0, 1)) {
+    :root {
+      --spring-smooth: linear(0, 0.099, 0.285, 0.47, 0.624, 0.741, 0.825, 0.884, 0.924, 0.951, 0.968, 0.98, 0.987, 0.992, 0.995, 0.997, 1);
+      --spring-snappy: linear(0, 0.054, 0.177, 0.324, 0.47, 0.6, 0.71, 0.797, 0.864, 0.913, 0.948, 0.972, 0.988, 0.997, 1.003, 1.005, 1.006, 1.006, 1.005, 1.005, 1.004, 1.003, 1);
+      --spring-bouncy: linear(0, 0.046, 0.156, 0.297, 0.446, 0.587, 0.712, 0.815, 0.896, 0.956, 0.998, 1.025, 1.039, 1.045, 1.045, 1.041, 1.035, 1.029, 1.022, 1.016, 1.011, 1.006, 1.003, 1.001, 0.999, 0.998, 0.998, 0.998, 1);
+    }
+  }
+
+  /* Breakpoints (DESIGN-SPEC.md §4): desktop >= 1280, laptop 1024-1279,
+     tablet 768-1023, phone < 768 (reference width 390). */
+  @media (max-width: 1279px) { :root { --layout-gutter: 24px; } }
+  @media (max-width: 1023px) { :root { --layout-gap: 16px; } }
+  @media (max-width: 767px)  {
+    :root {
+      --layout-gutter: 16px; --layout-gap: 12px;
+      --type-title1: 700 24px/30px var(--font-display);
+      --type-kpi: 600 28px/34px var(--font-display);
+      --type-takeaway: 600 24px/28px var(--font-display);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) { :root { --move: 0px; --stagger: 0ms; } }
+
+  /* ------------------------------------------------------------------
+     13. INCREASED CONTRAST (macOS/Windows "increase contrast").
+         Glass becomes solid, secondary text darkens, lines strengthen.
+     ------------------------------------------------------------------ */
+  @media (prefers-contrast: more) {
+    :root {
+      --color-text-secondary:  var(--gray-800);
+      --color-text-tertiary:   var(--gray-700);
+      --color-text-placeholder:var(--gray-800);
+      --color-hairline:        rgb(60 60 67 / 0.36);
+      --color-separator:       var(--gray-400);
+      --color-border:          var(--gray-500);
+      --color-border-control:  var(--gray-700);
+      --color-fill:            rgb(118 118 128 / 0.20);
+      --color-fill-hover:      rgb(118 118 128 / 0.26);
+      --color-fill-pressed:    rgb(118 118 128 / 0.32);
+      --color-accent:          var(--indigo-700);
+      --color-accent-hover:    var(--indigo-800);
+      --color-focus-ring:      var(--indigo-700);
+      --color-glass-bar:       var(--gray-0);
+      --color-glass-menu:      var(--gray-0);
+      --color-glass-float-top: var(--gray-0);
+      --color-glass-float-bottom: var(--gray-0);
+      --color-glass-dialog:    var(--gray-0);
+      --viz-grid:              var(--gray-200);
+      --viz-axis:              var(--gray-500);
+    }
+  }
+
+  /* Reduced transparency (not Baseline yet: Safari ignores it, so the solid
+     fallbacks above are also the default where backdrop-filter is missing). */
+  @media (prefers-reduced-transparency: reduce) {
+    :root {
+      --color-glass-bar:          var(--color-glass-bar-solid);
+      --color-glass-menu:         var(--gray-0);
+      --color-glass-float-top:    var(--gray-0);
+      --color-glass-float-bottom: var(--gray-0);
+      --color-glass-dialog:       var(--gray-0);
+      --color-backdrop:           var(--color-backdrop-solid);
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     14. DARK THEME — NOT PART OF v1. Structure only.
+     A dark theme redefines the semantic tokens (sections 2-11) under
+     :root[data-theme="dark"] and @media (prefers-color-scheme: dark)
+     guarded by :root:not([data-theme="light"]). Primitives stay as they
+     are; dark steps are added as new primitives. Data-viz colours must be
+     re-stepped and re-validated against the dark surface (see COLOR.md §9).
+     Example of the shape (values are placeholders, not validated):
+       :root[data-theme="dark"] {
+         color-scheme: dark;
+         --color-bg: #000000; --color-surface: #1c1c1e;
+         --color-text: #f5f5f7; --color-text-secondary: #aeaeb2; ...
+       }
+     ------------------------------------------------------------------ */
+}

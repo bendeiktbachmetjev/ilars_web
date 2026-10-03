@@ -1,0 +1,52 @@
+/* iLARS doctor portal — motion layer. Motion explains a change of state; nothing loops except loaders.
+   Same-document View Transitions only (doctor.html is one hash-routed page). Full reduced-motion support.
+   DESIGN-SPEC §5. */
+@layer motion {
+  @keyframes ui-spin { to { transform: rotate(360deg); } }
+  @keyframes ui-fade-in { from { opacity: 0; } }
+  @keyframes ui-fade-out { to { opacity: 0; } }
+  @keyframes ui-skel-sweep { to { transform: translateX(100%); } }
+  @keyframes ui-reveal { from { opacity: 0; transform: translateY(var(--move)); } }
+  @keyframes ui-pop-in { from { opacity: 0; transform: translateY(-4px) scale(.97); } }
+  @keyframes ui-toast-in { from { opacity: 0; transform: translateY(16px) scale(.96); } }
+  @keyframes ui-toast-out { to { opacity: 0; transform: translateY(8px); } }
+
+  /* staggered first-render reveal: JS sets --i (index, capped at 10) once per view load */
+  .ui-reveal { animation: ui-reveal 520ms var(--spring-smooth) both; animation-delay: calc(min(var(--i, 0), 10) * var(--stagger)); }
+  .ui-menu.is-open, .ui-popover.is-open, .reg-col-pop, .lang-dropdown.is-open { animation: ui-pop-in 180ms var(--ease-out) both; }
+
+  /* ---- View Transitions (same-document, started by ui/motion.js transition(kind)) ----
+     The top bar never moves; the page content slides by direction; a filter swap cross-fades only the list. */
+  ::view-transition-group(topbar) { animation: none; }
+  ::view-transition-old(main), ::view-transition-new(main) { animation-duration: var(--dur-ui); }
+  :root[data-vt="forward"]::view-transition-old(main) { animation: var(--dur-exit) var(--ease-in) both vt-out-left; }
+  :root[data-vt="forward"]::view-transition-new(main) { animation: var(--dur-ui) var(--spring-smooth) both vt-in-right; }
+  :root[data-vt="back"]::view-transition-old(main) { animation: var(--dur-exit) var(--ease-in) both vt-out-right; }
+  :root[data-vt="back"]::view-transition-new(main) { animation: var(--dur-ui) var(--spring-smooth) both vt-in-left; }
+  :root[data-vt="swap"]::view-transition-old(main) { animation: var(--dur-exit) var(--ease-in) both ui-fade-out; }
+  :root[data-vt="swap"]::view-transition-new(main) { animation: 240ms var(--ease-out) both ui-fade-in; }
+  /* list-only swap (status filter, chips, sort): page stays still, the list card cross-fades */
+  :root[data-vt="list"]::view-transition-old(main), :root[data-vt="list"]::view-transition-new(main) { animation: none; }
+  :root[data-vt="list"]::view-transition-old(list) { animation: 140ms var(--ease-in) both ui-fade-out; }
+  :root[data-vt="list"]::view-transition-new(list) { animation: 240ms var(--ease-out) both ui-fade-in; }
+  /* shared element: the clicked row's name morphs into the patient header */
+  ::view-transition-group(pt-name) { animation-duration: 420ms; animation-timing-function: var(--spring-smooth); }
+  @keyframes vt-out-left { to { opacity: 0; transform: translateX(-12px); } }
+  @keyframes vt-out-right { to { opacity: 0; transform: translateX(12px); } }
+  @keyframes vt-in-right { from { opacity: 0; transform: translateX(16px); } }
+  @keyframes vt-in-left { from { opacity: 0; transform: translateX(-16px); } }
+
+  /* ---- reduced motion: reduce, don't break. Keep short fades, drop movement/scale/shimmer/count-up. ---- */
+  @media (prefers-reduced-motion: reduce) {
+    .ui-reveal { animation: ui-fade-in 160ms linear both; animation-delay: 0s; }
+    .ui-skel::after { animation: none; display: none; }
+    ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+    .ui-seg::before, .ui-switch__track::after { transition-duration: 1ms; }
+    .ui-btn:active, .ui-chip:active, .ui-icon-btn:active { transform: none !important; }
+    dialog.ui-dialog, dialog.ui-dialog:not([open]) { transform: none; transition-property: opacity, display, overlay; }
+    @starting-style { dialog.ui-dialog[open] { transform: none; } }
+    .ui-toast { animation: ui-fade-in 160ms linear both; }
+    .ui-menu.is-open, .ui-popover.is-open, .reg-col-pop, .lang-dropdown.is-open { animation: ui-fade-in 120ms linear both; }
+    html { scroll-behavior: auto !important; }
+  }
+}

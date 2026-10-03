@@ -1,0 +1,46 @@
+/* Boot gate: the app shell paints at once; a small glass card says what is happening.
+   Replaces html{opacity:0} + body:not(.profile-checked) > * {display:none}. DESIGN-SPEC §3.17, §4.1. */
+@layer views {
+  /* until the gate passes, the views stay invisible (but the shell, the skeleton and the card are painted) */
+  body:not(.profile-checked) .app-page > .view { display: none !important; }
+  body:not(.profile-checked) .app-topbar__right, body:not(.profile-checked) .app-topbar__center { visibility: hidden; }
+  body.profile-checked .app-boot, body.profile-checked .app-boot-skeleton { display: none; }
+  /* language anti-flash: text-bearing parts wait for translations; layout and skeleton do not */
+  html.i18n-loading .app-boot__text, html.i18n-loading .app-page > .view { visibility: hidden; }
+
+  .app-boot { position: fixed; z-index: var(--z-boot); inset: var(--layout-topbar-h) 0 0; display: grid; place-items: center; pointer-events: none; }
+  .app-boot__card { pointer-events: auto; display: grid; justify-items: center; gap: 14px; width: min(340px, calc(100vw - 32px)); padding: 26px 30px 24px; border-radius: var(--r-xl); text-align: center; }
+  .app-boot__mark { position: relative; width: 52px; height: 52px; display: grid; place-items: center; }
+  .app-boot__mark .app-brand__mark { width: 36px; height: 36px; border-radius: 10px; }
+  .app-boot__ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, var(--brand-app-blue), var(--brand-app-violet), rgb(143 92 255 / 0) 70%);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px)); mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px));
+    animation: ui-spin 900ms linear infinite; }
+  .app-boot__title { font: var(--type-callout); letter-spacing: var(--track-callout); color: var(--color-text-on-glass); }
+  .app-boot__steps { list-style: none; display: grid; gap: 8px; text-align: left; font: 400 13px/18px var(--font-ui); color: var(--color-text-on-glass-secondary); }
+  .app-boot__steps li { display: flex; align-items: center; gap: 10px; }
+  .app-boot__steps .s { width: 16px; height: 16px; flex: none; display: grid; place-items: center; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--color-border-control); }
+  .app-boot__steps .is-done .s { background: var(--color-success-bg); box-shadow: none; color: var(--color-success-ink); }
+  .app-boot__steps .is-done .s .i { width: 11px; height: 11px; stroke-width: 3; }
+  .app-boot__steps li:not(.is-done) .s .i { display: none; }
+  .app-boot__steps .is-active .s { box-shadow: none; border: 2px solid var(--color-accent-border); border-top-color: var(--color-accent); animation: ui-spin 800ms linear infinite; }
+  .app-boot__steps .is-active { color: var(--color-text-on-glass); }
+  .app-boot__text { display: grid; gap: 12px; justify-items: center; }
+  .app-boot.is-error .app-boot__ring { animation: none; }
+  /* nothing is loading any more: the skeleton behind the error card stops shimmering */
+  body:has(.app-boot.is-error) .app-boot-skeleton .ui-skel::after { animation: none; display: none; }
+  .app-boot__text p { max-width: 260px; }
+  .app-boot__actions { display: flex; gap: 8px; margin-top: 4px; }
+  /* list-shaped skeleton behind the gate card (was 9 inline styles; DESIGN-SPEC principle 10) */
+  .app-boot-skeleton { opacity: .9; }
+  .app-skel-eyebrow { width: 220px; margin: 6px 0 10px; }
+  .app-skel-title { width: 200px; height: 30px; border-radius: 9px; }
+  .app-skel-sub { width: 320px; max-width: 100%; margin: 12px 0 26px; }
+  .app-skel-card { height: 520px; padding: 18px 20px; }
+  .app-skel-toolbar { display: flex; gap: 10px; margin-bottom: 22px; }
+  .app-skel-toolbar > .ui-skel { height: 30px; width: 300px; max-width: 60%; }
+  .app-skel-toolbar > .ui-skel + .ui-skel { width: 180px; max-width: 35%; }
+  .app-skel-lines { display: grid; gap: 22px; }
+  .app-skel-lines > :nth-child(6n+1) { width: 92%; } .app-skel-lines > :nth-child(6n+2) { width: 86%; } .app-skel-lines > :nth-child(6n+3) { width: 90%; }
+  .app-skel-lines > :nth-child(6n+4) { width: 80%; } .app-skel-lines > :nth-child(6n+5) { width: 88%; } .app-skel-lines > :nth-child(6n) { width: 84%; }
+  @media (prefers-reduced-motion: reduce) { .app-boot__ring { animation-duration: 2.4s; } .app-boot__steps .is-active .s { animation-duration: 2.4s; } }
+}
