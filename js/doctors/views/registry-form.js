@@ -168,7 +168,7 @@ class RegistryDetailView {
       input = `<input type="number" step="0.1" id="${id}" value="${this._esc(v)}" readonly class="reg-auto" title="Skaičiuojama automatiškai">`;
     } else if (f.type === 'int' || f.type === 'num') {
       const mm = (f.min !== undefined ? ` min="${f.min}"` : '') + (f.max !== undefined ? ` max="${f.max}"` : '');
-      input = `<input type="number" step="${f.type === 'num' ? '0.1' : '1'}"${mm} id="${id}" value="${this._esc(v)}" ${ro}>`;
+      input = `<input type="number" step="${f.step || (f.type === 'num' ? '0.1' : '1')}"${mm} id="${id}" value="${this._esc(v)}" ${ro}>`;
     } else {
       input = `<input type="text" id="${id}" value="${this._esc(v)}" ${ro}>`;
     }
