@@ -542,6 +542,24 @@ body {
   accent-color: #667eea;
 }
 
+/* Slider the patient has not touched yet: no value is recorded */
+input[type="range"].app-range-unset {
+  accent-color: #c7c7cc;
+  opacity: 0.6;
+}
+
+/* Question left unanswered after a blocked submit */
+.app-form-group.app-missing {
+  outline: 2px solid #e53935;
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+.app-form-group.app-missing > label,
+.app-form-group.app-missing .app-form-label-wrap label {
+  color: #e53935;
+}
+
 /* Score card */
 .app-form-score {
   margin: 1.5rem 0;
