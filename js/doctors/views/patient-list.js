@@ -8,11 +8,13 @@
           ILARS_VIEW_MODELS            data/cohort-model.js (scope, counts, filters, sorts — tested)
    Contract (tabs.js / app.js): window.PatientListView = new PatientListView(api); .show('patients', {restore}) on
    every #patients route render; .load(force) re-reads the list (force = the cached request is dropped first).
-   State: sessionStorage.ilars_pl_state = {status, attention, sort}; localStorage.ilars_scope (shared with overview.js).
+   State: sessionStorage.ilars_pl_state = {status, attention, sort}; localStorage.ilars_scope_v2 (shared with overview.js).
    Shared with overview.js and the patient page: PatientListView.data(), PatientListView.readScope() and the cell
    helpers larsChip() / attnChips() (global functions, as in the golden reference).
    Rule: untrusted text (names, codes, API strings) reaches HTML only through ILARS_UI.esc / fmtCode / textContent. */
 /* global ILARS_UI, ILARS_DATA, ILARS_METRICS, ILARS_VIEW_MODELS, ILARS_CHART_OPTIONS, ILARS_CHARTS, OverviewView */
+// v2: the first redesign build saved an automatic "My patients" default under 'ilars_scope'; that value is ignored
+var SCOPE_KEY = 'ilars_scope_v2';
 class PatientListView {
   constructor(api) {
     this.api = api;
@@ -37,14 +39,13 @@ class PatientListView {
   /** 'mine' | 'all' | null (null = not chosen yet: the default follows the data, see scopeFor). */
   static readScope() {
     var s = null;
-    try { s = localStorage.getItem('ilars_scope'); } catch (e) { /* private mode */ }
+    try { s = localStorage.getItem(SCOPE_KEY); } catch (e) { /* private mode */ }
     return s === 'mine' || s === 'all' ? s : null;
   }
-  static writeScope(scope) { try { localStorage.setItem('ilars_scope', scope); } catch (e) { /* private mode */ } }
-  /** Default scope: "My patients" when the doctor has at least one own patient, else "All visible". */
-  static scopeFor(stored, rows, me) {
-    if (stored) return stored;
-    return (rows || []).some(function (r) { return me.doctor_code && r.doctor_code === me.doctor_code; }) ? 'mine' : 'all';
+  static writeScope(scope) { try { localStorage.setItem(SCOPE_KEY, scope); } catch (e) { /* private mode */ } }
+  /** Default scope: "All visible" (the doctor's own patients and the hospital's), as the portal always showed. */
+  static scopeFor(stored) {
+    return stored || 'all';
   }
   /** Overview "Show all N in the patient list": the list opens on Active with the attention toggle on. */
   static showAttentionOnly() {

@@ -6,7 +6,7 @@
    for the session and Registrations takes the full last row.
    Contract (tabs.js): window.OverviewView = new OverviewView(api); .load() on every #overview route render;
    .load(true) re-reads the list (after create patient).
-   Scope: the list's "My patients · All visible" control and storage (localStorage.ilars_scope).
+   Scope: the list's "My patients · All visible" control and storage (localStorage.ilars_scope_v2).
    Charts: ILARS_CHARTS.card + the ILARS_CHART_OPTIONS cohort builders (charts/cohort.js), no overrides. */
 /* global ILARS_UI, ILARS_DATA, ILARS_METRICS, ILARS_VIEW_MODELS, ILARS_CHART_OPTIONS, ILARS_CHARTS, PatientListView, larsChip, attnChips */
 class OverviewView {
