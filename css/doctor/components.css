@@ -19,6 +19,18 @@
   .ui-btn--primary { color: var(--color-text-on-accent); background: var(--gradient-action); box-shadow: var(--shadow-action); }
   .ui-btn--primary:hover { color: var(--color-text-on-accent); background: var(--gradient-action-hover); box-shadow: var(--shadow-action-hover); }
   .ui-btn--primary:active { background: var(--gradient-action-pressed); }
+  /* solid primary (lead decision: the gradient stays on the page-level primary only, at tablet and desktop widths).
+     Solid accent: small primaries inside popovers (registry filter "Taikyti"), every dialog primary at every width
+     (one look through a whole flow: create patient -> Done; replaces "dialog confirm" in DESIGN-SPEC 3.3) and the
+     full-width phone page primary. Kept above the :disabled rule, so a disabled button still looks disabled. */
+  :where(.ui-popover, .ui-menu, .reg-col-pop, .ui-dialog) .ui-btn--primary { background: var(--color-accent); box-shadow: none; }
+  :where(.ui-popover, .ui-menu, .reg-col-pop, .ui-dialog) .ui-btn--primary:hover { background: var(--color-accent-hover); box-shadow: none; }
+  :where(.ui-popover, .ui-menu, .reg-col-pop, .ui-dialog) .ui-btn--primary:active { background: var(--color-accent-pressed); }
+  @media (max-width: 767px) {
+    :where(.app-page-head__actions) .ui-btn--primary { background: var(--color-accent); box-shadow: none; }
+    :where(.app-page-head__actions) .ui-btn--primary:hover { background: var(--color-accent-hover); box-shadow: none; }
+    :where(.app-page-head__actions) .ui-btn--primary:active { background: var(--color-accent-pressed); }
+  }
   .ui-btn--secondary { color: var(--color-text); background: var(--color-surface); box-shadow: 0 0 0 1px var(--color-border), 0 1px 2px rgb(0 0 0 / .04); }
   .ui-btn--secondary:hover { color: var(--color-text); background: var(--color-surface-subtle); box-shadow: 0 0 0 1px var(--color-border-strong), 0 1px 2px rgb(0 0 0 / .05); }
   .ui-btn--fill { color: var(--color-text); background: var(--color-fill); }
@@ -99,6 +111,16 @@
   #table-mode-toggle:has(> button:nth-child(2).is-active) { --i: 1; }
   .app-topbar .ui-seg > button { color: var(--color-text-on-glass-secondary); }
   .app-topbar .ui-seg > button.is-active, .app-topbar .ui-seg > button[aria-pressed="true"] { color: var(--color-text-on-glass); }
+  /* phone: a smaller switch, so the brand mark and the account button keep their room (here, not in layout.css:
+     the layout layer loses to .ui-seg--lg in this layer); under 360 px icon-free, so nothing overlaps at 320 px */
+  @media (max-width: 767px) {
+    .app-topbar .ui-seg--lg { --h: 34px; }
+    .app-topbar .ui-seg--lg > button { padding: 0 12px; font-size: 13px; }
+  }
+  @media (max-width: 359px) {
+    .app-topbar .ui-seg--lg > button { padding: 0 10px; }
+    .app-topbar .ui-seg--lg > button .i { display: none; }
+  }
 
   /* =============================== CHIPS (filter toggles) =============================== */
   .ui-chip {
@@ -449,6 +471,8 @@
   .ui-toast__close .i { width: 14px; height: 14px; }
   .ui-toast__close:focus-visible { outline-color: var(--color-surface); }
   .ui-toast.is-leaving { animation: ui-toast-out var(--dur-exit) var(--ease-in) both; }
+  /* a toast moved out of a closing dialog (ui/overlay.js toastHost) stays where it is: no second entry */
+  .ui-toast.is-moved:not(.is-leaving) { animation: none; }
 
   /* =============================== LOADING / EMPTY / ERROR =============================== */
   .ui-skel { position: relative; overflow: hidden; border-radius: var(--r-xs); background: var(--color-skeleton); color: transparent !important; }
@@ -480,6 +504,9 @@
   @media (forced-colors: active) {
     .ui-card, .ui-kpi, .ui-stats, .ui-menu, .ui-popover, dialog.ui-dialog, .ui-toast, .ui-glass-float, .ui-group, .ui-alert, .ui-na { border: 1px solid CanvasText; }
     .ui-btn, .ui-icon-btn, .ui-chip, .ui-seg, .ui-code { border: 1px solid ButtonText; }
+    /* glass is solid here (principle 4): forced colours drop the glass gradient image but keep the alpha of a
+       translucent background colour, so the floating bars (range bar, save bar, boot card) would turn see-through */
+    .ui-glass-float, .ui-menu, .ui-popover { background: Canvas; -webkit-backdrop-filter: none; backdrop-filter: none; }
     .ui-seg::before { border: 2px solid Highlight; }
     .ui-chip[aria-pressed="true"], .ui-icon-btn[aria-pressed="true"], .ui-legend__item[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: 1px; }
     /* small glyphs drawn as fills or inset rings would vanish: system colours and real borders instead */

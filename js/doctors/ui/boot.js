@@ -11,7 +11,7 @@
 (function (g) {
   'use strict';
   var UI = g.ILARS_UI;
-  var EN_FALLBACK = 'locales/en.json?v=11';   // keep the ?v= equal to js/i18n.js
+  var EN_FALLBACK = 'locales/en.json?v=14';   // keep the ?v= equal to js/i18n.js
   var LANGS = { en: 'English', lt: 'Lietuvių', it: 'Italiano', es: 'Español', tr: 'Türkçe' };
   var bootResolve;
   g.ILARS_BOOT = new Promise(function (r) { bootResolve = r; });
@@ -63,7 +63,7 @@
         var cur = g.ILARS_I18N.getLang();
         items.push({ head: UI.t('doctor.ui.shell.language') });
         Object.keys(LANGS).forEach(function (l) {
-          items.push({ label: LANGS[l], checked: l === cur, onSelect: function () { g.ILARS_I18N.setLang(l); } });
+          items.push({ label: LANGS[l], lang: l, checked: l === cur, onSelect: function () { g.ILARS_I18N.setLang(l); } });
         });
         items.push({ sep: true });
       }

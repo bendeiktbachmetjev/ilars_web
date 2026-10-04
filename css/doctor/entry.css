@@ -2,11 +2,15 @@
    Loaded last: after css/style.css, css/pages/login.css, the page's own <style> and css/doctor/tokens.css.
    Deliberately UNLAYERED, so it beats the unlayered page CSS by source order (and !important only where the
    page CSS itself uses !important). Colours, fonts, borders and shadows only: every box keeps its size and
-   position (the one exception: a visible error message becomes a tinted box, so it gains padding),
-   markup, ids and classes are untouched (login.js / setup.js rely on them). No web font (system stack). */
+   position (the one exception: a visible error message becomes a tinted box, so it gains padding and even
+   16 px gaps), markup, ids and classes are untouched (login.js / setup.js rely on them). No web font (system
+   stack). The closed phone menu is also hidden from the Tab order (end of file). */
 
 /* ============================== document ============================== */
 body { font-family: var(--font-ui); background: var(--color-bg); }
+/* buttons take the browser's control font (Arial in Chromium) unless told otherwise: the role tiles (and their
+   h3 / p), the close "x", "Continue", "Sign in with email", "Create account" and "Save and Continue" all did */
+button { font-family: inherit; }
 
 .login-page, .setup-page {
   /* login.css and the setup <style> read the marketing ink variables: point them at the portal tokens for
@@ -41,9 +45,11 @@ body { font-family: var(--font-ui); background: var(--color-bg); }
 .login-role-card { background: var(--color-surface-sunken); }
 .login-role-card:hover { background: var(--color-fill-hover); border-color: transparent; box-shadow: none; transform: none; }
 .login-role-card:active { background: var(--color-fill-pressed); }
-/* decorative icon circles: one brand gradient for both roles */
+/* decorative icon circles: one light accent tint for both roles (the 👤 emoji read as a dark blob on the
+   brand gradient, and the gradient stays for a few small places only). The deeper tint step: the lightest one
+   (indigo-50) all but vanished on the grey tile. */
 .login-role-card__icon,
-.login-role-card[data-role="doctor"] .login-role-card__icon { background: var(--gradient-brand-app); }
+.login-role-card[data-role="doctor"] .login-role-card__icon { background: var(--color-accent-tint-hover); }
 
 /* ============================== buttons ============================== */
 /* primary: the action gradient (white text >= 4.70:1) instead of the 5-stop hero gradient (2.0-3.7:1);
@@ -66,6 +72,14 @@ body { font-family: var(--font-ui); background: var(--color-bg); }
 .setup-btn:disabled { opacity: 1; cursor: progress; }
 .setup-btn .setup-loading { color: inherit; }
 .setup-btn .setup-spinner { border-color: rgb(255 255 255 / 0.35); border-top-color: var(--color-text-on-accent); }
+/* phones: these primaries span the window, so they are solid accent without the glow, like the portal's full-width
+   phone primaries (lead decision, components.css). A disabled login button keeps its disabled look; the busy setup
+   button stays a primary. */
+@media (max-width: 767px) {
+  .login-window__btn:not(.login-window__btn--secondary):not(:disabled), .setup-btn { background: var(--color-accent); box-shadow: none; }
+  .login-window__btn:not(.login-window__btn--secondary):hover:not(:disabled), .setup-btn:hover:not(:disabled) { background: var(--color-accent-hover); box-shadow: none; }
+  .login-window__btn:not(.login-window__btn--secondary):active:not(:disabled), .setup-btn:active:not(:disabled) { background: var(--color-accent-pressed); }
+}
 
 /* secondary: white + quiet ring, ink text. The old ring was 2 px; 1 px + 1 px more padding keeps the box. */
 .login-window__btn--secondary {
@@ -109,6 +123,25 @@ body { font-family: var(--font-ui); background: var(--color-bg); }
 }
 .navbar-cta a.btn-logout:active { background-color: var(--color-fill-pressed) !important; }
 
+/* the "Log in" pill of login.html (the page the visitor is already on): a quiet accent-tint pill with accent
+   text instead of the 5-stop hero gradient, the loudest thing on the page. The page <style> and style.css paint
+   it with !important, also for :hover / :focus / .active, so these match their specificity and come later.
+   Size unchanged (same padding, no border). */
+.navbar-menu a.btn-login, .navbar-cta a.btn-login,
+.navbar-cta a.btn-login.active, .navbar-cta a.btn-login:focus {
+  color: var(--color-accent) !important;
+  background-color: var(--color-accent-tint) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+.navbar-cta a.btn-login:hover {
+  color: var(--color-accent) !important;
+  background-color: var(--color-accent-tint-hover) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  transform: none;
+}
+
 /* ============================== fields ============================== */
 /* visible 3:1 boundary, accent border + halo on focus (the transparent outline is what forced colours paint) */
 .login-window__form input, .setup-form-group input, .setup-form-group select {
@@ -148,17 +181,22 @@ body { font-family: var(--font-ui); background: var(--color-bg); }
 /* patient form: the box sat 4 px above "Continue" and 24 px below the field; even 16 px gaps instead
    (the field above keeps its 1 rem margin; only the visible error state changes height) */
 .login-window__form .login-window__error.is-visible { margin: 0 0 0.75rem; }
+/* setup form: the box sat 20 px below the field group and 8 px above "Save and Continue"; even 16 px gaps.
+   Top: -4 px collapses with the group's 20 px bottom margin (20 - 4 = 16). Bottom: 8 px + the button's own
+   8 px top margin (an inline-block button, so no collapsing) = 16. */
+.setup-error.is-visible { margin: -4px 0 8px; }
 .login-window__divider::before, .login-window__divider::after { background: var(--color-hairline); }
 .login-window__change-role { border-top-color: var(--color-hairline); }
 .login-window__spinner { border-color: var(--color-accent-tint-hover); border-top-color: var(--color-accent); }
 
 /* ============================== focus ============================== */
 /* one ring for everything (replaces the #667eea outlines) */
-.login-window :focus-visible, .setup-window :focus-visible, .navbar-cta a.btn-logout:focus-visible {
+.login-window :focus-visible, .setup-window :focus-visible, .navbar-cta a.btn-logout:focus-visible,
+.navbar-cta a.btn-login:focus-visible {
   outline: 2px solid var(--color-focus-ring); outline-offset: 2px;
 }
-.login-role-card:focus, .login-window__close:focus { outline-color: var(--color-focus-ring); }
-.login-role-card:focus:not(:focus-visible) { outline: none; }
+.login-role-card:focus, .login-window__close:focus, .navbar-cta a.btn-login:focus { outline-color: var(--color-focus-ring); }
+.login-role-card:focus:not(:focus-visible), .navbar-cta a.btn-login:focus:not(:focus-visible) { outline: none; }
 
 /* ============================== preferences ============================== */
 @media (prefers-contrast: more) {
@@ -170,7 +208,17 @@ body { font-family: var(--font-ui); background: var(--color-bg); }
      the role tiles and the logout pill already have a transparent border, which forced colours paint */
   .login-window__btn:not(.login-window__btn--secondary), .setup-btn { outline: 1px solid ButtonText; outline-offset: -1px; }
   /* ...but a focused control still gets the full system ring (the edge rule above would otherwise win) */
-  .login-window :focus-visible, .setup-window :focus-visible, .navbar-cta a.btn-logout:focus-visible {
+  .login-window :focus-visible, .setup-window :focus-visible, .navbar-cta a.btn-logout:focus-visible,
+  .navbar-cta a.btn-login:focus-visible {
     outline: 2px solid Highlight; outline-offset: 2px;
   }
+}
+
+/* ============================== site nav (phone) ============================== */
+/* style.css hides the closed phone menu (<= 768 px) with opacity 0 and an off-screen transform only, so its
+   links stayed Tab stops with no visible focus. visibility: hidden takes them out of the Tab order: it switches
+   after the 0.3 s close animation (so the slide-up still plays) and at once when the menu opens. */
+@media (max-width: 768px) {
+  .navbar-menu { visibility: hidden; transition: transform 0.3s, opacity 0.3s, visibility 0s linear 0.3s; }
+  .navbar-menu.open { visibility: visible; transition: transform 0.3s, opacity 0.3s, visibility 0s; }
 }

@@ -245,6 +245,8 @@ ECHARTS_DIR=<folder with echarts.js 6.1.0> node --test tests/doctor/*.test.js
 - `metrics.test.js`, `adapter.test.js`, `cohort.test.js` — calculations and the API adapter (fictional fixtures).
 - `chart-options.test.js` — every chart builder rendered to SVG with ECharts server-side rendering, in both API
   modes and every axis mode; also checks that every English key used by the builders exists.
+- `server.test.js` — starts the real `server.py` with `python3` on a free local port (skipped without `python3`) and
+  checks the points below: own folder, gzip, 304, no `/tests/`, 60 connections at once.
 - `ECHARTS_DIR` points to a folder that holds `echarts.js` (or the `echarts` npm package). **ECharts is never
   committed into `web/`.** Without it the rendering tests are skipped, the rest still run.
 - Pass the file glob: Node 24 does not accept the bare folder.
@@ -253,7 +255,17 @@ ECHARTS_DIR=<folder with echarts.js 6.1.0> node --test tests/doctor/*.test.js
 
 `server.py` answers **404 for everything under `/tests/`**, so the tests and fixtures are never served.
 
-Local server: `PORT=8000 python3 server.py` from `web/` (it serves its working directory; one thread per request).
+`server.py` (Railway and local):
+- serves its own folder, whatever the working directory is; one thread per request;
+- keeps up to 128 connections waiting (the default of 5 made macOS reset some of the ~45 parallel requests of a
+  cold load, and one missing script breaks the portal);
+- sends `.html`, `.js`, `.css`, `.json`, `.svg` and `.txt` gzipped when the browser accepts gzip (the portal's code
+  goes from about 720 KB to about 210 KB), with `Vary: Accept-Encoding`; each file is compressed once and kept in
+  memory until it changes;
+- JS and CSS: `no-cache, must-revalidate`, so every load asks again and gets a short 304 when the file has not
+  changed. Script and style URLs carry no version number, so a deploy reaches every doctor on the next load.
+
+Local server: `PORT=8000 python3 server.py` (from any folder).
 The portal needs a signed-in doctor and the backend; for screenshots and manual checks use a mock harness with fake
 data and never the production backend.
 

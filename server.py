@@ -3,6 +3,8 @@
 Simple HTTP server for static files (Railway deployment)
 Serves the iLARS web application
 """
+import gzip
+import io
 import os
 import posixpath
 import sys
@@ -10,12 +12,22 @@ from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, unquote
 
+# Text files are sent gzipped to browsers that accept it (the doctor portal: ~720 KB of code, ~210 KB gzipped).
+# Each file is compressed once and kept until it changes on disk.
+GZIP_TYPES = ('.html', '.js', '.css', '.json', '.svg', '.txt')
+GZIP_CACHE = {}  # file path -> ((mtime_ns, size), gzipped bytes)
+
+class Server(ThreadingHTTPServer):
+    # The doctor portal asks for ~45 files at once on a cold load. With the default queue of 5 waiting
+    # connections, macOS reset some of them and the page broke on a missing script.
+    request_queue_size = 128
+
 class StaticHandler(SimpleHTTPRequestHandler):
     """Handler for static files with SPA routing support"""
     
     def __init__(self, *args, **kwargs):
-        self.directory = os.path.dirname(os.path.abspath(__file__))
-        super().__init__(*args, **kwargs)
+        # Serve this file's folder whatever the working directory is
+        super().__init__(*args, directory=os.path.dirname(os.path.abspath(__file__)), **kwargs)
     
     def translate_path(self, path):
         """Translate URL path to file system path"""
@@ -55,7 +67,7 @@ class StaticHandler(SimpleHTTPRequestHandler):
         return posixpath.normpath('/' + unquote(urlparse(getattr(self, 'path', '')).path).lstrip('/'))
 
     def send_head(self):
-        """GET and HEAD: the unit tests under /tests/ are never served (404)."""
+        """GET and HEAD: the unit tests under /tests/ are never served (404); text files may go gzipped."""
         path = self.url_path().lower()
         tests_root = os.path.realpath(os.path.join(self.directory, 'tests'))
         file_path = os.path.realpath(self.translate_path(self.path))
@@ -63,7 +75,39 @@ class StaticHandler(SimpleHTTPRequestHandler):
                 or file_path == tests_root or file_path.startswith(tests_root + os.sep)):
             self.send_error(404, "File not found")
             return None
+        if file_path.lower().endswith(GZIP_TYPES) and os.path.isfile(file_path):
+            return self.send_text(file_path)
         return super().send_head()
+
+    def send_text(self, file_path):
+        """A text file, gzipped when the browser accepts gzip; 304 when the browser's copy is current."""
+        st = os.stat(file_path)
+        modified = self.date_time_string(st.st_mtime)
+        if self.headers.get('If-Modified-Since') == modified and 'If-None-Match' not in self.headers:
+            self.send_response(304)
+            self.send_header('Vary', 'Accept-Encoding')
+            self.end_headers()
+            return None
+        accepted = [part.split(';')[0].strip().lower() for part in self.headers.get('Accept-Encoding', '').split(',')]
+        if 'gzip' in accepted:
+            cached = GZIP_CACHE.get(file_path)
+            if not cached or cached[0] != (st.st_mtime_ns, st.st_size):
+                with open(file_path, 'rb') as f:
+                    cached = ((st.st_mtime_ns, st.st_size), gzip.compress(f.read()))
+                GZIP_CACHE[file_path] = cached
+            body = cached[1]
+        else:
+            with open(file_path, 'rb') as f:
+                body = f.read()
+        self.send_response(200)
+        self.send_header('Content-type', self.guess_type(file_path))
+        if 'gzip' in accepted:
+            self.send_header('Content-Encoding', 'gzip')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Last-Modified', modified)
+        self.send_header('Vary', 'Accept-Encoding')
+        self.end_headers()
+        return io.BytesIO(body)
 
     def do_GET(self):
         """Handle GET requests"""
@@ -133,7 +177,7 @@ def main():
             sys.exit(1)
         
         # One thread per request: the doctor portal loads ~45 files, which a single thread served one at a time
-        server = ThreadingHTTPServer((host, port), StaticHandler)
+        server = Server((host, port), StaticHandler)
         print(f"Server starting on http://{host}:{port}", file=sys.stderr)
         print(f"Serving files from: {os.path.dirname(__file__)}", file=sys.stderr)
         print(f"index.html exists: {os.path.exists(index_path)}", file=sys.stderr)

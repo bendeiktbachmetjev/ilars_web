@@ -243,6 +243,9 @@ class RegistryListView {
     else this.sort = null;
     this._closePopover();
     this._renderTable();
+    // REDESIGN (a11y): the header was re-rendered — focus the same column's new sort button, as after a filter
+    const again = document.querySelector('#registry-table-wrap .reg-th-sort[data-key="' + CSS.escape(key) + '"]') || document.getElementById('registry-reset');
+    if (again) again.focus();
   }
 
   // ---- Per-column filter popover ----
@@ -263,6 +266,7 @@ class RegistryListView {
     pop._key = key;
     pop.setAttribute('role', 'dialog');                                   // REDESIGN (a11y)
     pop.setAttribute('aria-label', 'Filtruoti: ' + this.colByKey[key].label);
+    pop.lang = 'lt';                                                      // REDESIGN (a11y): Lithuanian content in any UI language
     pop.innerHTML = `
       <input type="text" class="reg-pop-search" placeholder="Ieškoti…">
       <div class="reg-pop-actions">
@@ -282,9 +286,20 @@ class RegistryListView {
     pop.style.top = (r.bottom + 4) + 'px';
     pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 280)) + 'px';
     btn.setAttribute('aria-expanded', 'true'); pop._btn = btn;           // REDESIGN (a11y): focus in, Esc out
-    pop.addEventListener('keydown', (e) => { if (e.key === 'Escape') { this._closePopover(); btn.focus(); } });
-
     const search = pop.querySelector('.reg-pop-search');
+    const apply = pop.querySelector('.reg-pop-apply');
+    // REDESIGN (a11y): Esc, Tab past "Taikyti" and Shift+Tab before the search close it and return focus to the button
+    // (the popover sits at the end of <body>, so tabbing on would leave the page)
+    pop.addEventListener('keydown', (e) => {
+      const tabOut = e.key === 'Tab' && e.target === (e.shiftKey ? search : apply);
+      if (e.key === 'Escape' || tabOut) { if (tabOut) e.preventDefault(); this._closePopover(); btn.focus(); }
+    });
+    // focus moved elsewhere (e.g. by a screen reader): close; the column's own button keeps its click toggle
+    pop.addEventListener('focusout', (e) => {
+      const to = e.relatedTarget;
+      if (this._pop === pop && to && !pop.contains(to) && to !== btn) this._closePopover();
+    });
+
     search.setAttribute('aria-label', 'Ieškoti');
     setTimeout(() => search.focus(), 0);
     search.addEventListener('input', () => {
@@ -309,6 +324,10 @@ class RegistryListView {
       else this.colFilters[key] = new Set(checked);
       this._closePopover();
       this._renderTable();
+      // REDESIGN (a11y): the header was re-rendered — focus the same column's new filter button
+      // ("Atstatyti" when nothing matches and the table has no header)
+      const again = document.querySelector('#registry-table-wrap .reg-th-filter[data-key="' + CSS.escape(key) + '"]') || document.getElementById('registry-reset');
+      if (again) again.focus();
     });
     pop.addEventListener('click', (e) => e.stopPropagation());
   }
@@ -392,6 +411,7 @@ class RegistryListView {
     pop.className = 'reg-col-pop reg-export-pop';
     pop._export = true;
     pop.setAttribute('role', 'menu'); pop._btn = btn; btn.setAttribute('aria-expanded', 'true');   // REDESIGN (a11y)
+    pop.lang = 'lt';
     pop.innerHTML = `
       <button type="button" class="reg-export-opt" role="menuitem" data-scope="all">Visi duomenys (${all})</button>
       <button type="button" class="reg-export-opt" role="menuitem" data-scope="view">Tik rodomi / filtruoti (${shown})</button>`;

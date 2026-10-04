@@ -1,7 +1,8 @@
 /**
  * Workspace controller for the doctor list screen (DESIGN-SPEC §4.1.1).
  * Lithuanian doctors get an "iLARS / Registras" switch in the top bar; everyone else sees only iLARS.
- * The URL hash is the only source of truth: app.js parses it and calls show(api, {mode, tab}).
+ * The URL hash is the only source of truth: app.js parses it and calls show(api, {mode, tab}) on list routes
+ * and syncToggle(mode) on detail routes.
  * DOM contract kept: #table-mode-bar, #study-mode, #registry-mode and the two create buttons are shown and
  * hidden through element.style.display (never the hidden attribute — DESIGN-SPEC §7.2 rule L1);
  * #table-mode-toggle buttons carry .is-active (+ aria-pressed).
@@ -75,7 +76,12 @@
     if (regEl) regEl.style.display = registry ? 'block' : 'none';
     if (studyCreate) studyCreate.style.display = registry ? 'none' : '';
     if (regCreate) regCreate.style.display = registry ? '' : 'none';
+    syncToggle(m);
+  }
 
+  /** Only the switch state (.is-active, aria-pressed, roving tabindex), no list side effects. app.js calls it on
+      detail routes, so #registry/<id> shows Registras and #patient/<code> shows iLARS however the route was reached. */
+  function syncToggle(m) {
     var toggle = document.getElementById('table-mode-toggle');
     if (toggle) toggle.querySelectorAll('button[data-mode]').forEach(function (btn) {
       var on = btn.getAttribute('data-mode') === m;
@@ -120,5 +126,5 @@
     else global.PatientListView.load();
   }
 
-  global.ILARS_TABS = { init: init, show: show, setMode: setMode };
+  global.ILARS_TABS = { init: init, show: show, setMode: setMode, syncToggle: syncToggle };
 })(typeof window !== 'undefined' ? window : this);

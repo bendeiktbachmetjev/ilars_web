@@ -14,12 +14,23 @@ class OverviewView {
     this.api = api;
     this.cards = [];
     this.trajFailed = false;   // the lars_history request failed once: no trajectory card for this session
+    this.d = null;             // the data on screen (a language change re-renders from it, without a request)
+    this.left = false;         // the user left #overview since it was rendered
+    var self = this;
+    window.addEventListener('hashchange', function () { if (location.hash !== '#overview') self.left = true; });
   }
 
   load(force) {
     var self = this, U = ILARS_UI;
-    if (force) ILARS_DATA.store.invalidate('patients');
     var err = document.getElementById('patient-list-error'), root = document.getElementById('ov-root');
+    // A language change re-renders the route (app.js rerender -> load): the overview on screen re-renders in place in
+    // the new language, keeping card views, open tables and the scroll position (as the patient page does).
+    if (!force && this.d && !this.left && this.renderedLang && this.renderedLang !== U.locale()) {
+      this.render(this.d, { quiet: true });
+      return Promise.resolve();
+    }
+    this.left = false;
+    if (force) ILARS_DATA.store.invalidate('patients');
     err.hidden = true;
     PatientListView.head('overview');
     return U.withSkeleton(function () { self.skeleton(); }, function () { return PatientListView.data(); }, function (d) {
@@ -28,6 +39,7 @@ class OverviewView {
     }).catch(function (e) {
       root.removeAttribute('aria-busy');
       console.error('[overview] failed:', e);
+      self.d = null;
       self.dispose();
       root.innerHTML = '';
       PatientListView.showError(e, function () { self.load(true); });
@@ -49,15 +61,35 @@ class OverviewView {
       }).join('') + '</div></div>';
   }
 
-  render(d) {
+  /** o = {quiet: true}: a language change re-renders in place: no reveal, no count-up, each card keeps its view and
+      open table, and the page keeps its scroll position while the charts fill in. */
+  render(d, o) {
+    o = o || {};
     var self = this, U = ILARS_UI, M = ILARS_METRICS, VM = ILARS_VIEW_MODELS, O = ILARS_CHART_OPTIONS;
     var root = document.getElementById('ov-root');
+    var kept = {}, scrollY0 = window.scrollY;
+    if (o.quiet) this.cards.forEach(function (c) {
+      var b = c.el.querySelector('.ui-card__tools .ui-seg > button[aria-pressed="true"]');
+      kept[c.id] = { view: b && b.dataset.v, table: c.el.classList.contains('is-table') };
+    });
+    var keepScroll = function () { if (o.quiet) window.scrollTo(0, scrollY0); };
+    // ILARS_CHARTS.card with the view and the open table the card had before a quiet re-render
+    var chartCard = function (spec) {
+      var k = kept[spec.id];
+      if (k && k.view && spec.views.some(function (v) { return v.v === k.view; })) spec.view = k.view;
+      var c = ILARS_CHARTS.card(spec);
+      if (k && k.table) c.el.querySelector('[data-act="table"]').click();
+      return c;
+    };
+    this.d = d;
+    this.renderedLang = U.locale();
     var scope = PatientListView.scopeFor(PatientListView.readScope(), d.list.rows, d.me);
     var mod = VM.cohortModel(d.list.rows, { today: d.today, meDoctorCode: d.me.doctor_code, scope: scope });
     var stats = mod.stats, caps = (d.list.rows[0] && M.listRowCaps(d.list.rows[0])) || {};
     var names = d.names;
     document.getElementById('study-title').textContent = U.t('doctor.ui.overview.title');
-    document.getElementById('study-sub').textContent = U.t('doctor.ui.overview.sub', { hospital: d.me.hospital_name || '', date: U.fmtDay(d.today, 'weekday') });
+    // a no-break space before the dot: a wrapped line never starts with '·' (VIS-25)
+    document.getElementById('study-sub').textContent = U.t('doctor.ui.overview.sub', { hospital: d.me.hospital_name || '', date: U.fmtDay(d.today, 'weekday') }).replace(/ · /g, '\u00a0· ');
     document.getElementById('tab-count-patients').textContent = mod.scoped.length;
     this.dispose();
 
@@ -77,7 +109,8 @@ class OverviewView {
     if (!mod.scoped.length) {
       root.innerHTML = toolbar + '<div class="ui-card ov-empty"><div class="ui-empty"><div class="ui-empty__icon">' + U.icon('users') + '</div>' +
         '<div class="ui-empty__title">' + U.esc(U.t('doctor.cm.list.empty_none')) + '</div>' +
-        '<button class="ui-btn ui-btn--primary" type="button" data-act="create">' + U.icon('plus') + '<span>' + U.esc(U.t('doctor.create_patient')) + '</span></button></div></div>';
+        // secondary: the page head already has the one primary (gradient) action of the view
+        '<button class="ui-btn ui-btn--secondary" type="button" data-act="create">' + U.icon('plus') + '<span>' + U.esc(U.t('doctor.create_patient')) + '</span></button></div></div>';
       root.querySelector('[data-act="create"]').addEventListener('click', function () { document.getElementById('btn-create-patient').click(); });
       bindScope();
       return;
@@ -110,15 +143,15 @@ class OverviewView {
       '<div class="ui-kpi__value"><span data-count="' + pp.value + '" data-prefix="' + U.esc(approx + pp.prefix) + '" data-suffix="%">' + U.esc(approx + pp.prefix) + pp.value + '%</span></div>' +
       '<div class="ui-kpi__meta"><span class="ui-meter ov-kpi-meter ui-meter--' + M.adherenceLevel(mAdh) + '" style="--v:' + pp.value + '%"></span>' + U.esc(U.tp('doctor.cm.kpi.adherence_median_meta', adh.length)) + '</div></article>');
     if (scored.length) {
-      var share = Math.round(major / scored.length * 100);
+      var share = M.percentParts(major / scored.length);   // "<1%" / ">99%", never 0 % with a patient in the category
       tiles.push('<article class="ui-kpi"><div class="ui-kpi__label">' + U.icon('line') + U.esc(U.t('doctor.cm.kpi.major_share')) + '</div>' +
-        '<div class="ui-kpi__value"><span data-count="' + share + '" data-suffix="%">' + share + '%</span></div>' +
+        '<div class="ui-kpi__value"><span data-count="' + share.value + '" data-prefix="' + U.esc(share.prefix) + '" data-suffix="%">' + U.esc(share.prefix) + share.value + '%</span></div>' +
         '<div class="ui-kpi__meta">' + U.esc(U.t('doctor.cm.kpi.major_share_meta', { k: major, n: scored.length })) + '</div></article>');
     }
     root.innerHTML = toolbar +
       '<section class="ui-kpi-row ov-kpis" style="--cols:' + tiles.length + '" aria-label="' + U.esc(U.t('doctor.ui.a11y.key_figures')) + '">' +
         tiles.map(function (t, i) { return first ? t.replace('<article class="ui-kpi', '<article data-i="' + (i + 1) + '" class="ui-reveal ui-kpi') : t; }).join('') + '</section>' +
-      '<section class="app-grid app-section" id="ov-grid" aria-label="' + U.esc(U.t('doctor.ui.a11y.cohort')) + '"></section>';
+      '<section class="app-grid app-section ov-grid" id="ov-grid" aria-label="' + U.esc(U.t('doctor.ui.a11y.cohort')) + '"></section>';
     var grid = document.getElementById('ov-grid');
     bindScope();
     var reveal = first ? 5 : null;
@@ -157,7 +190,7 @@ class OverviewView {
     var cats = stats.larsCategories, scoredN = cats.none + cats.minor + cats.major;
     var sum = { none: cats.none, minor: cats.minor, major: cats.major, nodata: cats.nodata, n: scoredN + cats.nodata };
     var larsSum = U.t('doctor.cm.ov.summary_lars', sum);
-    var pct = function (k) { return k === 'nodata' || !scoredN ? '' : Math.round(cats[k] / scoredN * 100) + '%'; };
+    var pct = function (k) { return k === 'nodata' || !scoredN ? '' : O._.pct(cats[k] / scoredN); };
 
     // C2 LARS category now: Share donut ↔ Scores histogram (different coordinate systems → cross-fade, no morph).
     // Every percentage on this card uses the patients WITH a score as the base (A17), like the KPI.
@@ -165,7 +198,7 @@ class OverviewView {
       return { caption: U.t('doctor.cm.ov.lars_title'), head: [U.t('doctor.cm.lars.th_category'), U.t('doctor.cm.list.th_patient'), '%'], num: [1, 2],
         rows: ['none', 'minor', 'major', 'nodata'].map(function (k) { return [U.t('doctor.cm.lars.cat_' + k), cats[k], pct(k) || '–']; }) };
     };
-    var c2 = ILARS_CHARTS.card({ id: 'ov-lars', span: 'span-4 lg-full', reveal: nextReveal(), title: U.t('doctor.cm.ov.lars_title'), hint: U.t('doctor.cm.ov.lars_hint'), info: U.t('doctor.cm.lars.info'),
+    var c2 = chartCard({ id: 'ov-lars', span: 'span-4 lg-full', reveal: nextReveal(), title: U.t('doctor.cm.ov.lars_title'), hint: U.t('doctor.cm.ov.lars_hint'), info: U.t('doctor.cm.lars.info'),
       empty: function () { return active.length ? null : U.esc(noActive); },
       views: [
         { v: 'share', label: U.t('doctor.cm.ov.view_donut'), icon: 'donut', coord: 'pie', height: 200,
@@ -207,7 +240,7 @@ class OverviewView {
       var traj = ILARS_DATA.cohortTrajectory(mod.scoped.map(function (s) { return byCode[s.code]; }), M);
       var trajSum = traj.blocks.length ? U.tp('doctor.cm.ov.summary_traj', traj.blocks[0].n) : U.t('doctor.cm.ov.traj_too_few_blocks');
       var blockName = function (b) { return b.week + '–' + (b.week + 3); };
-      var c4 = ILARS_CHARTS.card({ id: 'ov-traj', span: 'span-8', fill: true, reveal: trajReveal, title: U.t('doctor.cm.ov.traj_title'), hint: U.t('doctor.cm.ov.traj_hint_blocks'), info: U.t('doctor.cm.lars.info'),
+      var c4 = chartCard({ id: 'ov-traj', span: 'span-8', fill: true, reveal: trajReveal, title: U.t('doctor.cm.ov.traj_title'), hint: U.t('doctor.cm.ov.traj_hint_blocks'), info: U.t('doctor.cm.lars.info'),
         empty: function () { return traj.blocks.length ? null : U.esc(U.t('doctor.cm.ov.traj_too_few_blocks')); },
         notes: [U.esc(U.t('doctor.cm.ov.traj_note'))],
         views: [
@@ -231,7 +264,7 @@ class OverviewView {
       if (!first) c4.el.classList.remove('ui-reveal');
       trajSlot.replaceWith(c4.el);
       self.cards.push(c4);
-      ILARS_CHARTS.load().then(function () { c4.render(); }, function () { c4.render(); c4.failed(); });
+      ILARS_CHARTS.load().then(function () { c4.render(); keepScroll(); }, function () { c4.render(); c4.failed(); keepScroll(); });
     };
 
     // C3 Adherence: Distribution ↔ By patient (≤ 60)
@@ -242,12 +275,12 @@ class OverviewView {
       return { caption: U.t('doctor.cm.ov.adh_title'), head: [U.t('doctor.cm.list.th_patient'), U.t('doctor.cm.list.th_adherence'), U.t('doctor.cm.q.th_days')], num: [1, 2],
         rows: rows.map(function (r) { var q = M.percentParts(r.ratio); return [r.label, approx + q.prefix + q.value + '%', U.tp('doctor.ui.patient.q_days', r.expected, { done: r.done, expected: r.expected })]; }) };
     };
-    var c3 = ILARS_CHARTS.card({ id: 'ov-adh', span: 'span-4', fill: true, reveal: nextReveal(), title: U.t('doctor.cm.ov.adh_title'), hint: U.t(adhApprox ? 'doctor.cm.ov.adh_hint_approx' : 'doctor.cm.ov.adh_hint'),
+    var c3 = chartCard({ id: 'ov-adh', span: 'span-4', fill: true, reveal: nextReveal(), title: U.t('doctor.cm.ov.adh_title'), hint: U.t(adhApprox ? 'doctor.cm.ov.adh_hint_approx' : 'doctor.cm.ov.adh_hint'),
       empty: function () { return adh.length ? null : U.esc(active.length ? U.t('doctor.cm.common.too_early_hint') : noActive); },
       views: [
         { v: 'dist', label: U.t('doctor.cm.ov.view_hist_adh'), icon: 'bars', height: 220,
           build: function () { return O.cohortAdherenceHistogram(stats, ctx(), adhSum); }, summary: function () { return adhSum; },
-          legend: [{ name: '≥ 80 %', color: 'var(--color-adherence-good)' }, { name: '50–79 %', color: 'var(--color-adherence-partial)' }, { name: '< 50 %', color: 'var(--color-adherence-poor)' }],
+          legend: [{ name: '≥ 80%', color: 'var(--color-adherence-good)' }, { name: '50–79%', color: 'var(--color-adherence-partial)' }, { name: '< 50%', color: 'var(--color-adherence-poor)' }],   // same '80%' style as the values (I18N-R2-04)
           table: function () { return adhTable(byP.slice().reverse()); } },
         { v: 'pt', label: U.t('doctor.cm.ov.view_by_patient'), icon: 'list', height: Math.max(220, byP.length * 18 + 30),
           build: function () { return O.cohortAdherenceByPatient(byP, ctx(), adhSum); }, summary: function () { return adhSum; },
@@ -274,15 +307,17 @@ class OverviewView {
       return { caption: U.t('doctor.cm.ov.enrol_title'), head: [ovText('doctor.cm.ov.th_month', 'Month'), ovText('doctor.cm.ov.th_new', 'New registrations'), ovText('doctor.cm.ov.th_total', 'Total')], num: [1, 2],
         rows: Object.keys(m).sort().map(function (k) { tot += m[k]; return [mf.format(new Date(k + '-15T00:00:00Z')), m[k], tot]; }).reverse() };
     };
-    var c5 = ILARS_CHARTS.card({ id: 'ov-enrol', span: 'span-4', fill: true, reveal: nextReveal(), title: U.t('doctor.cm.ov.enrol_title'), hint: U.t('doctor.cm.ov.enrol_hint'),
+    // the same takeaway in both views, so the card head does not jump when the view changes
+    var enrolTake = function () { return '<span class="ui-chart__num">' + mod.scoped.length + '</span><span class="ui-chart__text">' + U.esc(U.tp('doctor.cm.kpi.new_30d', new30)) + '</span>'; };
+    var c5 = chartCard({ id: 'ov-enrol', span: 'span-4', fill: true, reveal: nextReveal(), title: U.t('doctor.cm.ov.enrol_title'), hint: U.t('doctor.cm.ov.enrol_hint'),
       empty: function () { return mod.startDays.length ? null : '—'; },
       views: [
-        { v: 'total', label: U.t('doctor.cm.ov.view_cumulative'), icon: 'line', height: 200,
-          build: function () { return O.enrolmentCumulative({ series: M.enrolmentSeries(mod.startDays), from: efrom, to: d.today }, ctx(), enrolSum); }, summary: function () { return enrolSum; },
-          takeaway: function () { return '<span class="ui-chart__num">' + mod.scoped.length + '</span><span class="ui-chart__text">' + U.esc(U.tp('doctor.cm.kpi.new_30d', new30)) + '</span>'; },
-          table: enrolTable },
+        { v: 'total', label: U.t('doctor.cm.ov.view_cumulative'), icon: 'line', height: 200, widthDependent: true,
+          build: function (w) { return O.enrolmentCumulative({ series: M.enrolmentSeries(mod.startDays), from: efrom, to: d.today }, ctx(), enrolSum, w); }, summary: function () { return enrolSum; },
+          takeaway: enrolTake, table: enrolTable },
         { v: 'month', label: U.t('doctor.cm.ov.view_monthly'), icon: 'bars', height: 200,
-          build: function () { return O.enrolmentMonthly({ startDays: mod.startDays, from: efrom, to: d.today }, ctx(), enrolSum); }, summary: function () { return enrolSum; }, table: enrolTable }
+          build: function () { return O.enrolmentMonthly({ startDays: mod.startDays, from: efrom, to: d.today }, ctx(), enrolSum); }, summary: function () { return enrolSum; },
+          takeaway: enrolTake, table: enrolTable }
       ] });
     if (!first) c5.el.classList.remove('ui-reveal');
     grid.appendChild(c5.el); this.cards.push(c5);
@@ -295,7 +330,7 @@ class OverviewView {
       return { caption: U.t('doctor.cm.ov.vas_title'), head: [U.t('doctor.cm.list.th_patient'), U.t('doctor.cm.list.th_vas'), U.t('doctor.cm.eq.th_date')], num: [1],
         rows: vrows.map(function (r) { return [r.label, r.vas, U.fmtDay(r.day)]; }) };
     };
-    var c6 = ILARS_CHARTS.card({ id: 'ov-vas', span: 'span-4', fill: true, reveal: nextReveal(), title: U.t('doctor.cm.ov.vas_title'), hint: U.t('doctor.cm.ov.vas_hint'),
+    var c6 = chartCard({ id: 'ov-vas', span: 'span-4', fill: true, reveal: nextReveal(), title: U.t('doctor.cm.ov.vas_title'), hint: U.t('doctor.cm.ov.vas_hint'),
       empty: function () { return vrows.length ? null : U.esc(active.length ? ovText('doctor.cm.ov.vas_empty', 'No active patient has an EQ VAS yet.') : noActive); },
       views: [
         { v: 'dots', label: U.t('doctor.cm.ov.view_dots'), icon: 'grid', height: 200, build: function () { return O.vasStrip(vrows, ctx(), vasSum); }, summary: function () { return vasSum; }, table: vasTable },
@@ -317,11 +352,12 @@ class OverviewView {
     });
 
     if (first) U.reveal(root);
-    U.countAll(root.querySelector('.ui-kpi-row'));
+    if (!o.quiet) U.countAll(root.querySelector('.ui-kpi-row'));
     var cards = this.cards.slice();
     cards.forEach(function (c) { if (!window.echarts) c.render(); });   // text, legend and table at once
-    ILARS_CHARTS.load().then(function () { cards.forEach(function (c) { if (self.cards.indexOf(c) > -1) c.render(); }); bindBars(); },
-      function () { cards.forEach(function (c) { if (self.cards.indexOf(c) > -1) { c.render(); c.failed(); } }); });
+    keepScroll();
+    ILARS_CHARTS.load().then(function () { cards.forEach(function (c) { if (self.cards.indexOf(c) > -1) c.render(); }); bindBars(); keepScroll(); },
+      function () { cards.forEach(function (c) { if (self.cards.indexOf(c) > -1) { c.render(); c.failed(); } }); keepScroll(); });
   }
 }
 

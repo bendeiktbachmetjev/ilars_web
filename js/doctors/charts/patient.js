@@ -12,8 +12,8 @@
   var O = root.ILARS_CHART_OPTIONS || (typeof require === 'function' ? require('./base.js') : null);
   var _ = O._, M = _.M, C = _.C;
   var base = O.base, esc = O.esc, X = O.X, xTime = O.xTime;
-  var XB = _.XB, grid = _.grid, yValue = _.yValue, dayOfX = _.dayOfX, dateLine = _.dateLine, axisLabel = _.axisLabel;
-  var tipRow = _.tipRow, tipHead = _.tipHead, tipValue = _.tipValue, legendHidden = _.legendHidden;
+  var XB = _.XB, XV = _.XV, grid = _.grid, yValue = _.yValue, dayOfX = _.dayOfX, dateLine = _.dateLine, axisLabel = _.axisLabel;
+  var tipRow = _.tipRow, tipHead = _.tipHead, tipValue = _.tipValue, legendHidden = _.legendHidden, pct = _.pct;
 
   function inRange(vm) { return function (p) { return p.day >= vm.from && p.day <= vm.to; }; }
   function weekStartFn(ctx) { return ctx.x.mode === 'date' ? M.isoWeekStart : M.blockStartFn(ctx.x.ref, 7); }
@@ -87,7 +87,8 @@
           markArea: { silent: true, data: _.larsBands(ctx) },
           markLine: refs.length ? {
             silent: true, symbol: 'none', lineStyle: { color: T.refLine, type: [4, 4], width: 1 },
-            label: { color: T.refLine, fontSize: 11 }, data: refs
+            // a surface halo keeps "First 39" readable where the weekly line or a point crosses it (markLine z 5 > series)
+            label: { color: T.refLine, fontSize: 11, textBorderColor: T.surface, textBorderWidth: 3 }, data: refs
           } : undefined
         },
         {
@@ -143,7 +144,7 @@
       rows = Array.from(map.entries()).map(function (e) {
         var items = {};
         ITEM_ORDER.forEach(function (k) { items[k] = M.roundTo(M.mean(e[1].map(function (p) { return p.items[k]; })), 1); });
-        return { x: XB(ctx, e[0], 28), day: e[0], items: items, n: e[1].length };
+        return { x: XV(ctx, e[0], 28, vm.from, vm.to), day: e[0], items: items, n: e[1].length };
       });
     } else {
       rows = pts.map(function (p) { return { x: X(ctx, p.day), day: p.day, items: p.items, score: p.score }; });
@@ -187,6 +188,14 @@
     });
   }
 
+  /**
+   * A donut slice in the calm look of the bar views of the same data (tint + 1 px full-colour edge, hover = full
+   * colour), so a view switch keeps the same visual weight. The ring's own radius / pad stay (base donut).
+   */
+  function calmSlice(T, color) {
+    return { itemStyle: { color: _.calmBar(T, color).itemStyle.color, borderColor: color, borderWidth: 1 }, emphasis: { itemStyle: { color: color } } };
+  }
+
   /** Share of weekly scores per category in range (donut). charts/card.js cross-fades to it (no morph, A7). */
   function larsShare(vm, ctx, description) {
     var T = ctx.tok, o = base(ctx, description);
@@ -194,18 +203,18 @@
     vm.points.forEach(function (p) { if (p.day >= vm.from && p.day <= vm.to) { counts[M.larsCategory(p.score)]++; n++; } });
     var cats = ['none', 'minor', 'major'].filter(function (k) { return counts[k] > 0; });
     var ring = _.donut(T, cats.length);
-    ring.label.formatter = '{d}%';
+    ring.label.formatter = function (p) { return pct(p.value / n); };
     return Object.assign(o, {
       title: { text: String(n), subtext: ctx.t('doctor.cm.lars.share_center'), left: 'center', top: '40%', itemGap: 2,
         textStyle: { fontSize: 26, fontWeight: 600, color: T.ink, fontFamily: T.font }, subtextStyle: { color: T.ink3, fontSize: 12 } },
       tooltip: Object.assign(o.tooltip, {
         trigger: 'item',
-        formatter: function (p) { return tipRow(p.color, p.percent + '%', p.name, 'rect') + tipHead(ctx.tp('doctor.cm.common.n_scores', p.value)); }
+        formatter: function (p) { return tipRow(p.data.itemStyle.borderColor, pct(p.value / n), p.name, 'rect') + tipHead(ctx.tp('doctor.cm.common.n_scores', p.value)); }
       }),
       series: [Object.assign(ring, {
         id: 'lars',
         data: cats.map(function (k) {
-          return { name: _.catLabel(ctx, k), value: counts[k], itemStyle: { color: T[_.CAT_TOK[k]] } };
+          return Object.assign({ name: _.catLabel(ctx, k), value: counts[k] }, calmSlice(T, T[_.CAT_TOK[k]]));
         })
       })]
     });
@@ -213,7 +222,8 @@
 
   // ------------------------------------------------------------------ EQ-5D-5L (all visits, range-independent)
   /*
-   * vm = {visits:[{point, status:'done'|'missed', day|null, levels|null, vas|null}]} — every arrived time point.
+   * vm = {visits:[{point, status:'done'|'missed', day|null, levels|null, vas|null}], vasOnly?} — every arrived time
+   * point; vasOnly = today's API (VAS rows only: a gap may be an EQ-5D-5L filled without a VAS).
    * The visit axes fit the card width, so no label touches its neighbour: narrow cards (< 520 px) wrap the
    * dimension names into a narrower left column; when a column is too narrow the visit date drops its day
    * ("Apr 2024"), then the date line goes (it stays in the tooltip and the table), then the "Day N" and
@@ -221,11 +231,6 @@
    */
   var GLYPH = 0.55;                                        // average glyph width of the system UI font (× font size)
   function widest(list, size) { return list.reduce(function (m, s) { return Math.max(m, String(s).length * size * GLYPH); }, 0); }
-  var MONTH_YEAR = {};
-  function monthYear(ctx, day) {
-    var f = MONTH_YEAR[ctx.lang] || (MONTH_YEAR[ctx.lang] = new Intl.DateTimeFormat(ctx.lang, { month: 'short', year: 'numeric', timeZone: 'UTC' }));
-    return f.format(new Date(day * _.DAY));
-  }
   /** Width estimate of a label in the system UI font: narrow, wide and capital glyphs differ (× font size). */
   function textPx(str, size) {
     return String(str).split('').reduce(function (w, c) {
@@ -277,14 +282,18 @@
     var right = _.capRight(w, left, cols, 64);
     return { left: left, right: right, colW: (w - left - right) / cols, narrow: narrow };
   }
-  /** Category data + axisLabel for the visit axis: "Day 90" over its date, shortened to fit colW px. */
+  /**
+   * Category data + axisLabel for the visit axis: "Day 90" over its date, shortened to fit colW px — the short date
+   * (with the year when it is not this year), else day + month (visits across a new year: each keeps its own day),
+   * else no date line.
+   */
   function visitAxis(visits, ctx, colW) {
     var days = visits.map(function (v) { return ctx.t('doctor.cm.eq.visit', { n: v.point }); });
     var size = widest(days, 11) + 6 <= colW ? 11 : 10;
     var stagger = widest(days, size) + 6 > colW;
     var dateList = function (fmt) { return visits.map(function (v) { return v.day != null ? fmt(v.day) : '–'; }); };
-    var full = dateList(function (d) { return ctx.fmtDay(d, 'short'); }), short = dateList(function (d) { return monthYear(ctx, d); });
-    var dates = stagger ? null : widest(full, 10) + 6 <= colW ? full : widest(short, 10) + 6 <= colW ? short : null;
+    var lists = [dateList(function (d) { return ctx.fmtDay(d, 'short'); }), dateList(function (d) { return _.dayMonth(ctx, d); })];
+    var dates = stagger ? null : lists.filter(function (l) { return widest(l, 10) + 6 <= colW; })[0] || null;
     return {
       data: days.map(function (d, i) { return (stagger && i % 2 ? '\n' : '') + d + (dates ? '\n{d|' + dates[i] + '}' : ''); }),
       axisLabel: axisLabel(ctx, { fontSize: size, lineHeight: 14, interval: 0, rich: { d: { color: ctx.tok.ink3, fontSize: 10 } } })
@@ -354,15 +363,18 @@
    * VAS line on the same visit axis; band = first VAS ± VAS_MID; breaks at missed visits; every point labelled.
    * The band's name is in the legend beside the chart, not inside the plot (it would sit on the first point).
    * A line with few visits keeps a readable plot (at least VAS_MIN_PLOT px) instead of the profile's 64 px columns.
+   * vm.fill (beside a profile of one or two visits): the line has no profile columns to follow, so it takes the
+   * whole box with its own narrow y-axis margin — the card keeps no empty half.
    */
   var VAS_MIN_PLOT = 240;
   function eqVas(vm, ctx, description, widthPx) {
     var T = ctx.tok, o = base(ctx, description);
     var first = null;
     vm.visits.forEach(function (v) { if (first == null && v.vas != null) first = v.vas; });
-    var g = eqGrid(widthPx, vm.visits.length), w = widthPx || 900;
+    var w = widthPx || 900, n = Math.max(1, vm.visits.length);
+    var g = vm.fill ? { left: 52, right: 16, colW: (w - 68) / n } : eqGrid(widthPx, vm.visits.length);
     var minPlot = Math.min(VAS_MIN_PLOT, w - g.left - 16);
-    if (w - g.left - g.right < minPlot) { g.right = Math.max(16, w - g.left - minPlot); g.colW = (w - g.left - g.right) / Math.max(1, vm.visits.length); }
+    if (w - g.left - g.right < minPlot) { g.right = Math.max(16, w - g.left - minPlot); g.colW = (w - g.left - g.right) / n; }
     var va = visitAxis(vm.visits, ctx, g.colW);
     return Object.assign(o, {
       grid: grid({ left: g.left, right: g.right, top: 18, bottom: 34 }),
@@ -370,7 +382,9 @@
         trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: T.crosshair } },
         formatter: function (ps) {
           var v = vm.visits[ps[0].dataIndex];
-          if (v.vas == null) return tipHead(ctx.t('doctor.cm.eq.visit', { n: v.point })) + esc(ctx.t('doctor.cm.eq.missed'));
+          // "no questionnaire" only when that is known: a v2 visit without any entry. A filled EQ-5D-5L without a VAS
+          // (v2), or any gap in today's API (vm.vasOnly: VAS rows only), is just "VAS –".
+          if (v.vas == null) return tipHead(ctx.t('doctor.cm.eq.visit', { n: v.point })) + esc(v.day == null && !vm.vasOnly ? ctx.t('doctor.cm.eq.missed') : ctx.t('doctor.cm.eq.vas') + ' –');
           return tipValue(v.vas, '/ 100') + tipHead(ctx.t('doctor.cm.eq.visit', { n: v.point }) + ' · ' + ctx.fmtDay(v.day, 'long'));
         }
       }),
@@ -400,7 +414,16 @@
     return Object.assign(o, {
       grid: grid({ left: 32, right: 8, top: 12, bottom: 34 }),
       legend: legendHidden([1, 2, 3, 4, 5].map(function (l) { return ctx.t('doctor.cm.eq.level_n', { n: l }); })),
-      tooltip: Object.assign(o.tooltip, { trigger: 'axis', axisPointer: { type: 'shadow', shadowStyle: { color: T.hover } } }),
+      tooltip: Object.assign(o.tooltip, {
+        trigger: 'axis', axisPointer: { type: 'shadow', shadowStyle: { color: T.hover } },
+        // Own head: the category name carries axis rich-text markup ("{d|date}") that must never reach the tooltip
+        formatter: function (ps) {
+          var v = done[ps[0].dataIndex];
+          var html = '';
+          ps.slice().reverse().forEach(function (p) { if (p.value) html += tipRow(p.color, p.value, p.seriesName, 'rect'); });
+          return html + tipHead(ctx.t('doctor.cm.eq.visit', { n: v.point }) + ' · ' + ctx.fmtDay(v.day, 'long'));
+        }
+      }),
       xAxis: { type: 'category', data: va.data, axisLine: { lineStyle: { color: T.axis } }, axisTick: { show: false }, axisLabel: va.axisLabel },
       yAxis: yValue(ctx, { min: 0, max: 5, interval: 1 }),
       series: [1, 2, 3, 4, 5].map(function (l) {
@@ -417,9 +440,10 @@
   var RING = 'path://M10 0a10 10 0 1 1 0 20a10 10 0 1 1 0-20zm0 5a5 5 0 1 0 0 10a5 5 0 1 0 0-10z';
 
   /**
-   * A27: questionnaire types carry a pattern as well as a colour (WCAG 1.4.1): daily solid (no decal),
+   * A27: questionnaire types carry a pattern as well as a colour (WCAG 1.4.1): daily a calm cell (see dailyCell),
    * weekly LARS hatch, monthly dots, EQ-5D-5L an inner ring. Per item, always on (not tied to the
-   * Patterns toggle). The ring tile is one calendar cell; calendarBox aligns cells to that tile.
+   * Patterns toggle). The ring tile is one calendar cell (the weekly bars pass a small square tile);
+   * calendarBox aligns cells to that tile.
    */
   function questionnaireDecals(T, cell) {
     var ink = function (a) { return _.alpha(T.surface, a); };
@@ -430,6 +454,16 @@
       eq5d5l: { symbol: RING, symbolSize: 0.66, symbolKeepAspect: true, dashArrayX: [[cell[0], 0]], dashArrayY: [cell[1], 0], color: ink(0.9) }
     };
   }
+  /**
+   * Lead decision (calm look): the most common type, a daily-diary day, is a light neutral fill with a 1 px darker
+   * edge; the edge (--viz-cal-daily, >= 3:1 on the surface) carries the non-text contrast, not a dark block.
+   * Optional split tokens (--viz-cal-daily-fill / --viz-cal-daily-border, read by theme.js as q.dailyFill /
+   * q.dailyBorder) win when they exist.
+   */
+  function dailyCell(T) {
+    return { fill: T.q.dailyFill || _.mix(T.q.daily, T.surface, DAILY_TINT), edge: T.q.dailyBorder || T.q.daily };
+  }
+  var DAILY_TINT = 0.14;                                  // same share as the CSS tracker cells (views/patient.css)
 
   /**
    * First day that is no longer tracked (exclusive end of the "expected" days): vm.end when the model gives it
@@ -452,22 +486,29 @@
     var T = ctx.tok, o = base(ctx, description);
     vm = _.diaryVm(vm);
     var cf = O.calendarFrom(vm.from, vm.to, widthPx);
-    var cal = _.calendarBox(ctx, cf.from, vm.to, widthPx);
-    var decals = questionnaireDecals(T, cal.cellSize);
-    var data = [];
+    var cal = _.calendarBox(ctx, cf.from, vm.to, widthPx, trackEnd(vm) - 1), big = _.calendarBig(cf.from, vm.to);
+    var decals = questionnaireDecals(T, cal.cellSize), dc = dailyCell(T);
+    var data = [], daily = [];
     vm.act.forEach(function (type, day) {
-      if (day >= cf.from && day <= vm.to) data.push({ value: [M.dayToIso(day), Q_TYPES.indexOf(type) + 1, day], itemStyle: { decal: decals[type] } });
+      if (day < cf.from || day > vm.to) return;
+      if (type === 'daily') daily.push(day);                          // calm outlined cells, their own series
+      else data.push({ value: [M.dayToIso(day), Q_TYPES.indexOf(type) + 1, day], itemStyle: { decal: decals[type] } });
     });
     var missed = _.missedSeries(ctx, missedDays(vm, cf.from, function (d) { return vm.act.has(d); }), cal);
+    var dailySeries = _.calendarCells('q-daily', daily, cal, { fill: dc.fill, stroke: dc.edge, z: 3 });
     return Object.assign(o, {
       tooltip: Object.assign(o.tooltip, {
         trigger: 'item',
-        formatter: function (p) { return tipRow(p.color, ctx.t('doctor.cm.q.type_' + Q_TYPES[p.value[1] - 1]), '', 'rect') + tipHead(ctx.fmtDay(p.value[2], 'long')); }
+        formatter: function (p) {
+          if (p.seriesId === 'q-daily') return tipRow(dc.edge, ctx.t('doctor.cm.q.type_daily'), '', 'rect') + tipHead(ctx.fmtDay(p.value[1], 'long'));
+          return tipRow(p.color, ctx.t('doctor.cm.q.type_' + Q_TYPES[p.value[1] - 1]), '', 'rect') + tipHead(ctx.fmtDay(p.value[2], 'long'));
+        }
       }),
       visualMap: { type: 'piecewise', show: false, dimension: 1, seriesIndex: 0,
         pieces: Q_TYPES.map(function (k, i) { return { value: i + 1, color: T.q[k] }; }) },
       calendar: cal,
-      series: [{ id: 'q', type: 'heatmap', coordinateSystem: 'calendar', data: data, itemStyle: { borderColor: T.surface, borderWidth: 2, decal: { symbol: 'none' } } }, missed]
+      series: [{ id: 'q', type: 'heatmap', coordinateSystem: 'calendar', data: data, itemStyle: { borderColor: T.surface, borderWidth: 2, decal: { symbol: 'none' } } }, missed, dailySeries]
+        .concat(big ? [_.dayNumbers(ctx, cf.from, vm.to)] : [])
     });
   }
 
@@ -484,6 +525,7 @@
       if (vm.act.has(d)) wk[vm.act.get(d)]++;
     }
     var keys = Array.from(weeks.keys());
+    var dc = dailyCell(T), decals = questionnaireDecals(T, [8, 8]);
     return Object.assign(o, {
       grid: grid({ left: 28, right: 8, top: 10, bottom: 28 }),
       legend: legendHidden(Q_TYPES.map(function (k) { return ctx.t('doctor.cm.q.type_' + k); })),
@@ -494,16 +536,19 @@
           var done = wk.daily + wk.weekly + wk.monthly + wk.eq5d5l;
           var html = tipValue(ctx.tp('doctor.cm.q.week_tooltip', wk.expected, { done: done, expected: wk.expected })) +
             tipHead(ctx.t('doctor.cm.common.week_of', { date: ctx.fmtDay(keys[ps[0].dataIndex], 'short') }));
-          ps.slice().reverse().forEach(function (p) { if (p.value && p.value[1]) html += tipRow(p.color, p.value[1], p.seriesName, 'rect'); });
+          ps.slice().reverse().forEach(function (p) { if (p.value && p.value[1]) html += tipRow(p.seriesId === 'qw-daily' ? dc.edge : T.q[Q_TYPES[p.seriesIndex]], p.value[1], p.seriesName, 'rect'); });
           return html;
         }
       }),
       xAxis: xTime(ctx, vm.from, vm.to),
       yAxis: yValue(ctx, { min: 0, max: 7, interval: 7 }),
+      // the legend's look: daily = calm fill + darker edge; weekly hatch, monthly dots, EQ-5D-5L rings (A27)
       series: Q_TYPES.map(function (k) {
+        var style = k === 'daily' ? { color: dc.fill, borderColor: dc.edge, borderWidth: 1 }
+          : { color: T.q[k], borderColor: T.surface, borderWidth: 1, decal: decals[k] };
         return { id: 'qw-' + k, name: ctx.t('doctor.cm.q.type_' + k), type: 'bar', stack: 'q', barMaxWidth: 16,
-          itemStyle: { color: T.q[k], borderColor: T.surface, borderWidth: 1 },
-          data: keys.map(function (s) { return [XB(ctx, s, 7), weeks.get(s)[k] || null]; }) };
+          itemStyle: style,
+          data: keys.map(function (s) { return [XV(ctx, s, 7, vm.from, vm.to), weeks.get(s)[k] || null]; }) };
       })
     });
   }
@@ -511,14 +556,13 @@
   // ------------------------------------------------------------------ bowel movements (+ pads)
   /**
    * The x-axis of the Bowel movements trend AND the symptom raster under it, so a day (or week) has the same
-   * x in both. It starts at the (diary-window) range start like every diary card; weekly ranges (> DAILY_MAX_DAYS)
-   * end with the current week, so its bar is not cut at the right edge. containShape off: ECharts 6 would
-   * otherwise widen only the axis that carries bars, and the raster's columns would drift away from the bars.
+   * x in both. Same min / max as every other card of the 'pd-time' group (one crosshair line reads across the
+   * page, §7.13): the (diary-window) range start to today; a cut first / current week keeps a whole bar over its
+   * own days (base XV). containShape off: ECharts 6 would otherwise widen only the axis that carries bars, and the
+   * raster's columns would drift away from the bars.
    */
   function diaryAxis(vm, ctx, extra) {
-    var max = vm.to + 0.5;
-    if (vm.to - vm.from + 1 > C.DAILY_MAX_DAYS) max = Math.max(max, weekStartFn(ctx)(vm.to) + 7);
-    return xTime(ctx, vm.from, vm.to, Object.assign({ min: X(ctx, vm.from - 0.5), max: X(ctx, max), containShape: false }, extra));
+    return xTime(ctx, vm.from, vm.to, Object.assign({ min: X(ctx, vm.from - 0.5), max: X(ctx, vm.to + 0.5), containShape: false }, extra));
   }
 
   /**
@@ -545,7 +589,7 @@
       }
       return Object.assign({ id: id, name: name, type: 'bar', xAxisIndex: gridIndex, yAxisIndex: gridIndex, barMaxWidth: 14, barMinHeight: 2,
         data: M.buckets(points, vm.from, vm.to, weekStartFn(ctx), 7).filter(function (b) { return b.n; }).map(function (b) {
-          var v = M.roundTo(b.value, 1), item = { value: [XB(ctx, b.start, 7), v], n: b.n, start: b.start };
+          var v = M.roundTo(b.value, 1), item = { value: [XV(ctx, b.start, 7, vm.from, vm.to), v], n: b.n, start: b.start };
           if (v === 0) return Object.assign(item, zero);
           if (b.n < C.LOW_N_BUCKET) item.itemStyle = { opacity: 0.45 };
           return item;
@@ -604,7 +648,7 @@
       { min: 7, max: 8, color: R[4], label: '7–8' }, { min: 9, color: R[5], label: '9+' }];
     var other = [];
     if (vm.act) vm.act.forEach(function (type, day) { if (type !== 'daily' && day >= cf.from && day <= vm.to) other.push([M.dayToIso(day), 1, type, day]); });
-    var cal = _.calendarBox(ctx, cf.from, vm.to, widthPx), big = _.calendarBig(cf.from, vm.to), cs = cal.cellSize;
+    var cal = _.calendarBox(ctx, cf.from, vm.to, widthPx, trackEnd(vm) - 1), big = _.calendarBig(cf.from, vm.to), cs = cal.cellSize;
     var entry = new Set(vm.stool.map(function (p) { return p.day; }));
     var missed = _.missedSeries(ctx, missedDays(vm, cf.from, function (d) { return entry.has(d); }), cal);
     return Object.assign(o, {
@@ -621,14 +665,15 @@
       calendar: cal,
       series: [
         { id: 'stool-cal', type: 'heatmap', coordinateSystem: 'calendar', itemStyle: { borderColor: T.surface, borderWidth: 2, decal: { symbol: 'none' } },
-          label: { show: big, fontSize: 11, fontWeight: 600, formatter: function (p) { return String(p.value[1]); } },
+          // month view: the count sits a little below the centre, clear of the day number in the corner (base dayNumbers)
+          label: { show: big, fontSize: 11, fontWeight: 600, offset: [0, 5], formatter: function (p) { return String(p.value[1]); } },
           data: vm.stool.filter(function (p) { return p.day >= cf.from && p.day <= vm.to; }).map(function (p) {
             return big ? { value: [M.dayToIso(p.day), p.value, p.day], label: { color: p.value >= 9 ? T.seqInkDark : T.seqInkLight } } : [M.dayToIso(p.day), p.value, p.day];
           }) },
         missed,
         { id: 'other', type: 'scatter', coordinateSystem: 'calendar', symbolSize: big ? 5 : 4, itemStyle: { color: T.otherQ }, z: 4,
           symbolOffset: big ? [cs[0] / 2 - 7, -cs[1] / 2 + 7] : [0, 0], data: other }
-      ]
+      ].concat(big ? [_.dayNumbers(ctx, cf.from, vm.to)] : [])
     });
   }
 
@@ -729,7 +774,7 @@
       grid: grid({ left: 12, right: 12, top: 22, bottom: 52 }),
       tooltip: Object.assign(o.tooltip, { trigger: 'item', formatter: function (p) {
         var t = p.dataIndex + 1;
-        return tipValue(Math.round(p.value / n * 100) + '%') +
+        return tipValue(pct(p.value / n)) +
           esc(ctx.t('doctor.cm.bristol.type_n', { n: t }) + ' · ' + ctx.t('doctor.cm.bristol.desc_' + t)) +
           tipHead(ctx.t('doctor.cm.common.of_total', { done: p.value, total: ctx.tp('doctor.cm.common.n_diary_days', n, { n: n }) })); } }),
       xAxis: { type: 'category', data: ['1', '2', '3', '4', '5', '6', '7'], axisLine: { lineStyle: { color: T.axis } }, axisTick: { show: false },
@@ -738,7 +783,7 @@
         name: ctx.t('doctor.cm.bristol.axis'), nameLocation: 'middle', nameGap: 34, nameTextStyle: { color: T.ink3, fontSize: 11 } },
       yAxis: yValue(ctx, { minInterval: 1, axisLabel: { show: false } }),
       series: [{ id: 'bristol', type: 'bar', barMaxWidth: 24,
-        label: { show: true, position: 'top', color: T.ink2, fontSize: 11, formatter: function (p) { return p.value ? Math.round(p.value / n * 100) + '%' : ''; } },
+        label: { show: true, position: 'top', color: T.ink2, fontSize: 11, formatter: function (p) { return p.value ? pct(p.value / n) : ''; } },
         data: vm.stats.counts.map(function (c, i) { return _.calmItem(T, T.bristol[i], c, [4, 4, 0, 0]); }) }]
     });
   }
@@ -746,15 +791,17 @@
   function bristolZones(vm, ctx, description) {
     var T = ctx.tok, o = base(ctx, description), z = vm.stats.zones;
     var zones = [['hard', 0], ['normal', 1], ['loose', 2]].filter(function (k) { return z[k[0]] > 0; });
-    var ring = _.donut(T, zones.length);
-    ring.label.formatter = '{d}%';
+    var ring = _.donut(T, zones.length), n = vm.stats.n || 1;
+    ring.label.formatter = function (p) { return pct(p.value / n); };
     return Object.assign(o, {
-      title: { text: Math.round((vm.stats.normalShare || 0) * 100) + '%', subtext: ctx.t('doctor.cm.bristol.center'), left: 'center', top: '40%', itemGap: 2,
+      title: { text: pct(vm.stats.normalShare || 0), subtext: ctx.t('doctor.cm.bristol.center'), left: 'center', top: '40%', itemGap: 2,
         textStyle: { fontSize: 26, fontWeight: 600, color: T.ink, fontFamily: T.font }, subtextStyle: { color: T.ink3, fontSize: 12 } },
-      tooltip: Object.assign(o.tooltip, { trigger: 'item', formatter: function (p) { return tipRow(p.color, p.percent + '%', p.name, 'rect') + tipHead(ctx.tp('doctor.cm.common.n_diary_days', p.value, { n: p.value })); } }),
+      tooltip: Object.assign(o.tooltip, { trigger: 'item', formatter: function (p) { return tipRow(p.data.itemStyle.borderColor, pct(p.value / n), p.name, 'rect') + tipHead(ctx.tp('doctor.cm.common.n_diary_days', p.value, { n: p.value })); } }),
       series: [Object.assign(ring, { id: 'bristol',
         data: zones.map(function (k) {
-          return { name: ctx.t('doctor.cm.bristol.zone_' + k[0] + '_range'), value: z[k[0]], itemStyle: { color: T.bristolZone[k[1]] } };
+          // the centre already gives the normal share: its slice carries no second copy of that figure
+          return Object.assign({ name: ctx.t('doctor.cm.bristol.zone_' + k[0] + '_range'), value: z[k[0]] }, calmSlice(T, T.bristolZone[k[1]]),
+            k[0] === 'normal' ? { label: { show: false }, labelLine: { show: false } } : {});
         }) })]
     });
   }
@@ -789,14 +836,15 @@
           var w = rows[ps[0].dataIndex];
           var html = tipHead(ctx.t(size === 7 ? 'doctor.cm.common.week_of' : 'doctor.cm.common.block_of', { date: ctx.fmtDay(w.start, 'short') }) +
             ' · ' + ctx.tp('doctor.cm.common.n_diary_days', w.n, { n: w.n }));
-          ps.slice().reverse().forEach(function (p) { html += tipRow(T.bristolZone[p.seriesIndex] || p.color, (p.value[1] || 0) + '%', p.seriesName, 'rect'); });
+          ps.slice().reverse().forEach(function (p) { html += tipRow(T.bristolZone[p.seriesIndex] || p.color, pct((p.value[1] || 0) / 100), p.seriesName, 'rect'); });
           return html;
         } }),
       xAxis: xTime(ctx, vm.from, vm.to),
       yAxis: yValue(ctx, { min: 0, max: 100, interval: 50, axisLabel: axisLabel(ctx, { formatter: '{value}%' }) }),
       series: zones.map(function (z, i) {
         return Object.assign({ id: 'bw-' + z[0], name: ctx.t('doctor.cm.bristol.zone_' + z[0] + '_range'), type: 'bar', stack: 'b', barMaxWidth: 16,
-          data: rows.map(function (w) { return [XB(ctx, w.start, size), Math.round(w.counts[z[0]] / w.n * 100) || null]; }) },
+          // unrounded shares: every stack ends exactly at 100 %; text rounds through pct()
+          data: rows.map(function (w) { return [XV(ctx, w.start, size, vm.from, vm.to), w.counts[z[0]] ? w.counts[z[0]] / w.n * 100 : null]; }) },
           _.calmBar(T, T.bristolZone[z[1]], i === zones.length - 1 ? [3, 3, 0, 0] : 0));
       })
     });
@@ -854,15 +902,15 @@
       legend: legendHidden(bands.map(function (b) { return ctx.t('doctor.cm.symptoms.' + b[0]); })),
       tooltip: Object.assign(o.tooltip, { trigger: 'item', formatter: function (p) {
         var s = stats[p.dataIndex][p.seriesIndex];
-        return tipRow(p.color, p.value + '%', p.seriesName, 'rect') + tipHead(ctx.t('doctor.cm.common.of_total', { done: s.c, total: ctx.tp('doctor.cm.common.n_diary_days', s.n, { n: s.n }) })); } }),
+        return tipRow(p.color, pct(s.c / s.n), p.seriesName, 'rect') + tipHead(ctx.t('doctor.cm.common.of_total', { done: s.c, total: ctx.tp('doctor.cm.common.n_diary_days', s.n, { n: s.n }) })); } }),
       xAxis: yValue(ctx, { min: 0, max: 100, interval: 25, axisLabel: axisLabel(ctx, { formatter: '{value}%' }) }),
       yAxis: { type: 'category', data: syms.map(function (k) { return ctx.t('doctor.cm.symptoms.' + k); }), axisLine: { show: false }, axisTick: { show: false },
         axisLabel: axisLabel(ctx, { fontSize: 12 }) },
       series: bands.map(function (b, i) {
         return { id: 'sev' + i, name: ctx.t('doctor.cm.symptoms.' + b[0]), type: 'bar', stack: 's', barMaxWidth: 24,
           itemStyle: { color: b[3], borderColor: T.surface, borderWidth: 1 },
-          label: { show: true, color: i === 3 ? T.seqInkDark : T.seqInkLight, fontSize: 11, formatter: function (p) { return p.value >= 8 ? p.value + '%' : ''; } },
-          data: stats.map(function (s) { return s[i].n ? Math.round(s[i].c / s[i].n * 100) : null; }) };
+          label: { show: true, color: i === 3 ? T.seqInkDark : T.seqInkLight, fontSize: 11, formatter: function (p) { return p.value >= 8 ? pct(p.value / 100) : ''; } },
+          data: stats.map(function (s) { return s[i].n && s[i].c ? s[i].c / s[i].n * 100 : null; }) };      // unrounded: the stack ends at 100 %
       })
     });
   }
@@ -914,7 +962,8 @@
         return tipValue(ctx.fmtNum(p.value[2], 1)) + esc(labels[p.value[1]]) +
           tipHead(head + ' · ' + ctx.tp('doctor.cm.common.n_diary_days', p.value[3], { n: p.value[3] })); } }),
       xAxis: { type: 'category', data: cols, axisLine: { show: false }, axisTick: { show: false },
-        axisLabel: axisLabel(ctx, { hideOverlap: true, formatter: function (v) { return _.axisDay(ctx, +v); } }) },
+        // a column is a week or 4-week block: its label is its start date ("1 May"), never a month name
+        axisLabel: axisLabel(ctx, { hideOverlap: true, formatter: function (v) { return ctx.fmtDay(+v, 'short'); } }) },
       yAxis: { type: 'category', data: labels, inverse: true, axisLine: { show: false }, axisTick: { show: false }, axisLabel: axisLabel(ctx) },
       visualMap: { type: 'piecewise', show: false, dimension: 2, seriesIndex: 0, pieces: [
         { min: 0, max: 0, color: R[0] }, { gt: 0, lte: 1, color: R[1] }, { gt: 1, lte: 2, color: R[2] },
@@ -941,14 +990,14 @@
       grid: grid({ left: 190, right: 40, top: 4, bottom: 24 }),
       tooltip: Object.assign(o.tooltip, { trigger: 'item', formatter: function (p) {
         var s = rows[p.dataIndex];
-        return tipValue(p.value + '%') + esc(s.label) +
+        return tipValue(pct(s.st.share)) + esc(s.label) +
           tipHead(ctx.t('doctor.cm.common.of_total', { done: s.st.daysConsumed, total: ctx.tp('doctor.cm.common.n_diary_days', s.st.n, { n: s.st.n }) })); } }),
       xAxis: yValue(ctx, { min: 0, max: 100, interval: 25, axisLabel: axisLabel(ctx, { formatter: '{value}%' }) }),
       yAxis: { type: 'category', inverse: true, data: rows.map(function (s) { return s ? s.label : ''; }),
         axisLine: { show: false }, axisTick: { show: false }, axisLabel: axisLabel(ctx) },
       series: [Object.assign({ id: 'diet-freq', type: 'bar', barMaxWidth: 12,
-        label: { show: true, position: 'right', color: T.ink2, fontSize: 11, formatter: '{c}%' },
-        data: rows.map(function (s) { return s && s.st.share != null ? _.calmValue(Math.round(s.st.share * 100)) : null; }) }, _.calmBar(T, T.chart[0], [0, 3, 3, 0]))]
+        label: { show: true, position: 'right', color: T.ink2, fontSize: 11, formatter: function (p) { var s = rows[p.dataIndex]; return s ? pct(s.st.share) : ''; } },
+        data: rows.map(function (s) { return s && s.st.share != null ? _.calmValue(s.st.share * 100) : null; }) }, _.calmBar(T, T.chart[0], [0, 3, 3, 0]))]
     });
   }
 
@@ -991,7 +1040,10 @@
     });
   }
 
-  /** Control and satisfaction 0-10 (higher is better; never on one axis with the burden items). */
+  /**
+   * Control and satisfaction 0-10 (higher is better; never on one axis with the burden items). Satisfaction is a
+   * ring around where control is a dot, so a month where both are equal still shows both marks.
+   */
   function monthlyScores(vm, ctx, description) {
     var T = ctx.tok, o = base(ctx, description);
     var rows = vm.rows.filter(inRange(vm));
@@ -1008,8 +1060,10 @@
           return html;
         } }),
       series: defs.map(function (d) {
-        return { id: 'm-' + d[0], name: ctx.t(d[1]), type: 'line', symbol: 'circle', symbolSize: 8, connectNulls: false,
-          lineStyle: { width: 2, color: d[2] }, itemStyle: { color: d[2], borderColor: T.pointRing, borderWidth: 2 },
+        var ring = d[0] === 'satisfaction';
+        return { id: 'm-' + d[0], name: ctx.t(d[1]), type: 'line', symbol: ring ? 'emptyCircle' : 'circle', symbolSize: ring ? 13 : 8, connectNulls: false,
+          z: ring ? 2 : 3, lineStyle: { width: 2, color: d[2] },
+          itemStyle: ring ? { color: d[2], borderColor: d[2], borderWidth: 2 } : { color: d[2], borderColor: T.pointRing, borderWidth: 2 },
           data: rows.map(function (r) { return [X(ctx, r.day), r[d[0]] == null ? null : r[d[0]]]; }) };
       })
     });
@@ -1062,7 +1116,7 @@
           tipHead(ctx.t('doctor.cm.common.week_of', { date: ctx.fmtDay(w.start, 'short') }) + ' · ' + ctx.tp('doctor.cm.common.n_days', w.n, { n: w.n })); } }),
       series: [Object.assign({ id: 'steps-week', name: ctx.t('doctor.cm.steps.series_weekly'), type: 'bar', barMaxWidth: 16,
         data: b.map(function (w) {
-          var item = { value: [XB(ctx, w.start, 7), Math.round(w.value)] };
+          var item = { value: [XV(ctx, w.start, 7, vm.from, vm.to), Math.round(w.value)] };
           if (w.n < C.LOW_N_BUCKET) item.itemStyle = { opacity: 0.45 };
           return item;
         }) }, _.calmBar(T, T.metricSteps))]

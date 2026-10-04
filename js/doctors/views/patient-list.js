@@ -23,6 +23,7 @@ class PatientListView {
     // below 1440 px the Attention column moves next to Patient, so the reason never scrolls out of view
     this.narrow = window.matchMedia('(max-width: 1439px)');
     this.narrow.addEventListener('change', function () { if (self.data && self.visible()) self.renderList(); });
+    window.addEventListener('resize', function () { self.fade(); }, { passive: true });
   }
 
   // ------------------------------------------------------------ shared state + data (also used by overview.js)
@@ -117,16 +118,24 @@ class PatientListView {
   static head(tab) {
     var U = ILARS_UI, sub = document.getElementById('study-sub');
     document.getElementById('study-title').textContent = U.t(tab === 'overview' ? 'doctor.ui.overview.title' : 'doctor.ui.patients.title');
+    sub.hidden = false;                                   // the placeholder line keeps the head still while loading
     if (sub.dataset.tab !== tab) { sub.textContent = '\u00a0'; sub.dataset.tab = tab; }
   }
-  /** #patient-list-error (shared by both iLARS tabs): title + detail + Try again. */
+  /** The page sub line. Without text it is hidden, so the head action lines up with the title, not a blank line. */
+  static sub(text) {
+    var sub = document.getElementById('study-sub');
+    sub.textContent = text || '\u00a0';
+    sub.hidden = !text;
+  }
+  /** #patient-list-error (shared by both iLARS tabs): title + detail + Try again at the right, as on the patient page. */
   static showError(e, retry) {
     var U = ILARS_UI, err = document.getElementById('patient-list-error');
     U.alert(err, U.t('doctor.ui.patients.error'), e);
     var actions = document.createElement('div'); actions.className = 'ui-alert__actions';
     actions.innerHTML = '<button class="ui-btn ui-btn--secondary ui-btn--sm" type="button">' + U.icon('refresh', 'i--sm') + '<span>' + U.esc(U.t('doctor.ui.common.retry')) + '</span></button>';
     actions.querySelector('button').addEventListener('click', retry);
-    err.querySelector('div').appendChild(actions);
+    err.appendChild(actions);
+    if (!document.getElementById('study-sub').textContent.trim()) PatientListView.sub('');
   }
   /** Back from a patient: the list returns where it was and focus lands on that patient's row link. */
   restore() {
@@ -161,8 +170,9 @@ class PatientListView {
     // page head (shared with the overview, which writes its own title)
     var activeN = mod.scoped.filter(function (s) { return s.status === 'active'; }).length;
     document.getElementById('study-title').textContent = U.t('doctor.ui.patients.title');
-    document.getElementById('study-sub').textContent = [U.tp('doctor.ui.patients.sub_active', activeN),
-      U.tp('doctor.ui.patients.sub_attention', r.attentionN), U.tp('doctor.ui.patients.sub_total', mod.scoped.length)].join(' · ');
+    // nobody in scope: no "0 active · 0 need attention · 0 in total" line; a wrapped line never starts with '·' (VIS-25)
+    PatientListView.sub(mod.scoped.length ? [U.tp('doctor.ui.patients.sub_active', activeN),
+      U.tp('doctor.ui.patients.sub_attention', r.attentionN), U.tp('doctor.ui.patients.sub_total', mod.scoped.length)].join('\u00a0· ') : '');
     document.getElementById('tab-count-patients').textContent = mod.scoped.length;
 
     var tb = document.getElementById('pl-toolbar');
@@ -171,7 +181,8 @@ class PatientListView {
       tb.hidden = true; tb.innerHTML = ''; delete tb.dataset.lang;
       document.getElementById('pl-body').innerHTML = '<div class="ui-empty pl-empty"><div class="ui-empty__icon">' + U.icon('users') + '</div>' +
         '<div class="ui-empty__title">' + U.esc(U.t('doctor.cm.list.empty_none')) + '</div>' +
-        '<button class="ui-btn ui-btn--primary" type="button" data-act="create">' + U.icon('plus') + '<span>' + U.esc(U.t('doctor.create_patient')) + '</span></button></div>';
+        // secondary: the page head already has the one primary (gradient) action of the view
+        '<button class="ui-btn ui-btn--secondary" type="button" data-act="create">' + U.icon('plus') + '<span>' + U.esc(U.t('doctor.create_patient')) + '</span></button></div>';
       document.querySelector('#pl-body [data-act="create"]').addEventListener('click', function () { document.getElementById('btn-create-patient').click(); });
       this.save();
       return;
@@ -210,8 +221,8 @@ class PatientListView {
         U.esc(st.q ? U.t('doctor.cm.list.empty_search', { q: st.q }) : U.t('doctor.cm.list.empty_filter')) + '</div>' +
         (st.q ? '<button class="ui-btn ui-btn--secondary ui-btn--sm" type="button" data-act="clear-search">' + U.esc(U.t('doctor.cm.list.clear_search')) + '</button>' : '') + '</div></td></tr>';
     document.getElementById('pl-body').innerHTML =
-      '<div class="pl-scroll"><table class="ui-table pl-table"><caption class="sr-only">' + U.esc(U.t('doctor.ui.patients.title')) + '</caption><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
-      '<div class="pl-foot"><span>' + U.esc(U.t('doctor.ui.patients.foot_order', { order: this.sortLabel() })) + '</span>' +
+      '<div class="pl-scroll-box"><div class="pl-scroll"><table class="ui-table pl-table"><caption class="sr-only">' + U.esc(U.t('doctor.ui.patients.title')) + '</caption><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div></div>' +
+      '<div class="pl-foot"><span>' + U.esc(U.t('doctor.ui.patients.foot_order', { order: st.sort ? this.sortLabel() : U.t('doctor.ui.patients.sort_default_short') })) + '</span>' +
         '<span>' + U.esc(U.t(ext ? 'doctor.ui.patients.foot_adherence' : 'doctor.ui.patients.foot_adherence_approx')) + '</span>' +
         (caps.larsRecent ? '<span>' + U.esc(U.t('doctor.ui.patients.foot_trend')) + '</span>' : '') +
         '<span>' + U.esc(U.t('doctor.ui.patients.foot_names')) + '</span></div>';
@@ -222,6 +233,8 @@ class PatientListView {
         self.update(function () { st.sort = VM.nextSort(st.sort, k); }, false, '#pl-body .ui-th-sort[data-sort="' + k + '"]');
       });
     });
+    document.querySelector('#pl-body .pl-scroll').addEventListener('scroll', function () { self.fade(); }, { passive: true });
+    this.fade();
     var clear = document.querySelector('#pl-body [data-act="clear-search"]');
     if (clear) clear.addEventListener('click', function () {
       var input = document.getElementById('pl-search'); input.value = '';
@@ -242,6 +255,12 @@ class PatientListView {
     });
     this.save();
   }
+  /** Right-edge fade on the table box while columns are hidden to the right (the registry's cue, DESIGN-SPEC 4.2:
+      768–1279 px scroll sideways inside the box); gone once the last column is in view. */
+  fade() {
+    var box = document.querySelector('#pl-body .pl-scroll');
+    if (box) box.parentNode.classList.toggle('is-at-end', box.scrollLeft + box.clientWidth >= box.scrollWidth - 2);
+  }
   /** Toolbar: rendered once per language, afterwards only synced (focus and the typed search stay put). */
   renderToolbar(tb) {
     var self = this, U = ILARS_UI, st = this.st;
@@ -251,9 +270,10 @@ class PatientListView {
       U.segHtml('pl-status', ['active', 'inactive', 'dead', 'all'].map(function (k) { return { v: k, label: U.t('doctor.cm.status.' + (k === 'dead' ? 'deceased' : k)), count: 0 }; }), st.status, { cls: '', label: U.t('doctor.cm.list.th_status') }) +
       U.segHtml('pl-scope', [{ v: 'mine', label: U.t('doctor.cm.scope.mine') }, { v: 'all', label: U.t('doctor.cm.scope.all') }], st.scope, { cls: '', label: U.t('doctor.cm.scope.label') }) +
       '<button class="ui-chip" type="button" id="pl-attn" aria-pressed="' + st.attention + '">' + U.icon('alert', 'i--sm') + '<span>' + U.esc(U.t('doctor.cm.list.attention_only')) + '</span> <span class="count"></span></button>' +
-      '<label class="ui-search pl-toolbar__search">' + U.icon('search') + '<input class="ui-field" type="search" id="pl-search" autocomplete="off" placeholder="' + U.esc(U.t('doctor.cm.list.search')) + '" aria-label="' + U.esc(U.t('doctor.cm.list.search')) + '"></label>' +
-      // phones have no column headers: sorting goes through a menu (radio items, the same orders as the headers)
-      '<button class="ui-btn ui-btn--secondary ui-btn--sm pl-sort-btn" type="button" id="pl-sort" aria-haspopup="menu" aria-expanded="false">' + U.icon('sort') + '<span></span></button>';
+      // phones have no column headers: sorting goes through a menu (radio items, the same orders as the headers).
+      // Before the search in the DOM: the search is drawn last (its own row below 1280 px), so Tab follows the eye.
+      '<button class="ui-btn ui-btn--secondary ui-btn--sm pl-sort-btn" type="button" id="pl-sort" aria-haspopup="menu" aria-expanded="false">' + U.icon('sort') + '<span></span></button>' +
+      '<label class="ui-search pl-toolbar__search">' + U.icon('search') + '<input class="ui-field" type="search" id="pl-search" autocomplete="off" placeholder="' + U.esc(U.t('doctor.cm.list.search')) + '" aria-label="' + U.esc(U.t('doctor.cm.list.search')) + '"></label>';
     document.getElementById('pl-search').value = st.q || '';
     this.segStatus = U.seg(document.getElementById('pl-status'), function (v) { self.update(function () { st.status = v; }); });
     this.segScope = U.seg(document.getElementById('pl-scope'), function (v) { self.update(function () { st.scope = v; }); });
@@ -298,6 +318,11 @@ class PatientListView {
   rowHtml(s, cols) {
     var self = this, U = ILARS_UI, M = ILARS_METRICS, C = M.C, today = this.data.today, st = this.st;
     var name = this.data.names[s.code], code = s.code;
+    // §3.4 Delta: the arrow and number are for the eye; a screen reader hears one sentence with the direction (sr)
+    var deltaHtml = function (delta, cls, sr) {
+      return '<span class="ui-delta' + cls + '">' + U.icon(delta < 0 ? 'arrow-down' : 'arrow-up') + '<span aria-hidden="true">' + Math.abs(delta) + '</span>' +
+        '<span class="sr-only"> ' + U.esc(sr) + '</span></span>';
+    };
     var cells = {
       patient: function () {
         var extra = [];
@@ -317,6 +342,8 @@ class PatientListView {
           '<span class="pl-who__text">' + who + '</span></a>';
       },
       day: function () {
+        // deceased: no study-day count (it would keep counting after death; the dashboard ends the study there)
+        if (s.status === 'dead' && s.startDay != null) return '<span class="pl-muted" title="' + U.esc(U.t('doctor.cm.list.registered', { date: U.fmtDay(s.startDay, 'long') })) + '">—</span>';
         if (s.dayInStudy == null) return '<span class="pl-muted">—</span>';
         return '<span class="num" title="' + U.esc(U.t('doctor.cm.list.registered', { date: U.fmtDay(s.startDay, 'long') })) + '">' + U.esc(U.t('doctor.cm.common.day_n', { n: s.dayInStudy })) + '</span>';
       },
@@ -330,12 +357,14 @@ class PatientListView {
         if (L.delta != null && L.delta !== 0) {
           var catChanged = L.first != null && M.larsCategory(L.first) !== L.category;
           var cls = catChanged ? (L.delta < 0 ? ' ui-delta--better' : ' ui-delta--worse') : '';
-          delta = '<span class="ui-delta' + cls + '">' + U.icon(L.delta < 0 ? 'arrow-down' : 'arrow-up') + Math.abs(L.delta) +
-            '<span class="sr-only"> ' + U.esc(U.tp(L.delta < 0 ? 'doctor.cm.list.delta_sr_down' : 'doctor.cm.list.delta_sr_up', Math.abs(L.delta))) + '</span></span>';
+          delta = deltaHtml(L.delta, cls, U.tp(L.delta < 0 ? 'doctor.cm.list.delta_sr_down' : 'doctor.cm.list.delta_sr_up', Math.abs(L.delta)));
         }
-        var sub = (med ? U.t('doctor.ui.patients.median_4w', { v: U.fmtNum(med.median, med.median % 1 ? 1 : 0) }) +
-          (med.category !== L.category ? ' (' + U.t('doctor.cm.lars.cat_' + med.category) + ')' : '') + ' · ' : '') + U.fmtRelative(L.latestDay, today);
-        return '<div class="pl-lars"><span class="pl-lars__n">' + L.latest + '</span>' + larsChip(L.category) + delta + '</div><div class="sub">' + U.esc(sub) + '</div>';
+        var sub = med ? U.t('doctor.ui.patients.median_4w', { v: U.fmtNum(med.median, med.median % 1 ? 1 : 0) }) +
+          (med.category !== L.category ? ' (' + U.t('doctor.cm.lars.cat_' + med.category).replace(/ /g, '\u00a0') + ')' : '') + '\u00a0· ' : '';
+        // the relative date and the category word never split ("12 days" / "ago", "(No" / "LARS)"), and a wrapped
+        // line never starts with the dot
+        return '<div class="pl-lars"><span class="pl-lars__n">' + L.latest + '</span>' + larsChip(L.category) + delta + '</div><div class="sub">' + U.esc(sub) +
+          '<span class="pl-nowrap">' + U.esc(U.fmtRelative(L.latestDay, today)) + '</span></div>';
       },
       trend: function () {
         var rec = s.lars.recent || [];
@@ -349,7 +378,8 @@ class PatientListView {
         var ch = V.change, dl = '';
         if (ch && ch.deltaFirst != null && ch.deltaFirst !== 0) {
           var cls = Math.abs(ch.deltaFirst) >= C.VAS_MID ? (ch.deltaFirst > 0 ? ' ui-delta--better' : ' ui-delta--worse') : '';
-          dl = '<span class="ui-delta' + cls + '">' + U.icon(ch.deltaFirst > 0 ? 'arrow-up' : 'arrow-down') + Math.abs(ch.deltaFirst) + '</span>';
+          // the list compares with the first EQ-5D-5L entry (not always day 0), so its wording is neutral (DATA-14)
+          dl = deltaHtml(ch.deltaFirst, cls, U.tp(ch.deltaFirst > 0 ? 'doctor.cm.list.vas_delta_up' : 'doctor.cm.list.vas_delta_down', Math.abs(ch.deltaFirst)));
         }
         return '<div class="pl-vas"><span class="pl-vas__n">' + V.latest + '</span>' + dl + '</div><div class="sub">' + U.esc(U.fmtRelative(V.latestDay, today)) + '</div>';
       },
@@ -415,8 +445,18 @@ function doctorLabel(row, code) {
 // a name that Firestore refused still ends in the success state, with a "name not saved" note.
 (function () {
   'use strict';
-  var created = null;
+  var created = null, copiedTimer = null;
   function $(id) { return document.getElementById(id); }
+  /** "Copy code" feedback for 2 s: the button reads "Code copied" with a check, and the status line inside the dialog
+      announces it. on = false puts the button back (after the 2 s, or when the dialog opens again). */
+  function copied(on) {
+    var U = ILARS_UI, btn = $('create-patient-modal-copy');
+    clearTimeout(copiedTimer);
+    btn.querySelector('use').setAttribute('href', on ? '#i-check' : '#i-copy');
+    btn.querySelector('span').textContent = U.t(on ? 'doctor.ui.toast.code_copied' : 'doctor.ui.create.copy');
+    $('create-patient-modal-copy-status').textContent = on ? U.t('doctor.ui.toast.code_copied') : '';
+    if (on) copiedTimer = setTimeout(function () { copied(false); }, 2000);
+  }
   function open() {
     var U = ILARS_UI, dlg = $('create-patient-modal');
     $('create-patient-modal-confirm-state').hidden = false;
@@ -424,6 +464,7 @@ function doctorLabel(row, code) {
     $('create-patient-modal-error').hidden = true;
     $('create-patient-modal-name-warning').hidden = true;
     $('create-patient-first-name').value = ''; $('create-patient-last-name').value = '';
+    copied(false);
     $('create-patient-modal-doctor-name').textContent = '—'; $('create-patient-modal-hospital').textContent = '—';
     $('create-patient-modal-date').textContent = new Date().toLocaleDateString(U.locale(), { day: 'numeric', month: 'long', year: 'numeric' });
     window.ILARS_PROFILE().then(function (me) {
@@ -431,7 +472,11 @@ function doctorLabel(row, code) {
       $('create-patient-modal-doctor-name').textContent = [p.first_name, p.last_name].filter(Boolean).join(' ').trim() || p.email || '—';
       $('create-patient-modal-hospital').textContent = p.hospital_name || '—';
     }, function () { /* the dialog still works without the profile line */ });
-    U.openDialog(dlg, { focus: '#create-patient-first-name' });
+    created = null;
+    // the "created" toast waits until the dialog closed: a toast under the modal backdrop is blurred and inert
+    U.openDialog(dlg, { focus: '#create-patient-first-name', onClose: function () {
+      if (created) U.toast(U.t('doctor.ui.toast.patient_created', { code: created }));
+    } });
   }
   function saveName(code, first, last) {
     var auth = window.ILARS_AUTH, user = auth && auth.getCurrentUser && auth.getCurrentUser();
@@ -464,12 +509,11 @@ function doctorLabel(row, code) {
           return saveName(created, first, last).then(function (nameOk) {
             var warn = $('create-patient-modal-name-warning');
             if (nameOk) warn.hidden = true;
-            else U.alert(warn, U.t('doctor.ui.create.name_not_saved'), null, 'info');
+            else U.alert(warn, U.t('doctor.ui.create.name_not_saved'), null);   // warning box: the alert icon
             $('create-patient-modal-code').innerHTML = U.fmtCode(created);
             $('create-patient-modal-confirm-state').hidden = true;
             $('create-patient-modal-success-state').hidden = false;
             $('create-patient-modal-done').focus();
-            U.toast(U.t('doctor.ui.toast.patient_created', { code: created }));
             ILARS_DATA.store.invalidate('patients');
             if (nameOk && (first || last)) ILARS_DATA.store.invalidate('names');
             refresh();
@@ -480,7 +524,9 @@ function doctorLabel(row, code) {
     });
     $('create-patient-modal-copy').addEventListener('click', function () {
       if (!created) return;
-      var ok = function () { U.toast(U.t('doctor.ui.toast.code_copied')); };
+      // feedback inside the dialog: a toast would sit under the modal backdrop, blurred and outside the
+      // accessibility tree (the rest of the page is inert while the dialog is modal)
+      var ok = function () { copied(true); };
       var selectCode = function () {                          // no clipboard access: select the code for Cmd/Ctrl+C
         var range = document.createRange(); range.selectNodeContents($('create-patient-modal-code'));
         var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);

@@ -46,6 +46,7 @@
     dialog.ui-dialog, dialog.ui-dialog:not([open]) { transform: none; transition-property: opacity, display, overlay; }
     @starting-style { dialog.ui-dialog[open] { transform: none; } }
     .ui-toast { animation: ui-fade-in 160ms linear both; }
+    .ui-toast.is-moved:not(.is-leaving) { animation: none; }
     .ui-menu.is-open, .ui-popover.is-open, .reg-col-pop, .lang-dropdown.is-open { animation: ui-fade-in 120ms linear both; }
     html { scroll-behavior: auto !important; }
   }

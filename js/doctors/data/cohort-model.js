@@ -55,10 +55,10 @@
       };
     }
     var get = {
-      day: function (x) { return x.dayInStudy; },
+      day: function (x) { return x.status === 'dead' ? null : x.dayInStudy; },   // deceased: no day count, sorted last
       lars: function (x) { return x.lars.latest; },
       vas: function (x) { return x.vas.latest; },
-      adherence: function (x) { return x.adherence.ratio; },
+      adherence: function (x) { return x.status === 'dead' ? null : x.adherence.ratio; },   // "Not tracked": sorted last
       last: function (x) { return x.lastActivityDay; }
     }[sort.key];
     return function (a, b) { return M.compareNullsLast(get(a), get(b), dir) || M.compareDefault(a, b); };

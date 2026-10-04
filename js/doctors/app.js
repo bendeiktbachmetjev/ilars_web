@@ -56,6 +56,8 @@ class App {
     /** Renders the route into its view (no transition, no focus move). Returns the view element. */
     render(h, restore) {
         let view;
+        // detail routes: the switch follows the hash too (list routes get it from ILARS_TABS.show → setMode)
+        if (h.arg) window.ILARS_TABS.syncToggle(h.route === 'registry' ? 'registry' : 'study');
         if (h.route === 'patient') {
             view = this.showView('patient-detail-view');
             if (!window.PatientDetailView) window.PatientDetailView = new PatientDetailView(this.api);
@@ -110,6 +112,12 @@ class App {
     rerender() {
         if (!this.route) return;
         window.ILARS_UI.patchAria();
+        // The open registry record is Lithuanian in every UI language. Re-rendering it would reload the record and
+        // throw away unsaved edits and the scroll position, so (as before the redesign) a language change leaves it alone.
+        if (this.route.route === 'registry' && this.route.arg) {
+            document.title = this.title(this.route) + ' · iLARS';
+            return;
+        }
         this.render(this.route, false);
     }
 

@@ -319,8 +319,12 @@ test('A27: questionnaire calendar — per-type pattern (daily none, weekly hatch
   const opt = O.questionnaireCalendar(m.cm.q, m.ctx, 'd', 900);
   const byType = {};
   opt.series[0].data.forEach((item) => { byType[['daily', 'weekly', 'monthly', 'eq5d5l'][item.value[1] - 1]] = item.itemStyle.decal; });
-  assert.deepEqual(Object.keys(byType).sort(), ['daily', 'eq5d5l', 'monthly', 'weekly']);
-  assert.equal(byType.daily.symbol, 'none');
+  assert.deepEqual(Object.keys(byType).sort(), ['eq5d5l', 'monthly', 'weekly']);
+  // lead decision: a daily-diary day is a calm cell (light fill, 1 px solid edge in --viz-cal-daily), its own series
+  const daily = opt.series.find((s) => s.id === 'q-daily');
+  const dailyDays = [...m.cm.q.act].filter(([day, type]) => type === 'daily' && day >= M.parseDay(opt.calendar.range[0])).map(([day]) => iso(day)).sort();
+  assert.ok(dailyDays.length > 0, 'the fixture has daily-diary days');
+  assert.deepEqual(daily.data.map(([day]) => day).sort(), dailyDays);
   assert.equal(byType.weekly.symbol, 'rect'); assert.ok(byType.weekly.rotation);
   assert.equal(byType.monthly.symbol, 'circle');
   assert.match(byType.eq5d5l.symbol, /^path:\/\//);
@@ -343,6 +347,16 @@ test('A27: questionnaire calendar — per-type pattern (daily none, weekly hatch
   assert.ok(patterns.filter((p) => /<path d="M[^"]*A/.test(p)).length >= 2, 'monthly dots and the EQ ring in the SVG');
   const dashed = (svg.match(/<path [^>]*>/g) || []).filter((p) => p.includes('stroke="' + TOK.calMissed + '"') && /stroke-dasharray="2[, ]+2"/.test(p));
   assert.equal(dashed.length, missed.data.length, 'one dashed --viz-cal-missed-border cell per missed day');
+  const edged = (svg.match(/<path [^>]*>/g) || []).filter((p) => p.includes('stroke="' + TOK.q.daily + '"') && !/stroke-dasharray/.test(p));
+  assert.equal(edged.length, daily.data.length, 'one solid --viz-cal-daily edge per daily-diary day');
+  assert.ok(!svg.includes('fill="' + TOK.q.daily + '"'), 'no solid --viz-cal-daily block');
+  // the Weekly view draws the same looks: calm daily segments, the legend's patterns on the other types
+  const wk = O.questionnaireWeekly(m.cm.q, m.ctx, 'd');
+  const style = Object.fromEntries(wk.series.map((s) => [s.id, s.itemStyle]));
+  assert.equal(style['qw-daily'].borderColor, TOK.q.daily); assert.notEqual(style['qw-daily'].color, TOK.q.daily);
+  assert.equal(style['qw-weekly'].decal.symbol, 'rect'); assert.equal(style['qw-monthly'].decal.symbol, 'circle');
+  assert.match(style['qw-eq5d5l'].decal.symbol, /^path:\/\//);
+  render(wk);
 });
 
 test('tokens: axis labels use --viz-axis-label; no clone morph anywhere (A7)', SSR, () => {
@@ -508,10 +522,14 @@ test('Bristol over time: weekly stacks up to 26 weeks, then 4-week blocks (no 1 
     const m = models(d, rk, 'date');
     const o = O.bristolWeekly(m.cm.bristol, m.ctx, 'd');
     const xs = o.series[0].data.map((p) => p[0] / DAY - size / 2);                  // bar centre -> block start
-    xs.slice(1).forEach((x, i) => assert.equal((x - xs[i]) % size, 0, rk + ': bars ' + size + ' days apart'));
+    const inner = xs.slice(1, -1);                                                  // full blocks
+    inner.slice(1).forEach((x, i) => assert.equal((x - inner[i]) % size, 0, rk + ': bars ' + size + ' days apart'));
+    // a cut first / current block: a whole bar over its own days inside the range (base XV), never past the axis
+    const { from, to } = m.cm.bristol;
+    assert.ok(xs[0] + size / 2 >= from && xs[xs.length - 1] + size / 2 <= to + 1, rk + ': edge bars inside the range');
     if (size === 28) assert.ok(xs.length <= 27, rk + ': at most 27 blocks');
     const head = o.tooltip.formatter([{ dataIndex: 0, value: o.series[0].data[0], color: '#000', seriesName: 'x' }]);
-    assert.ok(head.includes(t(size === 7 ? 'doctor.cm.common.week_of' : 'doctor.cm.common.block_of', { date: fmtDay(xs[0], 'short') })), rk + ' tooltip head');
+    assert.ok(head.includes(t(size === 7 ? 'doctor.cm.common.week_of' : 'doctor.cm.common.block_of', { date: fmtDay(M.isoWeekStart(from), 'short') })), rk + ' tooltip head');
     o.series[0].data.forEach((p, i) => assert.equal(p[1] + o.series[1].data[i][1] + o.series[2].data[i][1] <= 101, true));
     render(o, 320, 260);
   }
@@ -529,6 +547,9 @@ test('donuts: one slice draws a closed ring (no pad gap); outside labels never t
     assert.equal(o.series[0].label.overflow, 'none');
     render(o, 300, 260);
   }
+  // Bristol zones: the centre gives the normal share, so the normal slice has no outside label (r2 VIS-40)
+  const z3 = zones({ hard: 2, normal: 6, loose: 2 }).series[0].data;
+  assert.deepEqual(z3.map((d) => !(d.label && d.label.show === false)), [true, false, true]);
 });
 
 test('diet: the week that holds today is still open (no "no diary" cells); an empty past week keeps its dashed cells', SSR, () => {
@@ -553,10 +574,14 @@ test('EQ visit axes fit the card: wrapped dimension names, then shorter dates, t
   const wide = O.eqProfile(vm, ctx, 'd', 900);
   assert.equal(wide.grid.left, 132);
   wide.xAxis[0].data.forEach((s, i) => assert.deepEqual(plain(s), [t('doctor.cm.eq.visit', { n: visits[i].point }), fmtDay(visits[i].day, 'short')]));
-  // medium column (EQ summary in a third-width card): the date drops its day
+  // medium column (EQ summary in a third-width card), or visits across a new year: the date drops its year, never
+  // its day, so two visits of one month never share a label (r2 VIS-39)
   const mid = O.eqLevels(vm, ctx, 'd', 388);
-  const my = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
-  mid.xAxis.data.forEach((s, i) => assert.equal(plain(s)[1], my.format(new Date(visits[i].day * DAY))));
+  const dm = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  mid.xAxis.data.forEach((s, i) => assert.equal(plain(s)[1], dm.format(new Date(visits[i].day * DAY))));
+  // Lithuanian: month names, never CLDR's "10-16"
+  const lt = O.eqLevels(vm, Object.assign({}, ctx, { lang: 'lt-LT', fmtDay: (d, st) => (st === 'month' ? 'mėn.' : fmtDay(d, st)) }), 'd', 388);
+  lt.xAxis.data.forEach((s, i) => assert.equal(plain(s)[1], 'mėn. ' + new Date(visits[i].day * DAY).getUTCDate()));
   // phone: narrower name column (names wrap), no date line, every other label one line lower / higher
   const phone = O.eqProfile(vm, ctx, 'd', 300);
   assert.equal(phone.grid.left, 84);
@@ -569,6 +594,17 @@ test('EQ visit axes fit the card: wrapped dimension names, then shorter dates, t
   assert.equal(O.eqLevels(vm, ctx, 'd').xAxis.data[0].includes('{d|'), true);
   [[wide, 900], [mid, 388], [phone, 300]].forEach(([o, w]) => render(o, w, 220));
   render(O.eqVas(vm, ctx, 'd', 300), 300, 220);
+});
+
+test('axis labels: a month start shows the short month; a diet column shows its start date, never a month name (r2 VIS-36)', () => {
+  const ctx = Object.assign(ctxFor('date', null), { fmtDay: (d, st) => (st === 'month' ? 'MON' : fmtDay(d, st)) });
+  const may1 = M.parseDay('2026-05-01'), jan1 = M.parseDay('2026-01-01');
+  assert.equal(O._.axisDay(ctx, may1), 'MON');                                   // lt: "rugp.", the form the dates use
+  assert.equal(O._.axisDay(ctx, may1 + 7), fmtDay(may1 + 7, 'axis'));
+  assert.equal(O._.axisDay(ctx, jan1), fmtDay(jan1, 'axis'));                    // the year on 1 January
+  const rows = [may1, may1 + 30, may1 + 60].map((day) => ({ day, food: { legumes: 1 }, drink: { water: 2 } }));
+  const heat = O.dietHeat({ from: may1 - 140, to: TODAY, today: TODAY, rows }, ctx, 'd', 900);
+  assert.equal(heat.xAxis.axisLabel.formatter(String(may1)), fmtDay(may1, 'short'));
 });
 
 test('Bristol types: the zone word under every type, on narrow cards only under types 1, 4 and 7', SSR, () => {
@@ -602,6 +638,28 @@ test('calendars fit the card: a phone card at 1Y shows the latest weeks instead 
   }
 });
 
+test('calendars: box as tall as the calendar, day numbers in the month view, no month name after tracking ended (r2 VIS-38)', SSR, () => {
+  const m = models(patientDetail({ seed: 15, days: 400, adh: 0.8, lars: [30, 25] }, TODAY, true), '6m', 'date');
+  for (const [from, w] of [[TODAY - 181, 326], [TODAY - 181, 638], [TODAY - 29, 326], [TODAY - 29, 1336]]) {
+    const vm = Object.assign({}, m.cm.q, { from });
+    const o = O.questionnaireCalendar(vm, m.ctx, 'd', w), cal = o.calendar;
+    const big = O._.calendarBig(from, TODAY), rows = big ? (M.isoWeekStart(TODAY) - M.isoWeekStart(from)) / 7 + 1 : 7;
+    assert.equal(O._.calendarHeight(from, TODAY, w), cal.top + rows * cal.cellSize[1], w + 'px: the height the view gives the canvas');
+    assert.equal(o.series.some((s) => s.id === 'day-n'), big, 'day numbers only in the month view');
+    if (big) assert.equal(o.series.find((s) => s.id === 'day-n').data.length, TODAY - from + 1);
+    render(o, w, O._.calendarHeight(from, TODAY, w) + 16);
+  }
+  assert.ok(O._.calendarHeight(TODAY - 181, TODAY, 326) < 120);                  // a phone's 11 px cells: no 168 px box
+  // deceased 45 days ago: the month after the last tracked day has no name over its empty weeks
+  const end = M.parseDay('2026-08-17');
+  const dead = O.questionnaireCalendar(Object.assign({}, m.cm.q, { from: TODAY - 181, end }), m.ctx, 'd', 638).calendar;
+  const label = (iso) => dead.monthLabel.formatter({ yyyy: iso.slice(0, 4), MM: iso.slice(5, 7), M: String(+iso.slice(5, 7)) });
+  assert.equal(label('2026-09-01'), '');
+  assert.notEqual(label('2026-08-01'), '');
+  assert.notEqual(O.questionnaireCalendar(Object.assign({}, m.cm.q, { from: TODAY - 181 }), m.ctx, 'd', 638).calendar.monthLabel
+    .formatter({ yyyy: '2026', MM: '09', M: '9' }), '');                         // an active patient keeps it
+});
+
 test('heat tables on narrow cards: the white cell gap shrinks with the cell, so small cells keep their colour', SSR, () => {
   assert.deepEqual([[4, 2], [8, 2], [12, 2], [8, 3], [30, 3]].map(([c, f]) => O._.cellBorder(c, f)), [0, 1, 2, 1, 3]);
   const m = models(patientDetail({ seed: 16, days: 400, adh: 0.8, lars: [30, 25] }, TODAY, true), 'all', 'date');
@@ -616,6 +674,185 @@ test('stool calendar without the activity map (other questionnaires unknown) sti
   const m = models(patientDetail({ seed: 14, days: 60, adh: 0.8, lars: [30, 25] }, TODAY, false), '1m', 'date');
   const vm = Object.assign({}, m.cm.stool); delete vm.act;
   render(O.stoolCalendar(vm, m.ctx, 'd', 900));
+});
+
+// ------------------------------------------------------------------ data/patient-model.js (stage 4 QA fixes)
+const VM = require(path.join(WEB, 'js/doctors/data/patient-model.js'));
+const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, a + ' != ' + b);
+
+test('patient model: a diary row dated the day after today is today\'s (newest) row, never hidden (DATA-10)', () => {
+  const d = patientDetail({ seed: 21, days: 60, adh: 1, lars: [30, 26] }, TODAY, true);
+  const row = (date, stool, type) => ({ date, stool_count: stool, bristol_scale: type, bloating: 2, impact_score: 3, food: {}, drink: {} });
+  d.daily_entries = d.daily_entries.filter((r) => r.date !== iso(TODAY)).concat([row(iso(TODAY), 4, 4), row(iso(TODAY + 1), 11, 7)]);
+  const pm = VM.patientModel(d, {});
+  const last = pm.stool[pm.stool.length - 1];
+  assert.deepEqual([last.day, last.value], [TODAY, 11]);                         // the local-date-ahead row, shown as today
+  assert.equal(pm.stool.filter((p) => p.day === TODAY).length, 1);               // one diary value per day
+  assert.ok(pm.stool.every((p) => p.day <= TODAY) && pm.bristol[pm.bristol.length - 1].value === 7);
+  assert.equal(pm.act.get(TODAY), 'daily');
+  // no ahead row: nothing changes
+  const plain = VM.patientModel(patientDetail({ seed: 21, days: 60, adh: 1, lars: [30, 26] }, TODAY, true), {});
+  assert.ok(plain.daily.every((r) => !r.aheadOf));
+});
+
+test('patient model: the first-week stool baseline is shown only when it does not overlap the current 7 days (DATA-07)', () => {
+  const at = (days) => {
+    const d = { status: 'ok', patient_code: 'GENX', created_at: iso(TODAY - days) + 'T09:00:00+00:00', patient_status: 'active', server_today: iso(TODAY),
+      lars_scores: [], eq5d5l_scores: [], eq5d5l_entries: [], monthly_entries: [], daily_steps: [],
+      daily_entries: Array.from({ length: days }, (_, i) => ({ date: iso(TODAY - days + i), stool_count: 3 + (i % 4), food: {}, drink: {} })) };
+    return VM.patientKpis(VM.patientModel(d, {})).stool7;
+  };
+  assert.equal(at(9).firstWeek, null);           // first diary week ends inside the current 7 days
+  assert.equal(at(12).firstWeek, null);          // first diary day + 6 = today - 6: still one shared day
+  assert.notEqual(at(13).firstWeek, null);       // first diary day + 6 = today - 7: apart
+});
+
+test('patient model: diary card rows start at the 730-day window, like their charts (DATA-09)', () => {
+  const d = patientDetail({ seed: 11, days: 900, adh: 0.9, lars: [36, 22], steps: 7000 }, TODAY, true);
+  const extra = { date: iso(TODAY - 730), stool_count: 9, bristol_scale: 7, bloating: 9, impact_score: 9, food: {}, drink: {} };
+  d.daily_entries.push(extra);                                                   // the API sends one day more than the window
+  const pm = VM.patientModel(d, {});
+  const cm = VM.cardModels(pm, M.rangeWindow('all', pm.startDay, pm.today));
+  const win = TODAY - 729;
+  assert.equal(cm.diary.from, win);
+  assert.ok(cm.diet.rows.every((r) => r.day >= win) && cm.raster.rows.every((r) => r.day >= win));
+  assert.equal(cm.bristol.stats.n, M.bristolStats(pm.bristol.filter((p) => p.day >= win)).n);
+  // Bristol "over time" uses the same window: its oldest week never counts the extra day (r2 DATA-09)
+  const wk = cm.bristol.weekly[0];
+  assert.equal(wk.start, M.isoWeekStart(win));
+  assert.ok(wk.start < TODAY - 730, 'the extra day falls inside the oldest week');
+  assert.equal(wk.n, M.bristolStats(pm.bristol.filter((p) => p.day >= win && p.day < wk.start + 7)).n);
+  assert.equal(cm.bristol.weekly.reduce((n, w) => n + w.n, 0), cm.bristol.stats.n);
+});
+
+test('patient model: VAS figures come from the visits, and name their reference visit (r2 DATA-13, DATA-14)', () => {
+  const start = TODAY - 200;
+  const row = (n, vas, lv) => ({ date: iso(start + n), mobility: lv, self_care: lv, usual_activities: lv, pain_discomfort: lv, anxiety_depression: lv, health_vas: vas });
+  const pmOf = (rows) => VM.patientModel({ status: 'ok', patient_code: 'GENV', created_at: iso(start) + 'T09:00:00+00:00', patient_status: 'active', server_today: iso(TODAY),
+    lars_scores: [], eq5d5l_scores: [], monthly_entries: [], daily_entries: [], daily_steps: [], eq5d5l_entries: rows }, {});
+  // a second EQ-5D-5L 5 days after the day-180 visit (inside its window, as the old scheduler could offer it): the
+  // KPI, its delta and its date stay on the visit's own entry, as the VAS chart and the table do
+  const pm = pmOf([row(0, 36, 3), row(14, 50, 2), row(30, 63, 2), row(90, 58, 2), row(180, 75, 1), row(185, 60, 2)]);
+  assert.deepEqual([pm.vas.latest, pm.vas.latestDay, pm.vas.deltaFirst, pm.vas.firstPoint, pm.vas.latestPoint], [75, start + 180, 39, 0, 180]);
+  assert.equal(pm.visits.filter((v) => v.point === 180)[0].vas, pm.vas.latest);
+  const kp = VM.patientKpis(pm).vas;
+  assert.deepEqual([kp.value, kp.day, kp.point, kp.deltaFirst, kp.firstPoint], [75, start + 180, 180, 39, 0]);
+  // no day-0 EQ-5D-5L (old scheduler: only on the registration day): the reference is the day-14 visit, never "day 0"
+  const g = pmOf([row(14, 50, 2), row(30, 63, 2), row(180, 75, 1)]);
+  assert.deepEqual([g.vas.first, g.vas.firstPoint, g.vas.deltaFirst, g.eqBaselinePoint], [50, 14, 25, 14]);
+  // a day-0 entry without a VAS: the profile baseline is day 0, the VAS reference is day 14
+  const h = pmOf([row(0, null, 3), row(14, 50, 2), row(180, 75, 1)]);
+  assert.deepEqual([h.eqBaselinePoint, h.vas.firstPoint], [0, 14]);
+  // today's API (VAS rows only, no levels): the same visit points
+  const c = VM.patientModel({ status: 'ok', patient_code: 'GENW', created_at: iso(start) + 'T09:00:00+00:00', patient_status: 'active', lars_scores: [], daily_entries: [], daily_steps: [],
+    eq5d5l_scores: [{ date: iso(start + 14), score: 50 }, { date: iso(start + 180), score: 75 }, { date: iso(start + 185), score: 60 }] }, { nowMs: NOW.nowMs });
+  assert.deepEqual([c.vas.latest, c.vas.firstPoint, c.vas.latestPoint, c.vas.deltaFirst, c.eqBaselinePoint], [75, 14, 180, 25, null]);
+});
+
+test('patient model: a visit past its due date is due / overdue, never "next" (DATA-05)', () => {
+  const pmAt = (days, eqDays, status) => VM.patientModel({ status: 'ok', patient_code: 'GENE', created_at: iso(TODAY - days) + 'T09:00:00+00:00',
+    patient_status: status || 'active', server_today: iso(TODAY), lars_scores: [], eq5d5l_scores: [], monthly_entries: [], daily_entries: [], daily_steps: [],
+    eq5d5l_entries: eqDays.map((n) => ({ date: iso(TODAY - days + n), mobility: 0, self_care: 0, usual_activities: 0, pain_discomfort: 0, anxiety_depression: 0, health_vas: 70 })) }, {});
+  assert.deepEqual(VM.eqVisitNotice(pmAt(19, [0])), { kind: 'due', point: 14, dueDay: TODAY - 5, overdueDays: 5 });
+  assert.deepEqual(VM.eqVisitNotice(pmAt(21, [0])), { kind: 'overdue', point: 14, dueDay: TODAY - 7, overdueDays: 7 });
+  assert.deepEqual(VM.eqVisitNotice(pmAt(5, [0])), { kind: 'next', point: 14, dueDay: TODAY + 9 });
+  assert.equal(VM.eqVisitNotice(pmAt(19, [0], 'dead')), null);                  // no visit after death
+});
+
+test('registry chip and picker name a record the same way, whatever page came first (r2 FUNC-19)', async () => {
+  // views/patient-detail.js in a bare context: only the name helpers run here (no DOM)
+  const vmod = require('node:vm');
+  const noop = () => {};
+  const g = { console, Promise, Object, String, Array, setTimeout, document: { addEventListener: noop }, addEventListener: noop };
+  g.window = g;
+  const docs = { r1: { firstName: 'Jonas', lastName: 'Demaitis' } };
+  g.ILARS_AUTH = { getCurrentUser: () => ({ uid: 'u1' }), db: { collection: () => ({ where: () => ({ get: () => Promise.resolve({
+    forEach: (fn) => Object.keys(docs).forEach((id) => fn({ id, data: () => docs[id] })) }) }) }) } };
+  vmod.createContext(g);
+  const View = vmod.runInContext(fs.readFileSync(path.join(WEB, 'js/doctors/views/patient-detail.js'), 'utf8') + '\n;PatientDetailView', g);
+  const v = new View({});
+  const rec = { id: 'r1', is_mine: true, lin: 'DEMO-LIN-1' };
+  assert.equal(v.registryName(rec), 'DEMO-LIN-1');                        // nothing read yet: the LIN
+  const names = await v.registryNames();                                  // the picker's (and now the chip's) read
+  assert.equal(names.r1.lastName, 'Demaitis');
+  assert.equal(v.registryName(rec), 'Jonas Demaitis');                    // the chip uses the same names, no registry list needed
+  g.RegistryListView = { names: { r1: { firstName: 'Ona', lastName: 'Nauja' } } };
+  assert.equal(v.registryName(rec), 'Ona Nauja');                         // the registry list's live names win
+  assert.equal(v.registryName(Object.assign({}, rec, { is_mine: false })), 'DEMO-LIN-1');
+});
+
+test('EQ VAS tooltip: "no questionnaire" only when known; a VAS gap is "VAS –" (DATA-01)', SSR, () => {
+  const ctx = m0().ctx;
+  const visits = [{ point: 0, status: 'done', day: TODAY - 40, levels: null, vas: 60 },
+    { point: 14, status: 'missed', day: null, levels: null, vas: null },
+    { point: 30, status: 'done', day: TODAY - 10, levels: [1, 1, 1, 1, 1], vas: null }];
+  const tip = (vm, i) => O.eqVas(vm, ctx, 'd', 900).tooltip.formatter([{ dataIndex: i }]);
+  assert.ok(tip({ visits }, 1).includes(t('doctor.cm.eq.missed')));                                   // v2: no entry at all
+  assert.ok(!tip({ visits }, 2).includes(t('doctor.cm.eq.missed')) && tip({ visits }, 2).includes('VAS –'));   // filled, no VAS
+  assert.ok(!tip({ visits, vasOnly: true }, 1).includes(t('doctor.cm.eq.missed')));                  // today's API cannot know
+  const pm = VM.patientModel({ status: 'ok', patient_code: 'GENL', created_at: iso(TODAY - 40) + 'T09:00:00+00:00', patient_status: 'active',
+    lars_scores: [], eq5d5l_scores: [{ date: iso(TODAY - 40), score: 60 }], daily_entries: [], daily_steps: [] }, { nowMs: NOW.nowMs });
+  assert.equal(VM.cardModels(pm, M.rangeWindow('all', pm.startDay, pm.today)).eq.vasOnly, true);
+});
+
+test('percentages go through percentParts: never "0%" beside a real count, never "100%" when not all (DATA-08)', SSR, () => {
+  const stats = M.bristolStats(Array.from({ length: 151 }, (_, i) => ({ day: i, value: i === 0 ? 2 : i < 140 ? 4 : 6 })));
+  const vm = { from: 0, to: 150, today: 151, stats, weekly: [] };
+  const types = O.bristolTypes(vm, m0().ctx, 'd');
+  assert.equal(types.series[0].label.formatter({ value: 1 }), '<1%');
+  assert.match(types.tooltip.formatter({ dataIndex: 1, value: 1 }), /&lt;1%/);
+  const zones = O.bristolZones(vm, m0().ctx, 'd');
+  assert.equal(zones.series[0].label.formatter({ value: 1 }), '<1%');
+  assert.equal(zones.title.text, O._.pct(stats.normalShare));
+  const rows = Array.from({ length: 200 }, (_, i) => ({ day: i, food: { berries: i === 0 ? 1 : 0 }, drink: { water: 2 } }));
+  const freq = O.dietFrequency({ from: 0, to: 199, today: 200, rows }, m0().ctx, 'd');
+  const berries = freq.yAxis.data.indexOf(t('app.food_berries_any'));
+  assert.equal(freq.series[0].label.formatter({ dataIndex: berries }), '<1%');
+  assert.equal(O._.pct(0.996), '>99%'); assert.equal(O._.pct(1), '100%'); assert.equal(O._.pct(0), '0%');
+  render(types); render(zones); render(freq, 900, 420);
+});
+function m0() { return models(patientDetail({ seed: 2, days: 60, adh: 0.9, lars: [30, 25] }, TODAY, true), 'all', 'date'); }
+
+test('100 % stacks end exactly at 100 % (unrounded segments, rounded text) (VIS-19)', SSR, () => {
+  const d = patientDetail({ seed: 12, days: 420, adh: 0.85, lars: [34, 22] }, TODAY, true);
+  for (const rk of ['3m', 'all']) {
+    const m = models(d, rk, 'date');
+    const b = O.bristolWeekly(m.cm.bristol, m.ctx, 'd');
+    b.series[0].data.forEach((p, i) => near(b.series.reduce((s, x) => s + (x.data[i][1] || 0), 0), 100));
+    const s = O.symptomsDistribution(m.cm.symptoms, m.ctx, 'd');
+    [0, 1].forEach((i) => near(s.series.reduce((a, x) => a + (x.data[i] || 0), 0), 100));
+  }
+});
+
+test('pd-time group: every time card shares min/max; a cut first / current week keeps a whole bar inside (DATA-12, VIS-24)', SSR, () => {
+  const d = patientDetail({ seed: 4, days: 200, adh: 0.9, lars: [34, 24], steps: 6000 }, TODAY, true);   // a Thursday: part weeks at both ends
+  for (const rk of ['6m', 'all']) {
+    const m = models(d, rk, 'date');
+    const o = patientOptions(m);
+    const ax = (x) => [].concat(x.xAxis)[0];
+    const st = ax(o.stoolTrend);
+    for (const name of ['larsTrend', 'stepsWeekly', 'questionnaireWeekly', 'bristolWeekly', 'symptomsTrend']) {
+      assert.deepEqual([st.min, st.max], [ax(o[name]).min, ax(o[name]).max], name + ' shares the bowel axis');
+    }
+    for (const name of ['stoolTrend', 'stepsWeekly', 'questionnaireWeekly', 'bristolWeekly']) {
+      o[name].series.filter((s) => s.type === 'bar').forEach((s) => s.data.forEach((p) => {
+        const x = (p && p.value ? p.value : p)[0];
+        assert.ok(x > st.min && x < st.max, name + ': bar centre inside the axis (no sliver at an edge)');
+      }));
+    }
+    renderAll(o);
+  }
+});
+
+test('calendars: more than 53 weeks are cut to the last 53, and say so (DATA-04 note condition)', SSR, () => {
+  const d = patientDetail({ seed: 8, days: 752, adh: 0.8, lars: [34, 24] }, TODAY, true);
+  const m = models(d, 'all', 'date');
+  const dr = M.diaryRange(m.range, m.startDay, TODAY);
+  const cf = O.calendarFrom(dr.from, dr.to, 900);
+  assert.equal(cf.clipped, true);
+  for (const o of [O.questionnaireCalendar(m.cm.q, m.ctx, 'd', 900), O.stoolCalendar(m.cm.stool, m.ctx, 'd', 900)]) assert.equal(o.calendar.range[0], iso(cf.from));
+  assert.equal(O.calendarFrom(TODAY - 360, TODAY, 900).clipped, false);
+  assert.equal(O.calendarFrom(TODAY - 360, TODAY, 320).clipped, true);         // a narrow phone shows fewer weeks
 });
 
 test('every builder was rendered at least once', SSR, () => {

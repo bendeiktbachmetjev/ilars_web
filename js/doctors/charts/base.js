@@ -18,8 +18,10 @@
  *  - Time stacks that fill a whole plot (LARS items per score, Bristol zones over time) use the same calm
  *    style per segment: tint + 1 px full-colour edge (the edge keeps the identity colour and its colour-blind
  *    separation); a zero segment is left out, so no stray edge line is drawn.
- *  - Small identity marks (EQ levels, questionnaire types, LARS categories, donut slices) keep their full
- *    token colours: their colour-blind separation was validated on those values.
+ *  - Donut slices take the same calm style as the bar view of the same data (tint + full-colour edge), so a view
+ *    switch keeps the same weight. Small identity marks (EQ levels, the rarer questionnaire types) keep their
+ *    full token colours: their colour-blind separation was validated on those values. A daily-diary day is a
+ *    calm cell (light fill + darker edge, lead decision).
  *  - Magnitude heat tables use the calm ramp --viz-seq-100…600 (A8); numbers on step 600 use the dark-step ink.
  *  - No universalTransition / divideShape 'clone' anywhere (A7): charts/card.js cross-fades between coordinate systems.
  */
@@ -106,6 +108,15 @@
   function X(ctx, day) { return ctx.x.mode === 'date' ? day * DAY : day - ctx.x.ref; }
   /** x of a bucket centre (bars drawn in the middle of their week/block). */
   function XB(ctx, start, size) { return ctx.x.mode === 'date' ? (start + size / 2) * DAY : start + size / 2 - ctx.x.ref; }
+  /**
+   * x of a bucket bar: the centre of the part of the bucket inside [from, to]. A bucket only counts the days in
+   * range (M.buckets), so a cut first week and the current week get a whole bar over their own days instead of a
+   * sliver at the axis edge; full buckets sit at their centre (= XB). The symptom raster's cut columns match.
+   */
+  function XV(ctx, start, size, from, to) {
+    var mid = (Math.max(start, from) + Math.min(start + size, to + 1)) / 2;
+    return ctx.x.mode === 'date' ? mid * DAY : mid - ctx.x.ref;
+  }
   function dayOfX(ctx, v) { return ctx.x.mode === 'date' ? Math.round(v / DAY) : Math.round(v) + ctx.x.ref; }
 
   /** Category-axis label style: every axis label uses --viz-axis-label (tok.ink3). */
@@ -118,13 +129,24 @@
     return f.format(d);
   }
   /**
-   * Axis label of a day ("5 Sept", a month name on the 1st, the year on 1 January). Some languages have only a
-   * number as the short month (Lithuanian CLDR: "06", while days read "06-08"): a lone "06" would read as a day,
-   * so the month start then shows the month's name ("birželis").
+   * Axis label of a day ("5 Sept", a month name on the 1st, the year on 1 January). A month start shows the same
+   * short month as the dates beside it (ctx.fmtDay 'month': Lithuanian "rugp." next to "liep. 8", never a lone "08"
+   * or the long "rugpjūtis").
    */
   function axisDay(ctx, day) {
-    var s = ctx.fmtDay(day, 'axis'), d = new Date(day * DAY);
-    return d.getUTCDate() === 1 && d.getUTCMonth() > 0 && /^\d+\.?$/.test(s) ? longMonth(ctx.lang, d) : s;
+    var d = new Date(day * DAY);
+    return d.getUTCDate() === 1 && d.getUTCMonth() > 0 ? ctx.fmtDay(day, 'month') : ctx.fmtDay(day, 'axis');
+  }
+  /**
+   * Day + short month, never the year ("16 Oct", lt "spal. 16" — Lithuanian CLDR would give "10-16"): the date of a
+   * column when the year does not fit (EQ-5D-5L visits across a new year).
+   */
+  var DAY_MONTH = {};
+  function dayMonth(ctx, day) {
+    var d = new Date(day * DAY);
+    if (/^lt\b/.test(ctx.lang)) return ctx.fmtDay(day, 'month') + ' ' + d.getUTCDate();
+    var f = DAY_MONTH[ctx.lang] || (DAY_MONTH[ctx.lang] = new Intl.DateTimeFormat(ctx.lang, { day: 'numeric', month: 'short', timeZone: 'UTC' }));
+    return f.format(d);
   }
 
   /** The time x-axis every time-based chart uses (crosshair-synced charts must use the same one). */
@@ -174,6 +196,9 @@
     return '<div style="font-size:15px;font-weight:600">' + esc(value) +
       (small ? ' <span style="font-size:12px;font-weight:500;opacity:.75">' + esc(small) + '</span>' : '') + '</div>';
   }
+
+  /** A share 0..1 as shown text: M.percentParts, so never "0%" when something happened, never "100%" when not all. */
+  function pct(ratio) { var p = M.percentParts(ratio); return p ? p.prefix + p.value + '%' : '–'; }
 
   function legendHidden(names) { return { show: false, data: names }; }   // HTML legend drives it (dispatchAction)
 
@@ -247,45 +272,77 @@
    * decal tile of one cell (the EQ-5D-5L ring) sits centred in every cell. A calendar narrower than its card
    * (1M, 3M on a wide card) is centred instead of hugging the left edge.
    * A short range (calendarBig: at most BIG_CAL_WEEKS weeks, i.e. 1M) is a wall calendar: weekdays across the
-   * top, one row per week, cells up to 64 × 30 px; the first cell column holds the month names.
+   * top, one row per week, cells up to BIG_CELL_W × BIG_CELL_H px with the day of the month in their corner
+   * (dayNumbers); the first cell column holds the month names.
    * The day grid itself is plain (no border): missed days are drawn by missedSeries() on top of the data, so the
    * white gap of a neighbouring filled cell never paints over their dashed border.
+   * labelTo (optional): the last tracked day (a deceased patient) — no month name over the empty weeks after it.
    */
-  var BIG_CAL_WEEKS = 6;
+  var BIG_CAL_WEEKS = 6, BIG_CELL_W = 112, BIG_CELL_H = 36;
   function calendarWeeks(from, to) { return Math.ceil((M.isoWeekStart(to) - M.isoWeekStart(from)) / 7) + 1; }
   /** True when the calendar of from..to is the month view (the view gives that chart a taller box). */
   function calendarBig(from, to) { return calendarWeeks(from, to) <= BIG_CAL_WEEKS; }
-  function calendarBox(ctx, from, to, widthPx) {
-    var T = ctx.tok, w = widthPx || 900;
-    var weeks = calendarWeeks(from, to), big = weeks <= BIG_CAL_WEEKS;
-    var cw, ch, left, top, minDays;
+  /** Cell size, offsets and drawn height of the calendar of from..to in a box widthPx wide. */
+  function calendarGeom(from, to, widthPx) {
+    var w = widthPx || 900, weeks = calendarWeeks(from, to), big = weeks <= BIG_CAL_WEEKS, cw, ch, left, top;
     if (big) {
-      cw = Math.max(20, Math.min(64, Math.floor(w / 8)));
-      ch = 30;
+      cw = Math.max(20, Math.min(BIG_CELL_W, Math.floor(w / 8)));
+      ch = BIG_CELL_H;
       left = Math.floor(Math.max(0, w - 8 * cw) / 2 / cw) * cw + cw;
       top = ch;
-      minDays = 7;                                   // a month name needs about one row of its own
     } else {
       cw = Math.max(6, Math.min(20, Math.floor((w - 34) / (weeks + 1))));
       ch = Math.max(10, Math.min(16, cw));
       left = Math.ceil(30 / cw) * cw;
       if (widthPx) left = Math.max(left, Math.floor((widthPx - weeks * cw) / 2 / cw) * cw);
       top = Math.ceil(22 / ch) * ch;
-      minDays = Math.ceil(26 * 7 / cw);              // a partial first / last month needs about 26 px for its name
     }
+    return { big: big, weeks: weeks, cw: cw, ch: ch, left: left, top: top, height: top + (big ? weeks : 7) * ch };
+  }
+  /** Drawn height of a calendar (labels + rows): the view sizes its canvas to it, so no blank band stays under it. */
+  function calendarHeight(from, to, widthPx) { return calendarGeom(from, to, widthPx).height; }
+  function calendarBox(ctx, from, to, widthPx, labelTo) {
+    var T = ctx.tok, g = calendarGeom(from, to, widthPx), cw = g.cw, ch = g.ch, big = g.big;
+    var minDays = big ? 7 : Math.ceil(26 * 7 / cw);  // a partial first / last month needs a row (month view) or about 26 px for its name
     var fd = new Date(from * DAY);
     var firstDays = new Date(Date.UTC(fd.getUTCFullYear(), fd.getUTCMonth() + 1, 0)).getUTCDate() - fd.getUTCDate() + 1;
+    var lastDay = labelTo != null ? Math.max(from, Math.min(to, labelTo)) : to;
     return {
-      range: [M.dayToIso(from), M.dayToIso(to)], top: top, left: left,
+      range: [M.dayToIso(from), M.dayToIso(to)], top: g.top, left: g.left,
       cellSize: [cw, ch], orient: big ? 'vertical' : 'horizontal', splitLine: { show: false },
       itemStyle: { color: T.surface, borderColor: T.calMissed, borderWidth: 0 },
       dayLabel: { firstDay: 1, nameMap: weekdayNames(ctx.lang, big && cw >= 36 ? 'short' : 'narrow'), color: T.ink3, fontSize: big ? 11 : 10 },
       monthLabel: { color: T.ink3, fontSize: 11, formatter: function (p) {
-        var names = monthNames(ctx.lang), first = M.dayToIso(from), last = M.dayToIso(to), ym = p.yyyy + '-' + p.MM;
+        var names = monthNames(ctx.lang), first = M.dayToIso(from), last = M.dayToIso(lastDay), ym = p.yyyy + '-' + p.MM;
+        if (ym > last.slice(0, 7)) return '';                                                              // no cells after the last tracked day
         if (ym === last.slice(0, 7) && +last.slice(8) < minDays && ym !== first.slice(0, 7)) return '';   // partial last month
         if (ym === first.slice(0, 7) && firstDays < minDays && ym !== last.slice(0, 7)) return '';        // partial first month
         return names[+p.M - 1]; } },
       yearLabel: { show: false }
+    };
+  }
+  /**
+   * The day of the month in the top-left corner of every month-view cell (a date without hovering): quiet ink on a
+   * small surface tab, so it stays readable on a filled or patterned cell; the cell's own figure (stool count) stays
+   * in its centre, the "other questionnaire" dot in the other corner.
+   */
+  function dayNumbers(ctx, from, to) {
+    var T = ctx.tok, days = [];
+    for (var d = from; d <= to; d++) days.push(d);
+    var iso = days.map(M.dayToIso);
+    return {
+      id: 'day-n', type: 'custom', coordinateSystem: 'calendar', silent: true, z: 5,
+      data: iso.map(function (s, i) { return [s, days[i]]; }),
+      renderItem: function (params, api) {
+        var p = api.coord([iso[params.dataIndex]]);
+        if (!p || isNaN(p[0])) return null;
+        var n = String(new Date(days[params.dataIndex] * DAY).getUTCDate());
+        var x = p[0] - params.coordSys.cellWidth / 2 + 4, y = p[1] - params.coordSys.cellHeight / 2 + 4;
+        return { type: 'group', silent: true, children: [
+          { type: 'rect', silent: true, shape: { x: x, y: y, width: n.length * 6 + 6, height: 13, r: 3 }, style: { fill: T.surface, opacity: 0.92 } },
+          { type: 'text', silent: true, style: { text: n, x: x + 3, y: y + 2, align: 'left', verticalAlign: 'top', fill: T.ink2, font: '500 9px ' + T.font } }
+        ] };
+      }
     };
   }
 
@@ -294,17 +351,24 @@
    * --viz-cal-missed-border (>= 3:1, A27), inset like the filled cells and drawn above them. days = [dayKey].
    */
   function missedSeries(ctx, days, cal) {
-    var T = ctx.tok, iso = days.map(M.dayToIso), cs = cal.cellSize, inset = cs[0] < 10 || cs[1] < 10 ? 1 : 2;
+    return calendarCells('missed', days, cal, { fill: ctx.tok.surface, stroke: ctx.tok.calMissed, dash: [2, 2], silent: true, z: 3 });
+  }
+  /**
+   * Outlined day cells on a calendar, inset like the heatmap cells (whose white gap would paint over a border):
+   * s = {fill, stroke, dash?, silent?, z}. Data per cell: ['YYYY-MM-DD', dayKey] (the tooltip reads the day key).
+   */
+  function calendarCells(id, days, cal, s) {
+    var iso = days.map(M.dayToIso), cs = cal.cellSize, inset = cs[0] < 10 || cs[1] < 10 ? 1 : 2;
     return {
-      id: 'missed', type: 'custom', coordinateSystem: 'calendar', silent: true, z: 3,
-      data: iso.map(function (d) { return [d]; }),
+      id: id, type: 'custom', coordinateSystem: 'calendar', silent: !!s.silent, z: s.z,
+      data: iso.map(function (d, i) { return [d, days[i]]; }),
       renderItem: function (params, api) {
         var p = api.coord([iso[params.dataIndex]]);
         if (!p || isNaN(p[0])) return null;
         var cw = params.coordSys.cellWidth, ch = params.coordSys.cellHeight;
-        return { type: 'rect', silent: true,
+        return { type: 'rect', silent: !!s.silent,
           shape: { x: p[0] - cw / 2 + inset, y: p[1] - ch / 2 + inset, width: cw - 2 * inset, height: ch - 2 * inset, r: cw >= 20 ? 3 : 1 },
-          style: { fill: T.surface, stroke: T.calMissed, lineWidth: 1, lineDash: [2, 2] } };
+          style: s.dash ? { fill: s.fill, stroke: s.stroke, lineWidth: 1, lineDash: s.dash } : { fill: s.fill, stroke: s.stroke, lineWidth: 1 } };
       }
     };
   }
@@ -322,10 +386,10 @@
     /** Internal helpers shared by charts/sparkline.js, charts/patient.js and charts/cohort.js. */
     _: {
       M: M, C: C, DAY: DAY, rgbOf: rgbOf, mix: mix, alpha: alpha, calmBar: calmBar, calmItem: calmItem, calmValue: calmValue, calmRamp: calmRamp,
-      grid: grid, XB: XB, dayOfX: dayOfX, axisLabel: axisLabel, yValue: yValue, dateLine: dateLine,
-      tipRow: tipRow, tipHead: tipHead, tipValue: tipValue, legendHidden: legendHidden, donut: donut,
+      grid: grid, XB: XB, XV: XV, dayOfX: dayOfX, axisLabel: axisLabel, yValue: yValue, dateLine: dateLine,
+      tipRow: tipRow, tipHead: tipHead, tipValue: tipValue, legendHidden: legendHidden, donut: donut, pct: pct,
       CAT_TOK: CAT_TOK, ADH_TOK: ADH_TOK, catLabel: catLabel, larsBands: larsBands, diaryVm: diaryVm,
-      calendarBox: calendarBox, calendarBig: calendarBig, missedSeries: missedSeries, capRight: capRight, cellBorder: cellBorder, axisDay: axisDay
+      calendarBox: calendarBox, calendarBig: calendarBig, calendarHeight: calendarHeight, dayNumbers: dayNumbers, missedSeries: missedSeries, calendarCells: calendarCells, capRight: capRight, cellBorder: cellBorder, axisDay: axisDay, dayMonth: dayMonth
     }
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = O;

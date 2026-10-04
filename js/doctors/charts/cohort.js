@@ -12,9 +12,16 @@
   var grid = _.grid, yValue = _.yValue, axisLabel = _.axisLabel;
   var tipRow = _.tipRow, tipHead = _.tipHead, tipValue = _.tipValue, legendHidden = _.legendHidden;
 
+  /** Histogram axes label EVERY bin (interval 0, nothing hidden), so the labels must be short: see binLabels. */
   function categoryAxis(ctx, data, o) {
     return Object.assign({ type: 'category', data: data, axisLine: { lineStyle: { color: ctx.tok.axis } }, axisTick: { show: false },
-      axisLabel: axisLabel(ctx, { fontSize: 10, interval: 0, hideOverlap: true }) }, o);
+      axisLabel: axisLabel(ctx, { fontSize: 10, interval: 0 }) }, o);
+  }
+  /** Short histogram bin labels: the lower edge ("0", "10", … "90+"; the last bin gets "+"). "0–9 … 90–100" did not
+      fit under a narrow bar, and hideOverlap then dropped arbitrary labels, even the last bin's. The tooltip and the
+      table keep the full range. bins = [{lo, hi}] */
+  function binLabels(bins) {
+    return bins.map(function (b, i) { return String(b.lo) + (i === bins.length - 1 ? '+' : ''); });
   }
   function countLabel(ctx) {
     return { show: true, position: 'top', color: ctx.tok.ink2, fontSize: 11, formatter: function (p) { return p.value || ''; } };
@@ -40,7 +47,7 @@
   function cohortLarsDonut(vm, ctx, description) {
     var T = ctx.tok, o = base(ctx, description), c = vm.larsCategories;
     var n = c.none + c.minor + c.major + c.nodata, scored = c.none + c.minor + c.major;
-    var pct = function (p) { return p.data.cat === 'nodata' || !scored ? '' : Math.round(p.value / scored * 100) + '%'; };
+    var pct = function (p) { return p.data.cat === 'nodata' || !scored ? '' : _.pct(p.value / scored); };   // "<1%" / ">99%" (M.percentParts)
     var slices = ['none', 'minor', 'major', 'nodata'].filter(function (k) { return c[k] > 0; });
     var ring = _.donut(T, slices.length);
     ring.label.formatter = pct;
@@ -67,7 +74,7 @@
       tooltip: Object.assign(o.tooltip, { trigger: 'item', formatter: function (p) {
         var b = bins[p.dataIndex];
         return tipValue(ctx.tp('doctor.cm.common.n_patients', b.n, { n: b.n })) + esc('LARS ' + b.lo + '–' + b.hi + ' · ' + _.catLabel(ctx, b.category)); } }),
-      xAxis: categoryAxis(ctx, bins.map(function (b) { return b.lo + '–' + b.hi; }),
+      xAxis: categoryAxis(ctx, binLabels(bins),
         { name: ctx.t('doctor.cm.ov.hist_axis'), nameLocation: 'middle', nameGap: 26, nameTextStyle: { color: T.ink3 } }),
       yAxis: yValue(ctx, { minInterval: 1 }),
       series: [{ id: 'larsCat', type: 'bar', barMaxWidth: 24, barCategoryGap: '12%', label: countLabel(ctx),
@@ -85,7 +92,7 @@
       tooltip: Object.assign(o.tooltip, { trigger: 'item', formatter: function (p) {
         var b = bins[p.dataIndex];
         return tipValue(ctx.tp('doctor.cm.common.n_patients', b.n, { n: b.n })) + esc(b.lo + '–' + b.hi + '%'); } }),
-      xAxis: categoryAxis(ctx, bins.map(function (b) { return b.lo + '–' + b.hi; }), { name: '%', nameLocation: 'end', nameTextStyle: { color: T.ink3 } }),
+      xAxis: categoryAxis(ctx, binLabels(bins), { name: '%', nameLocation: 'end', nameTextStyle: { color: T.ink3 } }),
       yAxis: yValue(ctx, { minInterval: 1 }),
       series: [{ id: 'adh', type: 'bar', barMaxWidth: 28, label: countLabel(ctx),
         data: bins.map(function (b) { return _.calmItem(T, T[_.ADH_TOK[b.level]], b.n, [4, 4, 0, 0]); }) }]
@@ -178,7 +185,9 @@
 
   /**
    * Categories view: 100 % stacked none/minor/major per 4-week block (n ≥ COHORT_MIN_N). traj as cohortTrajectory.
-   * Full category colours (a tint fails the colour-blind check), but bars as narrow as the other stacks (16 px).
+   * A time stack that fills the plot: the calm style of the other overview bars and of the Bristol stack (tint +
+   * 1 px full-colour edge; the edge keeps the validated category colour), bars as narrow as the other stacks
+   * (16 px). An empty segment draws no edge (calmValue), so no stray line sits on a neighbour.
    */
   function cohortCategoryShare(traj, ctx, description, width) {
     var T = ctx.tok, o = base(ctx, description);
@@ -190,29 +199,56 @@
       legend: legendHidden(cats.map(function (c) { return _.catLabel(ctx, c); })),
       tooltip: Object.assign(o.tooltip, { trigger: 'axis', axisPointer: { type: 'shadow', shadowStyle: { color: T.hover } }, formatter: function (ps) {
         var html = tipHead(blockHead(ctx, b[ps[0].dataIndex]));
-        ps.slice().reverse().forEach(function (p) { html += tipRow(p.color, p.value + '%', p.seriesName, 'rect'); });
+        ps.slice().reverse().forEach(function (p) { html += tipRow(T[_.CAT_TOK[cats[p.seriesIndex]]], _.pct(p.value / 100), p.seriesName, 'rect'); });
         return html; } }),
       xAxis: categoryAxis(ctx, b.map(function (r) { return label(r.block); }),
         { name: ctx.t('doctor.cm.ov.traj_axis'), nameLocation: 'middle', nameGap: 26, nameTextStyle: { color: T.ink3, fontSize: 11 }, axisLabel: axisLabel(ctx, { interval: 0 }) }),
       yAxis: yValue(ctx, { min: 0, max: 100, interval: 50, axisLabel: axisLabel(ctx, { formatter: '{value}%' }) }),
       series: cats.map(function (c) {
-        return { id: 'cs-' + c, name: _.catLabel(ctx, c), type: 'bar', stack: 'c', barMaxWidth: 16,
-          itemStyle: { color: T[_.CAT_TOK[c]], borderColor: T.surface, borderWidth: 1 },
-          data: b.map(function (r) { return Math.round(r[c] / r.n * 100); }) };
+        return Object.assign({ id: 'cs-' + c, name: _.catLabel(ctx, c), type: 'bar', stack: 'c', barMaxWidth: 16,
+          // unrounded, so every stack ends exactly on 100 %; only the tooltip rounds
+          data: b.map(function (r) { return _.calmValue(r[c] * 100 / r.n); }) }, _.calmBar(T, T[_.CAT_TOK[c]], 0));
       })
     });
   }
 
   // ------------------------------------------------------------------ registrations
-  /** Cumulative step line (true zeros: a month without registrations is 0), extended flat to today. vm = {series, from, to} */
-  function enrolmentCumulative(vm, ctx, description) {
+  /**
+   * Label positions (ms) for the registrations time axis: month starts every `step` months, anchored on January
+   * (so the year label stays), plus the LAST month start, which replaces any label less than `step` months before
+   * it: the axis always names its end ("Oct" at 1 Oct) at every card width. ECharts' own ticks ran every 2 months
+   * on narrow cards and stopped at "Sept". step = the smallest of 1/2/3/4/6/12 months that gives every label room.
+   * width = canvas px; null (or under 2 month starts in range): ECharts' own ticks.
+   */
+  function monthTicks(ctx, from, to, width) {
+    if (width == null) return null;
+    var a = new Date(from * DAY), y = a.getUTCFullYear(), ms = [];
+    for (var i = a.getUTCMonth() + (a.getUTCDate() > 1 ? 1 : 0); ; i++) {
+      var d = Date.UTC(y, i, 1) / DAY;
+      if (d > to) break;
+      ms.push({ day: d, idx: y * 12 + i });
+    }
+    if (ms.length < 2) return null;
+    var labelW = Math.max.apply(null, ms.map(function (m) { return _.axisDay(ctx, m.day).length; })) * 6 + 6;   // ~6 px a character at 11 px + a gap
+    var perMonth = (width - 52) / ((to - from + 1) / 30.44);                      // plot = width − grid left/right
+    var step = [1, 2, 3, 4, 6, 12].filter(function (s) { return s * perMonth >= labelW; })[0] || 12;
+    var last = ms[ms.length - 1];
+    return ms.filter(function (m) { return m.idx % step === 0 && last.idx - m.idx >= step; }).concat([last])
+      .map(function (m) { return m.day * DAY; });
+  }
+
+  /** Cumulative step line (true zeros: a month without registrations is 0), extended flat to today. vm = {series, from, to};
+      width = canvas px (labels: monthTicks). */
+  function enrolmentCumulative(vm, ctx, description, width) {
     var T = ctx.tok, o = base(ctx, description);
     var dctx = Object.assign({}, ctx, { x: { mode: 'date', ref: null } });
     var data = vm.series.map(function (p) { return [p.day * DAY, p.total]; });
     if (vm.series.length) data.push([vm.to * DAY, vm.series[vm.series.length - 1].total]);
+    var x = xTime(dctx, vm.from, vm.to), ticks = monthTicks(dctx, vm.from, vm.to, width);
+    if (ticks) x.axisLabel = Object.assign({}, x.axisLabel, { customValues: ticks, hideOverlap: false });
     return Object.assign(o, {
       grid: grid({ left: 36, right: 16, top: 12, bottom: 28 }),
-      xAxis: xTime(dctx, vm.from, vm.to),
+      xAxis: x,
       yAxis: yValue(ctx, { min: 0, minInterval: 1 }),
       tooltip: Object.assign(o.tooltip, { trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: T.crosshair } }, formatter: function (ps) {
         return tipValue(ps[0].value[1]) + tipHead(ctx.fmtDay(Math.round(ps[0].value[0] / DAY), 'long')); } }),
@@ -229,14 +265,18 @@
     var first = M.dayToIso(vm.from).slice(0, 7), last = M.dayToIso(vm.to).slice(0, 7), keys = [];
     var y = +first.slice(0, 4), m = +first.slice(5, 7);
     for (;;) { var k = y + '-' + (m < 10 ? '0' : '') + m; keys.push(k); if (k >= last) break; m++; if (m > 12) { m = 1; y++; } }
-    var mf = new Intl.DateTimeFormat(ctx.lang, { month: 'short', timeZone: 'UTC' });
+    // month names through ctx.fmtDay, like every other chart (Lithuanian "spal.", never the CLDR month number "10");
+    // the year line under the axis stays a plain year, the tooltip names month + year ("Oct 2025", lt "2025 m. spal.")
     var yf = new Intl.DateTimeFormat(ctx.lang, { year: 'numeric', timeZone: 'UTC' });
-    var names = keys.map(function (key) { var d = new Date(key + '-15T00:00:00Z'); return { m: mf.format(d), y: yf.format(d), jan: key.slice(5) === '01' }; });
+    var names = keys.map(function (key) {
+      var day = M.parseDay(key + '-15');
+      return { m: ctx.fmtDay(day, 'month'), my: ctx.fmtDay(day, 'monthYear'), y: yf.format(new Date(key + '-15T00:00:00Z')), jan: key.slice(5) === '01' };
+    });
     return Object.assign(o, {
       grid: grid({ left: 28, right: 8, top: 18, bottom: 36 }),
       tooltip: Object.assign(o.tooltip, { trigger: 'item', formatter: function (p) {
         var nm = names[p.dataIndex];
-        return tipValue(ctx.tp('doctor.cm.common.n_patients', p.value, { n: p.value })) + esc(nm.m + ' ' + nm.y); } }),
+        return tipValue(ctx.tp('doctor.cm.common.n_patients', p.value, { n: p.value })) + esc(nm.my); } }),
       xAxis: categoryAxis(ctx, names.map(function (nm, i) { return nm.m + (i === 0 || nm.jan ? '\n{y|' + nm.y + '}' : ''); }),
         { axisLabel: axisLabel(ctx, { hideOverlap: true, lineHeight: 14, rich: { y: { color: T.ink3, fontSize: 10 } } }) }),
       yAxis: yValue(ctx, { minInterval: 1 }),
@@ -275,7 +315,7 @@
       tooltip: Object.assign(o.tooltip, { trigger: 'item', formatter: function (p) {
         var b = bins[p.dataIndex];
         return tipValue(ctx.tp('doctor.cm.common.n_patients', b.n, { n: b.n })) + esc('VAS ' + b.lo + '–' + b.hi); } }),
-      xAxis: categoryAxis(ctx, bins.map(function (b) { return b.lo + '–' + b.hi; })),
+      xAxis: categoryAxis(ctx, binLabels(bins)),
       yAxis: yValue(ctx, { minInterval: 1 }),
       series: [Object.assign({ id: 'vas-h', type: 'bar', barMaxWidth: 24, label: countLabel(ctx),
         data: bins.map(function (b) { return _.calmValue(b.n); }) }, _.calmBar(T, T.metricEq, [4, 4, 0, 0]))]

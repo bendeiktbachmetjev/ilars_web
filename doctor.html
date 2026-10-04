@@ -118,7 +118,8 @@
         <div id="ilars-overview" role="region" aria-labelledby="study-title" hidden><div id="ov-root"></div></div>
       </div>
 
-      <div id="registry-mode" style="display:none">
+      <!-- lang="lt": the registry is Lithuanian in every UI language (WCAG 3.1.2) -->
+      <div id="registry-mode" lang="lt" style="display:none">
         <div class="app-page-head ui-reveal" data-i="0">
           <div>
             <p class="app-page-head__eyebrow"><svg class="i i--sm" aria-hidden="true"><use href="#i-hospital"/></svg><span id="hospital-name-reg"></span></p>
@@ -136,7 +137,7 @@
 
     <section class="view" id="patient-detail-view" aria-label="Patient" data-i18n-aria-label="doctor.cm.list.th_patient"></section>
 
-    <section class="view" id="registry-detail-view">
+    <section class="view" id="registry-detail-view" lang="lt">
       <div class="registry-form" id="registry-detail-container"></div>
     </section>
   </main>
@@ -186,6 +187,7 @@
             <span class="ui-label" data-i18n="doctor.ui.create.code_label">Patient code</span>
             <div class="code ui-code--lg" id="create-patient-modal-code"></div>
             <button class="ui-btn ui-btn--secondary ui-btn--sm" type="button" id="create-patient-modal-copy"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg><span data-i18n="doctor.ui.create.copy">Copy code</span></button>
+            <span class="sr-only" role="status" id="create-patient-modal-copy-status"></span>
           </div>
         </div>
         <div class="ui-dialog__foot ui-dialog__foot--single"><button class="ui-btn ui-btn--primary" type="button" data-close="done" id="create-patient-modal-done" data-i18n="doctor.modal_done_btn">Done</button></div>

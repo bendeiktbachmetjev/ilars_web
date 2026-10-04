@@ -35,7 +35,9 @@
     var tok = {};
     Object.keys(MAP).forEach(function (k) { tok[k] = v(MAP[k]); });
     Object.keys(LISTS).forEach(function (k) { tok[k] = LISTS[k].map(v); });
-    tok.q = { daily: v('--viz-cal-daily'), weekly: v('--viz-cal-weekly'), monthly: v('--viz-cal-monthly'), eq5d5l: v('--viz-cal-eq5d') };
+    // dailyFill / dailyBorder: the calm daily-diary cell (light fill + 1 px edge, charts/patient.js dailyCell)
+    tok.q = { daily: v('--viz-cal-daily'), dailyFill: v('--viz-cal-daily-fill'), dailyBorder: v('--viz-cal-daily-border'),
+      weekly: v('--viz-cal-weekly'), monthly: v('--viz-cal-monthly'), eq5d5l: v('--viz-cal-eq5d') };
     tok.font = v('--font-ui') || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';   // system fonts only
     tok.areaAlpha = parseFloat(v('--viz-area-alpha')) || 0.18;
     var missing = Object.keys(MAP).filter(function (k) { return !tok[k]; });

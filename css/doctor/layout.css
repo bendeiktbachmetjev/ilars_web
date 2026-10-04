@@ -22,6 +22,8 @@
   @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
     .app-topbar { background: var(--color-glass-bar-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
   }
+  /* forced colours keep the alpha of the glass colour (80 % Canvas): solid there too */
+  @media (forced-colors: active) { .app-topbar { background: Canvas; -webkit-backdrop-filter: none; backdrop-filter: none; } }
   /* 3-column grid: the centre switch never overlaps the sides (fixes the 1024 px collision) */
   .app-topbar__inner {
     height: 100%; max-width: calc(var(--layout-page-max) + 2 * var(--layout-gutter)); margin: 0 auto; padding: 0 var(--layout-gutter);
@@ -101,6 +103,9 @@
     content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 2px; background: var(--gradient-nav-active);
   }
   .app-tabs__count { font: 500 12px/1 var(--font-ui); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+  /* forced colours drop the gradient image: the current section keeps a system-colour underline (Highlight, like
+     the other selected states there), 3 px so it stands out from the 1 px separator */
+  @media (forced-colors: active) { .app-tabs__tab[aria-current="page"]::after { height: 3px; background: Highlight; } }
 
   /* ---------------- grid ---------------- */
   .app-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--layout-gap); }
@@ -130,8 +135,7 @@
     .app-topbar .app-lang { display: none; }
     .app-account > .i { display: none; }
     .app-account { padding: 0 2px; }
-    .app-topbar .ui-seg--lg { --h: 34px; }
-    .app-topbar .ui-seg--lg > button { padding: 0 12px; font-size: 13px; }
+    /* the smaller workspace switch on phones: components.css (next to .ui-seg--lg, which this layer cannot beat) */
     .app-tabs { gap: var(--space-5); }
   }
 }

@@ -15,7 +15,9 @@
   .pd-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); margin-bottom: var(--space-5); }
   .pd-head__id { display: flex; align-items: center; gap: 16px; min-width: 0; }
   .pd-head__text { min-width: 0; }
-  .pd-head__name { display: flex; align-items: center; gap: 6px; font: var(--type-title1); letter-spacing: var(--track-title1); }
+  .pd-head__title { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .pd-head__title > .ui-icon-btn { flex: none; }
+  .pd-head__name { display: flex; align-items: center; gap: 6px; min-width: 0; font: var(--type-title1); letter-spacing: var(--track-title1); }
   .pd-head__name > span { min-width: 0; overflow-wrap: anywhere; }
   .pd-head__name .code { font: 700 26px/34px var(--font-mono); letter-spacing: .02em; }
   /* Meta line: separators sit in the gap BEFORE each item; the container clips the first gap of every line
@@ -58,10 +60,18 @@
   @container (max-width: 205px) {
     .pd-kpis .ui-kpi--hero .ui-kpi__spark { position: static; margin-top: 6px; }
   }
+  /* the "calculated from answers" line under the meta would run into the sparkline: it moves under that line */
+  .pd-kpis .ui-kpi--hero.pd-kpi--calc .ui-kpi__spark { position: static; margin-top: 6px; }
 
   /* ---------------------------------------------------------------- sticky glass range bar (floating navigation layer) */
   .pd-range-slot { position: sticky; top: calc(var(--layout-topbar-h) + 10px); z-index: var(--z-range-bar); display: flex; justify-content: center; margin: 20px 0 18px; pointer-events: none; }
   .pd-range { pointer-events: auto; display: flex; align-items: center; gap: 12px; padding: 5px 6px 5px 16px; max-width: 100%; }
+  /* the bar never widens the page: only the axis choice may shrink (it then scrolls inside itself, ui/motion.js
+     .is-overflowing); below 960 px it moves into the "⋯" menu (see the breakpoints) */
+  .pd-range > * { flex: none; }
+  .pd-range > .pd-axis { flex: 0 1 auto; min-width: 0; }
+  /* options as wide as their words, not equal columns ("Dates" beside "Since stoma closure", Lithuanian "1 mėn.") */
+  .pd-range > .ui-seg { grid-auto-columns: auto; }
   .pd-range__label { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font: 500 13px/1 var(--font-ui); color: var(--color-text-on-glass-secondary); font-variant-numeric: tabular-nums; }
   .pd-range .ui-seg > button { color: var(--color-text-on-glass-secondary); }
   .pd-range .ui-seg > button[aria-pressed="true"] { color: var(--color-text-on-glass); }
@@ -105,8 +115,14 @@
   .pd-tracker > span.none { outline: 1px dashed var(--viz-cal-missed-border); outline-offset: -1px; background: var(--color-surface); }
   /* before registration (unknown) and a deceased patient's days (not tracked): not missed — a quiet empty slot */
   .pd-tracker > span.pre, .pd-tracker > span.off, .pd-tracker-legend .pd-key-pre { background: var(--color-surface-sunken); }
-  /* type = colour AND pattern (never colour alone, A27): daily solid · weekly hatch · monthly dots · EQ-5D inner ring.
-     The same patterns mark the questionnaire legends of the card (ui-key--q-*). */
+  /* type = colour AND pattern (never colour alone, A27): daily a calm cell · weekly hatch · monthly dots · EQ-5D inner
+     ring. The same looks mark the questionnaire legends of the card (ui-key--q-*) and its charts (charts/patient.js).
+     Daily (the most common day, lead decision): light neutral fill + 1 px darker edge; the edge (--viz-cal-daily,
+     >= 3:1 on the surface) carries the non-text contrast. 14 % = DAILY_TINT in charts/patient.js. */
+  .pd-tracker > .t-daily, .ui-key.t-daily, .pd-grid .ui-key--q-daily {
+    background: var(--viz-cal-daily-fill, color-mix(in srgb, var(--viz-cal-daily) 14%, var(--color-surface)));
+    box-shadow: inset 0 0 0 1px var(--viz-cal-daily-border, var(--viz-cal-daily));
+  }
   .pd-tracker > .t-weekly, .ui-key.t-weekly, .pd-grid .ui-key--q-weekly { background-image: repeating-linear-gradient(135deg, rgb(255 255 255 / .55) 0 1.5px, transparent 1.5px 4px); }
   .pd-tracker > .t-monthly, .ui-key.t-monthly, .pd-grid .ui-key--q-monthly { background-image: radial-gradient(circle, rgb(255 255 255 / .8) 1.1px, transparent 1.4px); background-size: 4px 4px; }
   .pd-tracker > .t-eq5d5l, .ui-key.t-eq5d5l, .pd-grid .ui-key--q-eq5d5l { box-shadow: inset 0 0 0 2px var(--c), inset 0 0 0 3px rgb(255 255 255 / .85); }
@@ -131,6 +147,15 @@
   .pd-drivers .ui-na.pd-drivers__na { margin: 0; align-items: flex-start; }
   .pd-drivers .ui-na.pd-drivers__na .i { margin-top: 1px; flex: none; }
 
+  /* an empty card (one calm line) keeps its own height instead of stretching to its row neighbour */
+  .pd-grid > .ui-card.is-empty { align-self: start; }
+  /* EQ-5D-5L with one or two visits: the profile column is only as wide as its visits (--eq-n, patient-detail.js)
+     and the VAS line beside it takes the rest of the card (charts/patient.js eqVas vm.fill), so no blank gap opens
+     between them and no empty half stays on the right */
+  @container chart (min-width: 821px) {
+    .pd-grid .pd-eq--few .ui-chart__duo { grid-template-columns: minmax(0, calc(196px + var(--eq-n, 1) * 72px)) minmax(0, 1fr); }
+  }
+
   /* a card without a takeaway sentence does not keep its 44 px line as an empty band above the chart */
   .pd-grid .ui-chart__takeaway:empty { min-height: 0; }
 
@@ -151,9 +176,6 @@
     .pd-status, .pd-reglink { border: 1px solid CanvasText; }
     .pd-drivers__bar, .pd-timeline__dot, .pd-tracker-legend .ui-key { forced-color-adjust: none; }
   }
-
-  /* ---------------------------------------------------------------- error */
-  .pd-error { align-items: center; }
 
   /* ---------------------------------------------------------------- loading: shell at once, skeleton body after 250 ms */
   /* The shell (back row + name/code header) renders inside the view transition; the skeleton body is in the DOM
@@ -198,6 +220,12 @@
     .pd-summary.lg-full { display: flex; }
     .pd-summary.lg-full .pd-summary__sec + .pd-summary__sec { box-shadow: none; border-top: 1px solid var(--color-hairline); }
   }
+  /* tablets (768–959, iPad portrait): the axis choice ("Since stoma closure" …) does not fit beside the range in
+     every language (Lithuanian needs about 920 px) — it moves into the "⋯" menu, as on phones (patient-detail.js
+     reads the hidden state) */
+  @media (max-width: 959px) {
+    .pd-range .pd-vsep, .pd-range .pd-axis { display: none; }
+  }
   @media (max-width: 767px) {
     .pd-head__id { align-items: flex-start; gap: 12px; }
     .pd-head__id .ui-avatar--lg { width: 48px; height: 48px; font-size: 17px; }
@@ -209,8 +237,11 @@
     .pd-reglink .reg-chip { min-width: 0; max-width: none; }
     .pd-range-slot { margin: 16px calc(-1 * var(--layout-gutter)) 14px; padding: 0 var(--layout-gutter); top: calc(var(--layout-topbar-h) + 8px); }
     .pd-range { width: 100%; justify-content: space-between; gap: 6px; padding: 4px 4px 4px 12px; }
-    .pd-range__label, .pd-range .pd-vsep, .pd-range .pd-axis { display: none; }
-    .pd-range .pd-range-seg { flex: 1; }
+    .pd-range__label { display: none; }
+    /* Lithuanian "1 mėn." … fits at 320 px; if a range group still does not, it scrolls inside the bar and "⋯"
+       stays on screen */
+    .pd-range .pd-range-seg { flex: 1 1 auto; min-width: 0; }
+    .pd-range .pd-range-seg > button { padding: 0 7px; }
     .pd-stepper__pos { display: none; }
     .pd-grid .ui-chart__takeaway { padding: 10px 16px 0; }
     .pd-grid .ui-card__head { padding: 16px 16px 0; flex-wrap: wrap; }

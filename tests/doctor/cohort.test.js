@@ -153,3 +153,130 @@ test('trajectory chart: narrow plots label every block with its first week; wide
   assert.deepEqual(O.cohortCategoryShare(traj, ctx, 'd', 1000).xAxis.data.slice(0, 2), ['0–3', '4–7']);
   assert.deepEqual(O.cohortCategoryShare(traj, ctx, 'd', 310).xAxis.data, ['0', '4', '8', '12', '16', '20', '24', '28']);
 });
+
+// ---------------------------------------------------------------- stage 4 QA fixes
+test('Day column: a deceased patient has no day count and sorts last in both directions (DATA-02)', () => {
+  for (const api of ['extended', 'current']) {
+    const m = model(api, 'all');
+    const dead = m.scoped.filter(s => s.status === 'dead');
+    // DEMO21 registered 26 Dec 2025: "Day 279" on 1 Oct 2026 kept counting past the death on 17 Aug 2026 (day 234)
+    assert.deepEqual(dead.map(s => [s.code, M.dayToIso(s.startDay), s.dayInStudy]), [['DEMO21', '2025-12-26', 279], ['DEMO22', '2025-10-17', 349]]);
+    for (const dir of ['asc', 'desc']) {
+      const rows = VM.listRows(m.scoped, ST({ status: 'all', sort: { key: 'day', dir } }), {}).rows;
+      assert.deepEqual(rows.slice(-2).map(s => s.status), ['dead', 'dead'], api + ' ' + dir + ': deceased last');
+      const days = rows.slice(0, -2).map(s => s.dayInStudy);
+      assert.deepEqual(days, days.slice().sort((a, b) => dir === 'asc' ? a - b : b - a), api + ' ' + dir + ': the others in day order');
+    }
+  }
+});
+
+// charts/cohort.js: real-looking tokens (the calm style mixes the colour into the surface)
+function chartCtx() {
+  const THEME = require(path.join(WEB, 'js/doctors/charts/theme.js'));
+  const O = require(path.join(WEB, 'js/doctors/charts/base.js'));
+  require(path.join(WEB, 'js/doctors/charts/cohort.js'));
+  const tok = {}; Object.keys(THEME.MAP).forEach((k) => { tok[k] = '#777777'; }); Object.keys(THEME.LISTS).forEach((k) => { tok[k] = THEME.LISTS[k].map(() => '#777777'); });
+  Object.assign(tok, { surface: '#ffffff', larsNone: '#249c74', larsMinor: '#d8961b', larsMajor: '#b33832' });
+  const mf = new Intl.DateTimeFormat('en-GB', { month: 'short', timeZone: 'UTC' });
+  const fmtDay = (d) => { const x = new Date(d * 86400000); return x.getUTCMonth() === 0 && x.getUTCDate() === 1 ? String(x.getUTCFullYear()) : mf.format(x); };
+  return { O, ctx: { tok, t: (k) => k, tp: (k, n) => k + n, lang: 'en-GB', reduced: true, patterns: false, fmtDay, fmtNum: String, x: { mode: 'date', ref: null } } };
+}
+
+test('overview histograms label every bin, short enough to fit, last bin included (VIS-12)', () => {
+  const { O, ctx } = chartCtx();
+  const lars = O.cohortLarsHistogram({ larsScores: [1, 13, 40] }, ctx, 'd');
+  const adh = O.cohortAdherenceHistogram({ adherenceValues: [0.05, 0.95, 1] }, ctx, 'd');
+  const vas = O.vasHistogram([{ vas: 95 }, { vas: 100 }, { vas: 40 }], ctx, 'd');
+  assert.deepEqual(lars.xAxis.data, ['0', '3', '6', '9', '12', '15', '18', '21', '24', '27', '30', '33', '36', '39+']);
+  assert.deepEqual(adh.xAxis.data, ['0', '10', '20', '30', '40', '50', '60', '70', '80', '90+']);
+  assert.deepEqual(vas.xAxis.data, adh.xAxis.data);
+  for (const o of [lars, adh, vas]) {
+    assert.equal(o.xAxis.axisLabel.interval, 0);                 // every label drawn …
+    assert.ok(!o.xAxis.axisLabel.hideOverlap);                   // … none dropped by the overlap pass
+    assert.ok(o.xAxis.data.every((l) => l.length <= 3));
+  }
+  assert.equal(adh.series[0].data[9].value, 2);                  // 95 % and 100 % sit in the labelled "90+" bin
+  assert.equal(vas.series[0].data[9], 2);
+  assert.ok(adh.tooltip.formatter({ dataIndex: 9 }).includes('90–100%'));   // the tooltip keeps the full range
+});
+
+test('LARS since registration > Categories: calm tint + 1 px category edge, empty segments without an edge (VIS-07)', () => {
+  const { O, ctx } = chartCtx();
+  const traj = { blocks: [0, 1].map((b) => ({ block: b, week: b * 4, n: 10, median: 28, q1: 24, q3: 32, none: 4, minor: 6 - b * 6, major: b * 6 })), paired: null };
+  const o = O.cohortCategoryShare(traj, ctx, 'd', 1000);
+  const full = { 'cs-none': '#249c74', 'cs-minor': '#d8961b', 'cs-major': '#b33832' };
+  o.series.forEach((s) => {
+    assert.equal(s.itemStyle.borderColor, full[s.id]);
+    assert.equal(s.itemStyle.borderWidth, 1);
+    assert.notEqual(s.itemStyle.color, full[s.id], s.id + ': tinted fill, not the solid colour');
+    assert.equal(s.emphasis.itemStyle.color, full[s.id]);
+  });
+  const minor = o.series.find((s) => s.id === 'cs-minor'), major = o.series.find((s) => s.id === 'cs-major');
+  assert.deepEqual([minor.data[0], minor.data[1]], [60, { value: 0, itemStyle: { borderWidth: 0 } }]);
+  assert.deepEqual(major.data[0], { value: 0, itemStyle: { borderWidth: 0 } });
+  const tip = o.tooltip.formatter([0, 1, 2].map((i) => ({ dataIndex: 1, seriesIndex: i, value: [40, 0, 60][i], seriesName: 'x', color: 'tint' })));
+  assert.ok(tip.includes('background:#b33832') && !tip.includes('background:tint'), 'tooltip keys in the full category colour');
+});
+
+test('Registrations > Total: the axis always names its last month; January (the year) kept; labels get room (VIS-30)', () => {
+  const { O, ctx } = chartCtx();
+  const P = M.parseDay;
+  const iso = (o) => o.xAxis.axisLabel.customValues.map((v) => new Date(v).toISOString().slice(0, 10));
+  const vm = (from, to) => ({ series: M.enrolmentSeries([P(from), P(to)]), from: P(from), to: P(to) });
+  const v = vm('2025-10-28', '2026-10-01');                      // the demo cohort on 1 Oct 2026
+  const wide = O.enrolmentCumulative(v, ctx, 'd', 421);           // 1440 px card: every month
+  assert.equal(iso(wide).length, 12);
+  assert.deepEqual([iso(wide)[0], iso(wide)[11]], ['2025-11-01', '2026-10-01']);
+  const narrow = O.enrolmentCumulative(v, ctx, 'd', 288);         // 1024 px card: every 2nd month, "Sept" makes room for "Oct"
+  assert.deepEqual(iso(narrow), ['2025-11-01', '2026-01-01', '2026-03-01', '2026-05-01', '2026-07-01', '2026-10-01']);
+  assert.equal(narrow.xAxis.axisLabel.hideOverlap, false);
+  const mid = O.enrolmentCumulative(vm('2025-10-28', '2026-10-15'), ctx, 'd', 288);
+  assert.equal(iso(mid).slice(-1)[0], '2026-10-01');              // mid-month "today": the last month start is labelled
+  assert.equal(O.enrolmentCumulative(v, ctx, 'd').xAxis.axisLabel.customValues, undefined);           // no width: ECharts' ticks
+  assert.equal(O.enrolmentCumulative(vm('2026-09-20', '2026-10-01'), ctx, 'd', 288).xAxis.axisLabel.customValues, undefined);   // < 2 month starts
+});
+
+// ---------------------------------------------------------------- stage 4 QA round 2
+test('Adherence column: deceased ("Not tracked") and "Too early" rows sort last in both directions (DATA-15)', () => {
+  for (const api of ['extended', 'current']) {
+    const m = model(api, 'all');
+    for (const dir of ['asc', 'desc']) {
+      const rows = VM.listRows(m.scoped, ST({ status: 'all', sort: { key: 'adherence', dir } }), {}).rows;
+      const shown = (s) => s.status !== 'dead' && s.adherence.ratio != null;    // the cell shows a percentage
+      const firstBlank = rows.findIndex((s) => !shown(s));
+      assert.ok(firstBlank > 0, api + ' ' + dir + ': some rows have a percentage');
+      assert.ok(rows.slice(firstBlank).every((s) => !shown(s)), api + ' ' + dir + ': no percentage after the first blank cell');
+      assert.ok(rows.slice(firstBlank).some((s) => s.status === 'dead'), api + ' ' + dir + ': the deceased are among the last rows');
+      const v = rows.slice(0, firstBlank).map((s) => s.adherence.ratio);
+      assert.deepEqual(v, v.slice().sort((a, b) => dir === 'asc' ? a - b : b - a), api + ' ' + dir + ': percentages in order');
+    }
+  }
+});
+
+test('LARS category donut: shares go through percentParts ("<1%", ">99%"), base = patients with a score (DATA-08)', () => {
+  const { O, ctx } = chartCtx();
+  const o = O.cohortLarsDonut({ larsCategories: { none: 0, minor: 149, major: 1, nodata: 3 } }, ctx, 'd');
+  const s = o.series[0], f = (cat, value) => s.label.formatter({ data: { cat }, value });
+  assert.equal(f('major', 1), '<1%');                             // Math.round gave "1%" (and "0%" from 200 scored on)
+  assert.equal(f('minor', 149), '>99%');                          // Math.round gave "99%"
+  assert.equal(f('nodata', 3), '');                               // no share for "No score yet"
+  assert.ok(o.tooltip.formatter({ data: { cat: 'major' }, value: 1, color: '#b33832', name: 'Major' }).includes('&lt;1%'));
+  const even = O.cohortLarsDonut({ larsCategories: { none: 1, minor: 1, major: 2, nodata: 0 } }, ctx, 'd');
+  assert.equal(even.series[0].label.formatter({ data: { cat: 'major' }, value: 2 }), '50%');
+});
+
+test('LARS since registration > Categories: every stack ends exactly on 100 %, only the tooltip rounds (VIS-19)', () => {
+  const { O, ctx } = chartCtx();
+  // the demo cohort's blocks (QA: rounded stacks summed to 99 and 101)
+  const counts = [[3, 5, 9], [4, 9, 9], [3, 4, 6], [3, 4, 4], [3, 4, 4], [2, 3, 4], [2, 3, 3], [1, 2, 2]];
+  const traj = { blocks: counts.map(([none, minor, major], b) => ({ block: b, week: b * 4, n: none + minor + major, median: 28, q1: 24, q3: 32, none, minor, major })), paired: null };
+  const o = O.cohortCategoryShare(traj, ctx, 'd', 1000);
+  const val = (x) => (typeof x === 'object' ? x.value : x);
+  counts.forEach((_, i) => {
+    const sum = o.series.reduce((a, s) => a + val(s.data[i]), 0);
+    assert.ok(Math.abs(sum - 100) < 1e-9, 'block ' + i + ' sums to ' + sum);
+  });
+  assert.ok(counts.some((_, i) => o.series.some((s) => val(s.data[i]) % 1 !== 0)), 'the data is not rounded');
+  const tip = o.tooltip.formatter([0, 1, 2].map((i) => ({ dataIndex: 0, seriesIndex: i, value: val(o.series[i].data[0]), seriesName: 's' + i, color: 'x' })));
+  assert.ok(tip.includes('18%') && tip.includes('29%') && tip.includes('53%'), tip);   // 3/17, 5/17, 9/17 rounded for reading
+});

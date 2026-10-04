@@ -13,6 +13,7 @@ class RegistryDetailView {
     this._picker = null;
     this._firstName = '';
     this._lastName = '';
+    this._loadToken = 0;
   }
 
   // REDESIGN (security): escapes quotes too — values go into value="…" / data-*="…" attributes.
@@ -22,11 +23,22 @@ class RegistryDetailView {
 
   async load(id) {
     this.id = id;
+    // REDESIGN (data integrity): answers can arrive out of order (open A, back, open B). Only the answer to the
+    // latest load may fill the form, so a late answer for A is never shown, or saved, under B. The previous
+    // record's name is forgotten too, so it cannot become the title of a record that has no name of its own.
+    const token = ++this._loadToken;
+    this._firstName = '';
+    this._lastName = '';
     const cont = this._cont();
     if (!cont) return;
+    // REDESIGN (data integrity): the previous record's Save bar goes at once; during loading it would save the
+    // empty loading screen into this record (CSS hides it too, but only in browsers with :has()).
+    const oldBar = document.getElementById('registry-savebar-el');
+    if (oldBar) oldBar.remove();
     cont.innerHTML = '<div class="registry-loading">Kraunama…</div>';
     try {
       const res = await this.api.getRegistryPatientDetail(id);
+      if (token !== this._loadToken) return;
       if (res && res.status === 'ok' && res.patient) {
         this.record = res.patient;
         this.isMine = !!res.patient.is_mine;
@@ -36,6 +48,7 @@ class RegistryDetailView {
         cont.innerHTML = '<div class="registry-empty">Įrašas nerastas.</div>';
       }
     } catch (e) {
+      if (token !== this._loadToken) return;
       console.error('Registry detail load failed', e);
       cont.innerHTML = '<div class="registry-empty">Klaida įkeliant įrašą: ' + this._esc(e.message || '') + '</div>';
     }
@@ -59,8 +72,8 @@ class RegistryDetailView {
     }).join('');
 
     const nameRow = this.isMine ? `
-        <div class="reg-field"><label>Vardas</label><input type="text" id="reg-name-first"></div>
-        <div class="reg-field"><label>Pavardė</label><input type="text" id="reg-name-last"></div>` : '';
+        <div class="reg-field"><label for="reg-name-first">Vardas</label><input type="text" id="reg-name-first"></div>
+        <div class="reg-field"><label for="reg-name-last">Pavardė</label><input type="text" id="reg-name-last"></div>` : '';
 
     cont.innerHTML = `
       <div class="registry-page-topbar">
@@ -78,8 +91,8 @@ class RegistryDetailView {
       <div class="registry-identity-card">
         <div class="reg-grid">
           ${nameRow}
-          <div class="reg-field"><label>LIN (pseudonimizuotas)</label><input type="text" id="reg-f-lin" value="${this._esc(r.lin)}" ${ro}></div>
-          <div class="reg-field"><label>Asmens ID kodas</label><input type="text" id="reg-f-personal_id_code" value="${this._esc(r.personal_id_code)}" ${ro}></div>
+          <div class="reg-field"><label for="reg-f-lin">LIN (pseudonimizuotas)</label><input type="text" id="reg-f-lin" value="${this._esc(r.lin)}" ${ro}></div>
+          <div class="reg-field"><label for="reg-f-personal_id_code">Asmens ID kodas</label><input type="text" id="reg-f-personal_id_code" value="${this._esc(r.personal_id_code)}" ${ro}></div>
         </div>
         ${this.isMine ? `<p class="reg-gdpr">Vardas ir pavardė saugomi tik Firebase ir nepatenka į medicininę DB (GDPR pseudonimizacija).</p>` : ''}
         <div class="reg-link-row" id="reg-link-row">${this._linkHtml()}</div>
@@ -119,10 +132,16 @@ class RegistryDetailView {
     // REDESIGN (visual): the section index marks the section in view (no behaviour change)
     if ('IntersectionObserver' in window) {
       if (this._spy) this._spy.disconnect();
-      this._spy = new IntersectionObserver((entries) => entries.forEach(en => {
-        if (!en.isIntersecting) return;
-        cont.querySelectorAll('.registry-nav-chip').forEach(ch => { const on = 'sec-' + ch.getAttribute('data-sec') === en.target.id; ch.classList.toggle('is-current', on); if (on) ch.setAttribute('aria-current', 'true'); else ch.removeAttribute('aria-current'); });
-      }), { rootMargin: '-120px 0px -60% 0px' });
+      const mark = (secId) => cont.querySelectorAll('.registry-nav-chip').forEach(ch => { const on = 'sec-' + ch.getAttribute('data-sec') === secId; ch.classList.toggle('is-current', on); if (on) ch.setAttribute('aria-current', 'true'); else ch.removeAttribute('aria-current'); });
+      // above the start of the first section (scroll top; on short windows the identity card fills the watched band)
+      // the first section is current — also after a jump back to the top (Home), where no section enters the band
+      const BAND_TOP = 120, firstSec = cont.querySelector('.reg-section');
+      const markTop = () => { if (firstSec && firstSec.getBoundingClientRect().top >= BAND_TOP) mark(firstSec.id); };
+      markTop();
+      this._spy = new IntersectionObserver((entries) => {
+        entries.forEach(en => { if (en.isIntersecting) mark(en.target.id); });
+        markTop();
+      }, { rootMargin: '-' + BAND_TOP + 'px 0px -60% 0px' });
       cont.querySelectorAll('.reg-section').forEach(sec => this._spy.observe(sec));
     }
     this._bindLink();
@@ -238,19 +257,31 @@ class RegistryDetailView {
     }
 
     const saveBtn = document.getElementById('reg-save');
+    // REDESIGN (a11y): disabling the focused button drops focus to <body>; remember it to give it back below
+    const hadFocus = !!saveBtn && document.activeElement === saveBtn;
     if (saveBtn) saveBtn.disabled = true;
     this._setMsg('Saugoma…');
+    // REDESIGN (data integrity): take the record, its name document and the typed names now. The doctor may open
+    // another record while the update is in flight; that record's name must not be overwritten with these values.
+    const token = this._loadToken;
+    const nameDoc = this._nameDoc();
+    const firstEl = document.getElementById('reg-name-first');
+    const lastEl = document.getElementById('reg-name-last');
+    const names = { first: firstEl ? firstEl.value.trim() : '', last: lastEl ? lastEl.value.trim() : '' };
     try {
       await this.api.updateRegistryPatient(this.id, this.collect());
-      await this._saveName();
+      await this._saveName(nameDoc, names, token);
+      if (token !== this._loadToken) return;   // another record is open now: its save bar keeps its own state
       this._setMsg('Išsaugota ✓', 'ok');
       if (window.RegistryListView) window.RegistryListView.cached = null;
       setTimeout(() => this._setMsg(''), 2500);
     } catch (e) {
       console.error('Registry save failed', e);
-      this._setMsg('Klaida išsaugant: ' + (e.message || ''), 'err');
+      if (token === this._loadToken) this._setMsg('Klaida išsaugant: ' + (e.message || ''), 'err');
     } finally {
       if (saveBtn) saveBtn.disabled = false;
+      const a = document.activeElement;
+      if (hadFocus && saveBtn.isConnected && (!a || a === document.body)) saveBtn.focus();
     }
   }
 
@@ -301,8 +332,10 @@ class RegistryDetailView {
     if (!this.isMine) { this._updateTitle(); return; }
     const doc = this._nameDoc();
     if (!doc) return;
+    const token = this._loadToken;   // REDESIGN (data integrity): drop a name that arrives after another record was opened
     try {
       const snap = await doc.get();
+      if (token !== this._loadToken) return;
       const data = snap.exists ? snap.data() : {};
       this._firstName = data.firstName || '';
       this._lastName = data.lastName || '';
@@ -314,18 +347,14 @@ class RegistryDetailView {
     } catch (e) { console.error('Load registry name failed', e); }
   }
 
-  async _saveName() {
-    const doc = this._nameDoc();
+  async _saveName(doc, names, token) {
     if (!doc) return;
-    const first = document.getElementById('reg-name-first');
-    const last = document.getElementById('reg-name-last');
     const user = window.ILARS_AUTH && window.ILARS_AUTH.getCurrentUser();
     if (!user) return;
-    this._firstName = first ? first.value.trim() : '';
-    this._lastName = last ? last.value.trim() : '';
+    if (token === this._loadToken) { this._firstName = names.first; this._lastName = names.last; }
     try {
-      await doc.set({ firstName: this._firstName, lastName: this._lastName, doctorUid: user.uid }, { merge: true });
-      this._updateTitle();
+      await doc.set({ firstName: names.first, lastName: names.last, doctorUid: user.uid }, { merge: true });
+      if (token === this._loadToken) this._updateTitle();
     } catch (e) { console.error('Save registry name failed', e); }
   }
 
@@ -359,7 +388,11 @@ class RegistryDetailView {
 
   _refreshLinkRow() {
     const row = document.getElementById('reg-link-row');
+    // REDESIGN (a11y): the row's button is replaced — keep keyboard focus on its successor, not on <body>
+    const a = document.activeElement;
+    const refocus = !!row && (!a || a === document.body || row.contains(a));
     if (row) { row.innerHTML = this._linkHtml(); this._bindLink(); }
+    if (refocus) { const b = row.querySelector('#reg-unlink-btn, #reg-link-btn'); if (b) b.focus(); }
     if (window.RegistryListView) window.RegistryListView.cached = null;
   }
 
@@ -411,6 +444,7 @@ class RegistryDetailView {
     this._closeOverlay();
     const p = document.createElement('dialog');                  // REDESIGN (a11y): native modal dialog
     p.className = 'registry-picker ui-dialog';
+    p.lang = 'lt';                                                  // REDESIGN (a11y): Lithuanian content in any UI language
     p.innerHTML = `<div class="registry-picker-content">${innerHtml}</div>`;
     document.body.appendChild(p);
     this._picker = p;

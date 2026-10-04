@@ -15,14 +15,23 @@ class PatientDetailView {
     this.d = null;               // the loaded data of the current patient (re-render without a request)
     this.hist = { state: 'loading', rows: [] };
     this.names = {};             // {code: name} seen this session (shell name before the Firestore read)
+    this.left = false;           // the user left this patient's route since it was rendered
     this.bindKeys();
+    var self = this;
+    window.addEventListener('hashchange', function () { if (location.hash !== '#patient/' + encodeURIComponent(self.code)) self.left = true; });
   }
 
   // ================================================================== load / errors
   load(code) {
     var self = this, U = ILARS_UI;
+    // A language change re-renders the route (app.js rerender -> load): the patient on screen re-renders in place
+    // in the new language, keeping card views, open tables and the focused control, without a new request.
+    if (code === this.code && this.d && !this.left && this.renderedLang && this.renderedLang !== U.locale()) {
+      this.render(document.getElementById('patient-detail-view'), this.d, { quiet: true });
+      return Promise.resolve();
+    }
     var seq = ++this.seq;
-    this.code = code; this.d = null; this.dispose();
+    this.code = code; this.d = null; this.left = false; this.dispose();
     var root = document.getElementById('patient-detail-view');
     // The shell renders synchronously: app.js calls load() inside the view-transition callback, and the browser
     // captures the new view right after it (DESIGN-SPEC §5.1). The skeleton body fades in only after 250 ms.
@@ -55,7 +64,7 @@ class PatientDetailView {
     if (!forbidden && !missing) {
       var retry = document.createElement('div');
       retry.className = 'ui-alert__actions';
-      retry.innerHTML = '<button class="ui-btn ui-btn--secondary ui-btn--sm" type="button">' + U.esc(U.t('doctor.ui.common.retry')) + '</button>';
+      retry.innerHTML = '<button class="ui-btn ui-btn--secondary ui-btn--sm" type="button">' + U.icon('refresh', 'i--sm') + '<span>' + U.esc(U.t('doctor.ui.common.retry')) + '</span></button>';
       retry.firstChild.addEventListener('click', function () { self.load(code); });
       box.appendChild(retry);
     }
@@ -211,6 +220,16 @@ class PatientDetailView {
     var s = ILARS_UI.fmtRelative(day, today);
     return today - day > 60 ? s : s.charAt(0).toLocaleLowerCase(ILARS_UI.locale()) + s.slice(1);
   }
+  /** A selector that finds the same control after a re-render: its id, else its data-act / data-v / data-del /
+      data-series inside the nearest ancestor with an id (a card's table toggle, a view or range option). */
+  focusKey(el, root) {
+    if (!el || el === root || !root.contains(el)) return null;
+    if (el.id) return '#' + CSS.escape(el.id);
+    var attr = ['data-act', 'data-v', 'data-del', 'data-series'].filter(function (a) { return el.hasAttribute(a); })[0];
+    var scope = el.parentElement && el.parentElement.closest('[id]');
+    if (!attr || !scope || scope === root || !root.contains(scope)) return null;
+    return '#' + CSS.escape(scope.id) + ' [' + attr + '="' + CSS.escape(el.getAttribute(attr)) + '"]';
+  }
   initials(name) { return name.split(/\s+/).filter(Boolean).map(function (p) { return p[0]; }).slice(0, 2).join('').toUpperCase(); }
   store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } return null; }
   copyCode(code) {
@@ -307,6 +326,7 @@ class PatientDetailView {
     });
     this.dispose();
     root.removeAttribute('aria-busy');
+    this.renderedLang = U.locale();
     this.renderedDeath = this.deathDay(d);
     var pm = VM.patientModel(d.detail, { registryRow: d.regFailed ? null : d.linked, deathDay: this.renderedDeath });
     U._today = pm.today;                                  // fmtDay 'short' and fmtRelative count from the same today
@@ -327,6 +347,17 @@ class PatientDetailView {
     var reveal = function (i) { return o.quiet ? '' : ' ui-reveal" data-i="' + i; };
     var tp = function (key, n, params) { return U.tp(key, n, Object.assign({ n: n }, params || {})); };
     var withSign = function (v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v); };
+    // a sentence that ends with a date which already ends with a full stop (lt "2026 m. liep. 5 d.") keeps one stop
+    var oneStop = function (s) { return s.replace(/([^.])\.\.$/, '$1.'); };
+    /** Phone line breaks: never inside "3–5", "10 = worst", "7-day", a short date ("8 Jan", "saus. 8") or a number
+        with its word ("30 days", "day 14", "level 1"); a " · " separator ends a line, never starts one. Text or
+        escaped HTML in, same out (only the text between tags changes). */
+    var nb = function (str) {
+      return String(str).split(/(<[^>]*>)/).map(function (s, i) {
+        return i % 2 ? s : s.replace(/(\d)–(\d)/g, '$1\u2060–\u2060$2').replace(/(\d+) = /g, '$1\u00a0=\u00a0').replace(/ · /g, '\u00a0· ')
+          .replace(/(\d)-(?=\p{L})/gu, '$1-\u2060').replace(/(\d) (?=\p{L})/gu, '$1\u00a0').replace(/([\p{L}.]) (?=\d)/gu, '$1\u00a0');
+      }).join('');
+    };
 
     // ---------------------------------------------------------- header
     var surgeryLine = '';
@@ -344,9 +375,10 @@ class PatientDetailView {
     var head =
       '<header class="pd-head' + reveal(0) + '"><div class="pd-head__id">' +
         '<span class="ui-avatar ui-avatar--lg" aria-hidden="true">' + (name ? U.esc(this.initials(name)) : U.icon('user')) + '</span>' +
-        '<div class="pd-head__text"><h1 class="pd-head__name" tabindex="-1"><span' + (name ? ' class="pd-vt-name"' : '') + ' id="patient-detail-name-display">' +
-          (name ? U.esc(name) : '<span class="code">' + U.fmtCode(code) + '</span>') + '</span>' +
-          (d.canEditName ? '<button class="ui-icon-btn" type="button" id="btn-edit-patient-name" aria-label="' + U.esc(U.t('doctor.ui.patient.edit_name')) + '" title="' + U.esc(U.t('doctor.ui.patient.edit_name')) + '">' + U.icon('pencil', 'i--sm') + '</button>' : '') + '</h1>' +
+        // the edit button sits beside the <h1>, not in it: the heading's name is the patient's name only
+        '<div class="pd-head__text"><div class="pd-head__title"><h1 class="pd-head__name" tabindex="-1"><span' + (name ? ' class="pd-vt-name"' : '') + ' id="patient-detail-name-display">' +
+          (name ? U.esc(name) : '<span class="code">' + U.fmtCode(code) + '</span>') + '</span></h1>' +
+          (d.canEditName ? '<button class="ui-icon-btn" type="button" id="btn-edit-patient-name" aria-label="' + U.esc(U.t('doctor.ui.patient.edit_name')) + '" title="' + U.esc(U.t('doctor.ui.patient.edit_name')) + '">' + U.icon('pencil', 'i--sm') + '</button>' : '') + '</div>' +
           '<div class="pd-meta"><div class="pd-meta__in">' +
             '<span class="pd-meta__item"><span class="ui-code" id="patient-detail-code">' + U.fmtCode(code) +
               '<button class="ui-icon-btn" type="button" data-act="copy" aria-label="' + U.esc(U.t('doctor.ui.patient.copy_code')) + '" title="' + U.esc(U.t('doctor.ui.patient.copy_code')) + '">' + U.icon('copy') + '</button></span></span>' +
@@ -368,18 +400,24 @@ class PatientDetailView {
     // ---------------------------------------------------------- KPI row (range-independent snapshot)
     var cur = kp.currentLars, lc = cur.value != null ? M.larsCategory(cur.value) : null;
     var firstCat = pm.larsFirst ? M.larsCategory(pm.larsFirst.first) : null;
-    var deltaHtml = function (delta, colored, betterIfNegative, dec) {
+    // §3.4 Delta: the arrow and number are for the eye; a screen reader gets one sentence with the direction (sr)
+    var deltaHtml = function (delta, colored, betterIfNegative, sr) {
       if (delta == null || delta === 0) return '<span class="ui-delta">±0</span>';
       var cls = colored ? (((delta < 0) === betterIfNegative) ? ' ui-delta--better' : ' ui-delta--worse') : '';
-      return '<span class="ui-delta' + cls + '">' + U.icon(delta < 0 ? 'arrow-down' : 'arrow-up') + U.fmtNum(Math.abs(delta), dec || 0) + '</span>';
+      return '<span class="ui-delta' + cls + '">' + U.icon(delta < 0 ? 'arrow-down' : 'arrow-up') + '<span aria-hidden="true">' + U.fmtNum(Math.abs(delta)) + '</span>' +
+        '<span class="sr-only">' + U.esc(sr) + '</span></span>';
     };
     var dec = function (v) { return v % 1 ? 1 : 0; };
+    // a LARS figure that uses a total calculated from the answers says so, as the LARS table does
+    var calcNote = function (on) { return on ? '<span>' + U.esc(U.t('doctor.cm.lars.calculated')) + '</span>' : ''; };
     var tiles = [];
-    tiles.push('<article class="ui-kpi ui-kpi--hero' + reveal(1) + '"><div class="ui-kpi__label">' + U.icon('line') + U.esc(U.t('doctor.cm.kpi.current_lars')) +
+    tiles.push('<article class="ui-kpi ui-kpi--hero' + (cur.calculated ? ' pd-kpi--calc' : '') + reveal(1) + '"><div class="ui-kpi__label">' + U.icon('line') + U.esc(U.t('doctor.cm.kpi.current_lars')) +
       (cur.day != null ? '<span class="ui-kpi__date">' + U.esc(U.fmtDay(cur.day, 'short')) + '</span>' : '') + '</div>' +
       (cur.value == null ? '<div class="ui-kpi__value is-empty">—</div><div class="ui-kpi__meta">' + U.esc(U.t('doctor.cm.kpi.no_lars')) + '</div>' :
         '<div class="ui-kpi__value"><span data-count="' + cur.value + '">' + cur.value + '</span>' + this.larsChip(lc) + '</div>' +
-        '<div class="ui-kpi__meta">' + (cur.delta != null ? deltaHtml(cur.delta, firstCat !== lc, true) + '<span>' + U.esc(U.t('doctor.cm.delta.vs_first') + ' (' + pm.larsFirst.first + ')') + '</span>' : '') + '</div>' +
+        '<div class="ui-kpi__meta">' + (cur.delta != null ? deltaHtml(cur.delta, firstCat !== lc, true,
+          U.t(cur.delta < 0 ? 'doctor.cm.list.delta_sr_down' : 'doctor.cm.list.delta_sr_up', { n: Math.abs(cur.delta) }) + ' (' + pm.larsFirst.first + ')') +
+          '<span' + (cur.delta ? ' aria-hidden="true"' : '') + '>' + U.esc(U.t('doctor.cm.delta.vs_first') + ' (' + pm.larsFirst.first + ')') + '</span>' : '') + calcNote(cur.calculated) + '</div>' +
         '<div class="ui-kpi__spark" aria-hidden="true">' + O.sparklineSVG(cur.spark, T, 104, 32) + '</div>') + '</article>');
     if (!kp.median4w.hidden) {
       var m4 = kp.median4w;
@@ -387,14 +425,15 @@ class PatientDetailView {
         '<div class="ui-kpi__value"><span data-count="' + m4.value + '" data-dec="' + dec(m4.value) + '">' + U.fmtNum(m4.value, dec(m4.value)) + '</span>' + this.larsChip(m4.category) + '</div>' +
         '<div class="ui-kpi__meta">' + (m4.previous == null ? U.esc(U.t('doctor.cm.kpi.prev_4w_none')) : m4.change === 'same'
           ? '<span>' + U.esc(U.t('doctor.cm.kpi.same_category')) + ' · ' + U.esc(U.t('doctor.cm.kpi.prev_4w', { median: U.fmtNum(m4.previous, dec(m4.previous)), category: U.t('doctor.cm.lars.band_' + m4.previousCategory) })) + '</span>'
-          : '<span class="ui-delta ' + (m4.change === 'better' ? 'ui-delta--better' : 'ui-delta--worse') + '">' + U.esc(U.t('doctor.cm.kpi.moved_to', { category: U.t('doctor.cm.lars.band_' + m4.category) })) + '</span>') + '</div></article>');
+          : '<span class="ui-delta ' + (m4.change === 'better' ? 'ui-delta--better' : 'ui-delta--worse') + '">' + U.esc(U.t('doctor.cm.kpi.moved_to', { category: U.t('doctor.cm.lars.band_' + m4.category) })) + '</span>') + calcNote(m4.calculated) + '</div></article>');
     }
     if (!kp.vas.hidden) {
-      var lastVisit = pm.visits.filter(function (v) { return v.vas != null; }).slice(-1)[0];
       tiles.push('<article class="ui-kpi' + reveal(3) + '"' + (kp.vas.deltaFirst != null && !kp.vas.beyondMid ? ' title="' + U.esc(U.t('doctor.cm.delta.within_mid')) + '"' : '') + '><div class="ui-kpi__label">' + U.icon('heart') + U.esc(U.t('doctor.cm.kpi.eq_vas')) + '</div>' +
         '<div class="ui-kpi__value"><span data-count="' + kp.vas.value + '">' + kp.vas.value + '</span><span class="ui-kpi__unit">' + U.esc(U.t('doctor.ui.patient.vas_unit')) + '</span></div>' +
-        '<div class="ui-kpi__meta">' + (kp.vas.deltaFirst != null ? '<span class="pd-kpi-pair">' + deltaHtml(kp.vas.deltaFirst, kp.vas.beyondMid, false) + '<span>' + U.esc(U.t('doctor.cm.delta.vs_first')) + '</span></span>' : '') +
-          (lastVisit ? '<span>' + U.esc(U.t('doctor.cm.kpi.visit_meta', { point: lastVisit.point, date: U.fmtDay(lastVisit.day, 'short') })) + '</span>' : '') + '</div></article>');
+        '<div class="ui-kpi__meta">' + (kp.vas.deltaFirst != null ? '<span class="pd-kpi-pair">' + deltaHtml(kp.vas.deltaFirst, kp.vas.beyondMid, false,
+          tp(kp.vas.deltaFirst < 0 ? 'doctor.ui.patient.take_vas_down' : 'doctor.ui.patient.take_vas_up', Math.abs(kp.vas.deltaFirst), { point: kp.vas.firstPoint })) +
+          '<span' + (kp.vas.deltaFirst ? ' aria-hidden="true"' : '') + '>' + U.esc(U.t('doctor.cm.delta.vs_first')) + '</span></span>' : '') +
+          '<span>' + U.esc(U.t('doctor.cm.kpi.visit_meta', { point: kp.vas.point, date: U.fmtDay(kp.vas.day, 'short') })) + '</span></div></article>');
     }
     // adherence: level colour only for active patients; a deceased patient is not tracked (§4.4 states)
     var a = kp.adherence, app = status === 'dead' ? null : M.percentParts(a.ratio), lvl = status === 'active' ? M.adherenceLevel(a.ratio) : null;
@@ -428,10 +467,10 @@ class PatientDetailView {
     if (!kp.steps7.hidden) stats.push('<div class="ui-stats__cell"><div class="ui-stats__label">' + U.esc(U.t('doctor.cm.kpi.steps_7d')) + '</div><div class="ui-stats__value">' + U.fmtNum(Math.round(kp.steps7.value)) + '</div>' +
       '<div class="ui-stats__meta">' + (kp.steps7.prevRatio != null ? U.esc(U.t('doctor.cm.kpi.vs_prev_7d', { delta: withSign(Math.round(kp.steps7.prevRatio * 100)) + '%' })) : '&nbsp;') + '</div></div>');
 
+    stats = stats.map(nb);                                 // phone line breaks in the strip's labels and notes
     var hadFocus = document.activeElement && root.contains(document.activeElement) && document.activeElement.matches('h1');
-    // a quiet re-render (late registry row, status change) keeps the focus on the same control when it has an id
-    var keepFocus = !o.focus && o.quiet && document.activeElement && root.contains(document.activeElement) && document.activeElement.id
-      ? '#' + CSS.escape(document.activeElement.id) : null;
+    // a quiet re-render (late registry row, status change, language) keeps the focus on the same control
+    var keepFocus = !o.focus && o.quiet ? this.focusKey(document.activeElement, root) : null;
     root.innerHTML = this.backRow() + head +
       '<section class="ui-kpi-row pd-kpis" style="--cols:' + tiles.length + '" aria-label="' + U.esc(U.t('doctor.ui.a11y.key_figures')) + '">' + tiles.join('') + '</section>' +
       // only the EQ-5D-5L cell left (no recent diary, e.g. DEMO20 or a deceased patient): no strip, as in golden —
@@ -447,13 +486,48 @@ class PatientDetailView {
     var cards = this.cards = [];
     var add = function (spec) {
       if (keptViews[spec.id] && spec.views.some(function (v) { return v.v === keptViews[spec.id]; })) spec.view = keptViews[spec.id];
-      var card = ILARS_CHARTS.card(spec);
+      // per-view card chrome: a view with its own hint (Monthly QoL: items 1–4 vs scores 0–10), and a "not available
+      // yet" line that belongs to one view only (spec.naView). card.js paints the takeaway on every view switch, so
+      // both follow the view there. Hints, takeaways and notes get phone-safe line breaks (nb).
+      var card = null, first = spec.views.filter(function (v) { return v.v === spec.view; })[0] || spec.views[0];
+      var chrome = spec.naView || spec.views.some(function (v) { return v.hint; });
+      if (spec.hint) spec.hint = nb(spec.hint);
+      if (spec.notes) spec.notes = spec.notes.map(nb);
+      spec.views.forEach(function (v) {
+        var take = v.takeaway, notes = v.notes;
+        if (v.hint) v.hint = nb(v.hint);
+        v.takeaway = function () {
+          var h = chrome && card && card.el.querySelector('.ui-card__hint'), na = card && card.el.querySelector('[data-part="na"]');
+          if (h) h.textContent = v.hint || spec.hint;
+          if (na && spec.naView) na.hidden = v.v !== spec.naView;
+          return take ? nb(take()) : '';
+        };
+        if (typeof notes === 'function') v.notes = function () { return notes().map(nb); };
+        else if (notes) v.notes = notes.map(nb);
+      });
+      card = ILARS_CHARTS.card(Object.assign({}, spec, { hint: first.hint || spec.hint }));
       if (o.quiet) card.el.classList.remove('ui-reveal');
       if (keptTables[spec.id]) card.el.querySelector('[data-act="table"]').click();
       grid.appendChild(card.el); cards.push(card); return card;
     };
     var inR = function (p) { return p.day >= range.from && p.day <= range.to; };
+    // A24: the diary cards (charts, their table twins and sentences) start at the 730-day diary window
+    var inD = function (p) { var dr = M.diaryRange(range, pm.startDay, pm.today); return p.day >= dr.from && p.day <= dr.to; };
     var diaryNote = function () { return M.diaryRange(range, pm.startDay, pm.today).clipped ? [U.esc(U.t('doctor.cm.common.diary_window'))] : []; };
+    // a calendar shows at most the last 53 weeks (fewer on a very narrow phone, charts/base.js calendarFrom): when
+    // it is cut, it says so (CHARTS-METRICS §3.5) instead of the diary-window note (it starts inside that window)
+    // a calendar's box is exactly as tall as the calendar it draws (+ the key row under the stool calendar) at the
+    // canvas width: no blank band under a phone's small cells. build() runs again on a width change and refits it.
+    var calCanvas = function (id) { return document.querySelector('#card-' + id + ' .ui-chart__canvas'); };
+    var calH = function (id, extra) {
+      var c = calCanvas(id), w = (c && c.clientWidth) || 600, dr = M.diaryRange(range, pm.startDay, pm.today);
+      return O._.calendarHeight(O.calendarFrom(dr.from, dr.to, w).from, dr.to, w) + extra;
+    };
+    var fitCal = function (id, extra) { var c = calCanvas(id); if (c) c.style.setProperty('--chart-h', calH(id, extra) + 'px'); };
+    var calendarNote = function (id) {
+      var c = document.querySelector('#card-' + id + ' .ui-chart__canvas'), dr = M.diaryRange(range, pm.startDay, pm.today);
+      return O.calendarFrom(dr.from, dr.to, (c && c.clientWidth) || 600).clipped ? [U.esc(self.tx('doctor.cm.common.showing_last_year'))] : diaryNote();
+    };
     // a deceased patient: the blank days after the status change are not tracked (no "missed" marks there)
     var endNote = function () {
       return status === 'dead' && pm.deathDay != null && range.to >= pm.deathDay
@@ -514,7 +588,7 @@ class PatientDetailView {
           '<span class="pd-drivers__bar" aria-hidden="true"><i style="--v:' + Math.round(x.v / ITEM_MAX[x.k] * 100) + '%;--c:' + T.chart[ITEM_SLOT[x.k]] + '"></i></span></div>';
       }).join('') +
         (total > 0 ? '<p class="pd-drivers__say">' + U.t('doctor.ui.patient.drivers_sentence', { a: '<b>' + U.esc(U.t('doctor.cm.lars.' + ITEM_LABEL[top[0].k])) + '</b>',
-          b: '<b>' + U.esc(U.t('doctor.cm.lars.' + ITEM_LABEL[top[1].k])) + '</b>', pct: '<b>' + Math.round((top[0].v + top[1].v) / total * 100) + '%</b>' }).replace(/<(?!\/?b>)/g, '&lt;') + '</p>' : '') +
+          b: '<b>' + U.esc(U.t('doctor.cm.lars.' + ITEM_LABEL[top[1].k])) + '</b>', pct: '<b>' + O._.pct((top[0].v + top[1].v) / total) + '</b>' }).replace(/<(?!\/?b>)/g, '&lt;') + '</p>' : '') +
         '<p class="ui-chart__note pd-drivers__hint">' + U.esc(U.t('doctor.ui.patient.drivers_hint')) + '</p></div>';
     };
     var larsViews = [{ v: 'trend', label: U.t('doctor.cm.lars.view_trend'), icon: 'line', coord: 'cartesian', group: 'pd-time', height: 300,
@@ -525,11 +599,16 @@ class PatientDetailView {
       build: function () { return O.larsItems(cm.lars, ctx(), larsSummary()); }, summary: larsSummary, table: larsTable, takeaway: larsTake,
       legend: ITEMS.map(function (k) { return { name: U.t('doctor.cm.lars.' + ITEM_LABEL[k]), color: T.chart[ITEM_SLOT[k]], toggle: true }; }),
       notes: function () { return larsIn().filter(function (p) { return p.items; }).length > C.LARS_ITEMS_MAX_BARS ? [U.esc(U.t('doctor.cm.lars.items_block_note'))] : []; } });
+    // Share view: its chart name says what its takeaway says (§3.6), not the trend sentence
+    var shareSentence = function () {
+      var L = larsIn(), k = L.filter(function (p) { return M.larsCategory(p.score) === 'major'; }).length;
+      return { k: k, text: tp('doctor.ui.patient.take_share', L.length, { k: k }) };
+    };
     larsViews.push({ v: 'share', label: U.t('doctor.cm.lars.view_share'), icon: 'donut', coord: 'pie', height: 300,
-      build: function () { return O.larsShare(cm.lars, ctx(), larsSummary()); }, summary: larsSummary, table: larsTable,
+      build: function () { return O.larsShare(cm.lars, ctx(), shareSentence().text + '.'); }, summary: function () { return shareSentence().text + '.'; }, table: larsTable,
       takeaway: function () {
-        var L = larsIn(), k = L.filter(function (p) { return M.larsCategory(p.score) === 'major'; }).length;
-        return '<span class="ui-chart__num">' + k + '</span><span class="ui-chart__text">' + U.esc(tp('doctor.ui.patient.take_share', L.length, { k: k }).replace(/^\s*\d+\s+/, '')) + '</span>';
+        var sh = shareSentence();
+        return '<span class="ui-chart__num">' + sh.k + '</span><span class="ui-chart__text">' + U.esc(sh.text.replace(/^\s*\d+\s+/, '')) + '</span>';
       },
       legend: ['none', 'minor', 'major'].map(function (c) { return { name: catName(c), color: 'var(--color-lars-' + c + ')' }; }) });
     add({ id: 'pd-lars', span: 'span-8', reveal: 7, title: U.t('doctor.cm.lars.title'), hint: U.t('doctor.cm.lars.hint'), info: U.t('doctor.cm.lars.info'),
@@ -552,8 +631,21 @@ class PatientDetailView {
     // EQ-5D-5L (all visits, range-independent) ---------------------------------
     var eqSummary = function () {
       var v = pm.vas, s = pm.milestoneSummary; if (!v) return '';
-      return tp('doctor.cm.eq.summary', s.arrived, { n: s.done, arrived: s.arrived, vas: v.latest, date: U.fmtDay(v.latestDay, 'long'),
-        change: v.deltaFirst != null ? U.t('doctor.cm.eq.summary_change', { delta: withSign(v.deltaFirst) }) : '' });
+      return oneStop(tp('doctor.cm.eq.summary', s.arrived, { n: s.done, arrived: s.arrived, vas: v.latest, date: U.fmtDay(v.latestDay, 'long'),
+        change: v.deltaFirst != null ? U.t('doctor.cm.eq.summary_change', { delta: withSign(v.deltaFirst) }) : '' }));
+    };
+    // VAS change in words, named by its real reference visit ("than day 14" when day 0 has no VAS, DATA-14).
+    // A single VAS visit has nothing to compare with: no words (never "Same as day 0" for the visit itself).
+    var vasWord = function (v) {
+      var dl = v.deltaFirst, p = { point: v.firstPoint };
+      if (dl == null) return '';
+      return dl === 0 ? U.t('doctor.ui.patient.take_vas_same', p) : tp(dl > 0 ? 'doctor.ui.patient.take_vas_up' : 'doctor.ui.patient.take_vas_down', Math.abs(dl), p);
+    };
+    // the VAS chart beside the profile has its own name (two images with one label would read twice, §3.6)
+    var vasSummary = function () {
+      var v = pm.vas; if (!v) return '';
+      var word = vasWord(v);
+      return oneStop(U.t('doctor.cm.kpi.eq_vas') + ' ' + v.latest + ' ' + U.t('doctor.ui.patient.vas_unit') + ', ' + U.fmtDay(v.latestDay, 'long') + '.') + (word ? ' ' + word + '.' : '');
     };
     var DIMS = ['app.eq_mobility', 'app.eq_self_care', 'app.eq_usual_activities', 'app.eq_pain_discomfort', 'app.eq_anxiety_depression'];
     var eqTable = function () {
@@ -562,7 +654,8 @@ class PatientDetailView {
           .concat([U.t('doctor.cm.eq.vas'), pm.eqBaselinePoint ? U.t('doctor.cm.eq.pchc_row_n', { n: pm.eqBaselinePoint }) : U.t('doctor.cm.eq.th_change')]),
         num: ext.dims ? [2, 3, 4, 5, 6, 8] : [2],
         rows: pm.visits.map(function (v) {
-          return [U.t('doctor.cm.eq.visit', { n: v.point }), v.day == null ? U.t('doctor.cm.eq.missed') : U.fmtDay(v.day, 'long')]
+          // today's API sends VAS rows only: a gap may be an EQ-5D-5L filled without a VAS, so it is not called "missed"
+          return [U.t('doctor.cm.eq.visit', { n: v.point }), v.day == null ? (ext.dims ? U.t('doctor.cm.eq.missed') : '–') : U.fmtDay(v.day, 'long')]
             .concat(ext.dims ? (v.levels ? v.levels.concat([M.eqProfileCode(v.levels)]) : ['–', '–', '–', '–', '–', '–']) : [])
             .concat([v.vas == null ? '–' : v.vas, v.pchc ? U.t('doctor.cm.eq.pchc_' + v.pchc) : '–']);
         }) };
@@ -570,12 +663,11 @@ class PatientDetailView {
     var eqBase = pm.visits.filter(function (v) { return v.levels; })[0];
     var eqTake = function () {
       var v = pm.vas; if (!v) return '';
-      var dl = v.deltaFirst;
-      var word = dl == null || dl === 0 ? U.t('doctor.ui.patient.take_vas_same') : tp(dl > 0 ? 'doctor.ui.patient.take_vas_up' : 'doctor.ui.patient.take_vas_down', Math.abs(dl));
+      var word = vasWord(v);
       var lastLv = pm.visits.filter(function (x) { return x.levels; }).slice(-1)[0];
       return '<span class="ui-chart__num">' + v.latest + '</span><span class="ui-chart__unit">' + U.esc(U.t('doctor.cm.eq.vas')) + '</span><span class="ui-chart__text">' +
         (v.beyondMid ? '<b>' + U.esc(word) + '</b> (' + U.esc(U.t('doctor.ui.patient.take_vas_noticeable')) + ')' : U.esc(word)) +
-        (lastLv && eqBase && lastLv !== eqBase ? ' · ' + U.esc(U.t('doctor.ui.patient.take_state', { now: M.eqProfileCode(lastLv.levels), first: M.eqProfileCode(eqBase.levels) })) : '') + '</span>';
+        (lastLv && eqBase && lastLv !== eqBase ? ' · ' + U.esc(U.t('doctor.ui.patient.take_state', { now: M.eqProfileCode(lastLv.levels), first: M.eqProfileCode(eqBase.levels), point: eqBase.point })) : '') + '</span>';
     };
     var vasLegend = '<span class="ui-legend"><span class="ui-legend__item"><span class="ui-key" style="--c:var(--viz-band-neutral)"></span>' + U.esc(U.t('doctor.cm.eq.vas_band')) + '</span></span>';
     var eqViews = ext.dims ? [
@@ -588,24 +680,33 @@ class PatientDetailView {
     ] : [{ v: 'vas', label: U.t('doctor.cm.eq.vas'), coord: 'cartesian', height: 200, widthDependent: true,
       build: function (w) { return O.eqVas(cm.eq, ctx(), eqSummary(), w); }, summary: eqSummary, table: eqTable, takeaway: eqTake,
       legend: [{ name: U.t('doctor.cm.eq.vas_band'), color: 'var(--viz-band-neutral)' }] }];
-    var nextV = dead ? null : pm.milestoneSummary.open || pm.milestoneSummary.next;      // a visit that is due now comes first; none after death
-    add({ id: 'pd-eq', span: ext.dims ? 'span-12' : 'span-6', fill: !ext.dims, reveal: 9, title: U.t('doctor.cm.eq.title'),
+    // a visit that is due now comes first; none after death. A visit whose due date has passed reads as due /
+    // overdue, never as "Next visit" with a past date (the stats strip and "Coming up" say the same).
+    var eqv = VM.eqVisitNotice(pm);
+    var eqNote = !eqv ? '' : eqv.kind === 'overdue' ? U.t('doctor.cm.kpi.eq_overdue', { point: eqv.point, days: U.fmtDays(eqv.overdueDays) })
+      : eqv.kind === 'due' ? U.t('doctor.cm.kpi.eq_due', { point: eqv.point }) + ' · ' + U.fmtDay(eqv.dueDay, 'long')
+      : U.t('doctor.cm.eq.next_visit', { point: eqv.point, date: U.fmtDay(eqv.dueDay, 'long') });
+    // one or two visits: the profile column is narrow (views/patient.css .pd-eq--few) and the VAS line fills the rest
+    var eqFew = ext.dims && pm.visits.length <= 2;
+    var eqCard = add({ id: 'pd-eq', span: ext.dims ? 'span-12' : 'span-6', fill: !ext.dims, reveal: 9, title: U.t('doctor.cm.eq.title'),
       hint: U.t(ext.dims ? 'doctor.cm.eq.hint' : 'doctor.cm.eq.hint_vas'), info: U.t('doctor.cm.eq.info'),
-      mainSub: ext.dims ? '<span>' + U.esc(U.t('doctor.ui.patient.eq_dims_sub')) + '</span>' : '',
+      mainSub: ext.dims ? '<span>' + nb(U.esc(U.t('doctor.ui.patient.eq_dims_sub'))) + '</span>' : '',
       views: eqViews, na: ext.dims ? null : U.t('doctor.ui.patient.na_dims'),
       // the VAS line stays beside both views (Profile and Summary), so the card never keeps an empty half
       extra: ext.dims ? { side: true, when: function () { return true; }, height: 200, widthDependent: true,
         sub: '<span>' + U.esc(U.t('doctor.cm.eq.hint_vas')) + '</span>' + vasLegend,
-        build: function (w) { return O.eqVas(cm.eq, ctx(), eqSummary(), w); }, summary: eqSummary } : null,
-      notes: nextV ? [U.esc(U.t('doctor.cm.eq.next_visit', { point: nextV.point, date: U.fmtDay(nextV.dueDay, 'long') }))] : [],
+        build: function (w) { return O.eqVas(eqFew ? Object.assign({ fill: true }, cm.eq) : cm.eq, ctx(), vasSummary(), w); }, summary: vasSummary } : null,
+      notes: eqNote ? [U.esc(eqNote)] : [],
       empty: function () {
         return pm.visits.some(function (v) { return v.status === 'done'; }) ? null
-          : !nextV ? U.esc(self.tx('doctor.ui.patient.eq_none'))
-          : U.esc(U.t('doctor.cm.eq.empty', { point: nextV.point, date: U.fmtDay(nextV.dueDay, 'long') }));
+          : !eqv ? U.esc(self.tx('doctor.ui.patient.eq_none'))
+          : eqv.kind !== 'next' ? U.esc(oneStop(self.tx('doctor.ui.patient.eq_none') + ' ' + eqNote + '.'))
+          : U.esc(U.t('doctor.cm.eq.empty', { point: eqv.point, date: U.fmtDay(eqv.dueDay, 'long') }));
       } });
+    if (eqFew) { eqCard.el.classList.add('pd-eq--few'); eqCard.el.style.setProperty('--eq-n', pm.visits.length); }
 
     // Bowel movements (+ pads, + symptom raster) --------------------------------
-    var stoolIn = function () { return pm.stool.filter(inR); };
+    var stoolIn = function () { return pm.stool.filter(inD); };
     var sSummary = function () {
       var s = stoolIn(); if (!s.length) return U.t('doctor.cm.stool.empty');
       return U.t('doctor.cm.stool.summary', { mean: U.fmtNum(M.mean(s.map(function (p) { return p.value; })), 1), n: tp('doctor.cm.common.n_diary_days', s.length) });
@@ -632,7 +733,6 @@ class PatientDetailView {
         (kp.stool7.firstWeek != null ? ' · ' + U.esc(U.t('doctor.ui.patient.take_stool_first', { v: U.fmtNum(kp.stool7.firstWeek, 1) })) : '') + '</span>';
     };
     var weeklyRange = function () { return M.diaryRange(range, pm.startDay, pm.today).days > C.DAILY_MAX_DAYS; };
-    var monthCal = function () { return O._.calendarBig(range.from, range.to); };          // 1M: 26 px month-view rows
     var rasterSummary = function () {
       var rows = cm.raster.rows, list = [['urgency', 'urgency'], ['night_stools', 'night'], ['incomplete_evacuation', 'incomplete'], ['leakage', 'leakage']].map(function (f) {
         var k = rows.filter(function (r) { return f[0] === 'leakage' ? r.leakage === 'Liquid' || r.leakage === 'Solid' : r[f[0]] === 'Yes'; }).length;
@@ -646,13 +746,13 @@ class PatientDetailView {
       sub: function () {
         var daily = M.diaryRange(range, pm.startDay, pm.today).days <= C.RASTER_DAILY_MAX_DAYS;
         var keys = daily ? [[U.t('doctor.cm.sym.no'), T.seq[0]], [U.t('doctor.cm.sym.yes'), T.seq[4]], [U.t('doctor.cm.sym.leak_liquid'), T.seq[3]], [U.t('doctor.cm.sym.leak_solid'), T.seq[5]]]
-          : [['0 %', T.seq[0]], ['1–25 %', T.seq[1]], ['26–50 %', T.seq[2]], ['51–75 %', T.seq[4]], ['76–100 %', T.seq[5]]];
+          : [['0%', T.seq[0]], ['1–25%', T.seq[1]], ['26–50%', T.seq[2]], ['51–75%', T.seq[4]], ['76–100%', T.seq[5]]];     // the values' style ("80%")
         return '<span>' + U.esc(daily ? U.t('doctor.cm.sym.raster_hint_daily') : U.t('doctor.cm.sym.raster_hint_weekly')) + '</span><span class="ui-legend">' +
           keys.map(function (k) { return '<span class="ui-legend__item"><span class="ui-key" style="--c:' + k[1] + '"></span>' + U.esc(k[0]) + '</span>'; }).join('') + '</span>';
       },
       build: function (w) { return O.symptomRaster(cm.raster, ctx(), rasterSummary(), w); } } : null;
     add({ id: 'pd-stool', span: 'span-12', reveal: 11, title: U.t('doctor.cm.stool.title'), hint: U.t('doctor.cm.stool.hint'),
-      na: ext.sym ? null : U.t('doctor.ui.patient.na_symptoms'), extra: rasterExtra,
+      na: ext.sym ? null : U.t('doctor.ui.patient.na_symptoms'), naView: 'trend', extra: rasterExtra,      // the raster's place: under the trend
       empty: function () { return stoolIn().length ? null : U.esc(U.t('doctor.cm.stool.empty')); },
       views: [
         { v: 'trend', label: U.t('doctor.cm.stool.view_trend'), icon: 'bars', coord: 'cartesian', group: 'pd-time', height: pm.pads && pm.pads.length ? 300 : 240,
@@ -663,10 +763,10 @@ class PatientDetailView {
               .concat(pm.pads && pm.pads.length ? [{ name: U.t('doctor.cm.stool.pads'), color: T.metricDiary }] : []);
           },
           notes: function () { return diaryNote().concat(weeklyRange() ? [U.esc(U.t('doctor.cm.common.faint_low_n'))] : []); } },
-        { v: 'calendar', label: U.t('doctor.cm.stool.view_calendar'), icon: 'calendar', coord: 'calendar', get height() { return monthCal() ? 236 : 196; }, widthDependent: true,
-          build: function (w) { return O.stoolCalendar(cm.stool, ctx(), sSummary(), w); }, summary: sSummary, table: sTable, takeaway: sTake,
+        { v: 'calendar', label: U.t('doctor.cm.stool.view_calendar'), icon: 'calendar', coord: 'calendar', get height() { return calH('pd-stool', 40); }, widthDependent: true,
+          build: function (w) { fitCal('pd-stool', 40); return O.stoolCalendar(cm.stool, ctx(), sSummary(), w); }, summary: sSummary, table: sTable, takeaway: sTake,
           legend: [{ name: U.t('doctor.cm.common.missing_vs_zero'), key: 'missed', color: 'transparent' }, { name: U.t('doctor.cm.stool.other_q'), key: 'dot', color: T.otherQ }],
-          notes: function () { return diaryNote().concat(endNote()); } }
+          notes: function () { return calendarNote('pd-stool').concat(endNote()); } }
       ] });
 
     // Stool form (Bristol) ------------------------------------------------------
@@ -675,7 +775,7 @@ class PatientDetailView {
     var bTable = function () {
       var s = bst();
       return { caption: U.t('doctor.cm.bristol.caption'), head: [U.t('doctor.cm.bristol.th_type'), U.t('doctor.cm.bristol.th_desc'), U.t('doctor.cm.bristol.th_days'), U.t('doctor.cm.bristol.th_share')], num: [0, 2, 3],
-        rows: s.counts.map(function (c, i) { return [i + 1, U.t('doctor.cm.bristol.desc_' + (i + 1)), c, s.n ? Math.round(c / s.n * 100) + '%' : '–']; }) };
+        rows: s.counts.map(function (c, i) { return [i + 1, U.t('doctor.cm.bristol.desc_' + (i + 1)), c, s.n ? O._.pct(c / s.n) : '–']; }) };
     };
     var bTake = function () { var p = M.percentParts(bst().normalShare); return p ? '<span class="ui-chart__num">' + p.value + '%</span><span class="ui-chart__text">' + U.esc(U.t('doctor.ui.patient.take_bristol')) + '</span>' : ''; };
     var zoneLegend = [['hard', 'var(--viz-bristol-hard-zone)'], ['normal', 'var(--viz-bristol-normal-zone)'], ['loose', 'var(--viz-bristol-loose-zone)']]
@@ -697,7 +797,7 @@ class PatientDetailView {
       ] });
 
     // Bloating and impact -------------------------------------------------------
-    var symIn = function (pts) { return pts.filter(inR); };
+    var symIn = function (pts) { return pts.filter(inD); };
     var smMean = function (pts) { return U.fmtNum(M.mean(pts.map(function (p) { return p.value; })), 1); };
     var smSummary = function () {
       var b = symIn(pm.bloating), i = symIn(pm.impact); if (!b.length) return '';
@@ -726,6 +826,8 @@ class PatientDetailView {
     if (ext.monthly) {
       var mIn = function () { return (pm.monthly || []).filter(inR); };
       var BURDEN = ['avoid_travel', 'avoid_social', 'embarrassed', 'worry_notice', 'depressed'];
+      // the end keys of the answer scale ("1 not at all … 4 very much"), from the patient app's "1 = …, 4 = …"
+      var scaleEnds = U.t('app.desc_1_4').match(/^1\s*=\s*(.+?),\s*4\s*=\s*(.+)$/) || [];
       var moSummary = function () {
         var r = mIn(); if (!r.length) return U.t('doctor.cm.monthly.empty');
         var l = r[r.length - 1];
@@ -742,10 +844,10 @@ class PatientDetailView {
       add({ id: 'pd-monthly', span: 'span-6', fill: true, reveal: 13, title: U.t('doctor.cm.monthly.title'), hint: U.t('doctor.cm.monthly.hint_burden'),
         empty: function () { return mIn().length ? null : U.esc(U.t('doctor.cm.monthly.empty')); },
         views: [
-          { v: 'items', label: U.t('doctor.cm.monthly.view_items'), icon: 'grid', coord: 'heatmap', height: 196, widthDependent: true,
+          { v: 'items', label: U.t('doctor.cm.monthly.view_items'), icon: 'grid', coord: 'heatmap', height: 196, widthDependent: true, hint: U.t('doctor.cm.monthly.hint_burden'),
             build: function (w) { return O.monthlyBurden(cm.monthly, ctx(), moSummary(), w); }, summary: moSummary, table: moTable, takeaway: moTake,
-            legend: [1, 2, 3, 4].map(function (l) { return { name: String(l), color: T.seq[[0, 2, 3, 5][l - 1]] }; }) },
-          { v: 'scores', label: U.t('doctor.ui.patient.view_scores'), icon: 'line', coord: 'cartesian', group: 'pd-time', height: 196,
+            legend: [1, 2, 3, 4].map(function (l) { return { name: String(l) + (l === 1 && scaleEnds[1] ? ' ' + scaleEnds[1] : l === 4 && scaleEnds[2] ? ' ' + scaleEnds[2] : ''), color: T.seq[[0, 2, 3, 5][l - 1]] }; }) },
+          { v: 'scores', label: U.t('doctor.ui.patient.view_scores'), icon: 'line', coord: 'cartesian', group: 'pd-time', height: 196, hint: U.t('doctor.cm.monthly.hint_scores'),
             build: function () { return O.monthlyScores(cm.monthly, ctx(), moSummary()); }, summary: moSummary, table: moTable, takeaway: moTake,
             legend: [{ name: U.t('app.feel_in_control'), key: 'line', color: T.chart[2], toggle: true }, { name: U.t('app.satisfaction'), key: 'line', color: T.chart[3], toggle: true }] }
         ] });
@@ -775,9 +877,9 @@ class PatientDetailView {
         return any ? null : U.esc(dead ? self.tx('doctor.ui.patient.q_empty_ended') : U.t('doctor.ui.patient.q_empty'));   // no "yet" after death
       },
       views: [
-        { v: 'calendar', label: U.t('doctor.cm.q.view_calendar'), icon: 'calendar', coord: 'calendar', get height() { return monthCal() ? 214 : 168; }, widthDependent: true,
-          build: function (w) { return O.questionnaireCalendar(cm.q, ctx(), qSummary(), w); }, summary: qSummary, table: qTable, takeaway: qTake, legend: qLegend,
-          notes: function () { return diaryNote().concat(endNote()); } },
+        { v: 'calendar', label: U.t('doctor.cm.q.view_calendar'), icon: 'calendar', coord: 'calendar', get height() { return calH('pd-q', 16); }, widthDependent: true,
+          build: function (w) { fitCal('pd-q', 16); return O.questionnaireCalendar(cm.q, ctx(), qSummary(), w); }, summary: qSummary, table: qTable, takeaway: qTake, legend: qLegend,
+          notes: function () { return calendarNote('pd-q').concat(endNote()); } },
         { v: 'weekly', label: U.t('doctor.cm.q.view_weekly'), icon: 'bars', coord: 'cartesian', group: 'pd-time', height: 180,
           build: function () { return O.questionnaireWeekly(cm.q, ctx(), qSummary()); }, summary: qSummary, table: qTable, takeaway: qTake, legend: qLegend.slice(0, -1),
           notes: function () { return diaryNote().concat(endNote()); } }
@@ -785,7 +887,7 @@ class PatientDetailView {
 
     // Steps (hidden when the patient never synced steps) ------------------------
     if (pm.steps.length) {
-      var stIn = function () { return pm.steps.filter(inR); };
+      var stIn = function () { return pm.steps.filter(inD); };
       var stSummary = function () {
         var s = stIn(); if (!s.length) return U.t('doctor.cm.steps.empty_range');
         return tp('doctor.cm.steps.summary', s.length, { mean: U.fmtNum(Math.round(M.mean(s.map(function (p) { return p.value; })))), m7: kp.steps7.hidden ? '–' : U.fmtNum(Math.round(kp.steps7.value)) });
@@ -819,14 +921,14 @@ class PatientDetailView {
       var rows = dRows(); if (!rows.length) return U.t('doctor.cm.stool.empty');
       var st = O.DIET_ROWS.map(function (r) { return { label: U.t(r[2]), s: M.dietItemStats(rows, r[0], r[1]) }; })
         .filter(function (x) { return x.s.share != null; }).sort(function (x, y) { return y.s.share - x.s.share; }).slice(0, 3);
-      return U.t('doctor.cm.diet.summary', { list: st.map(function (x) { return x.label + ' ' + Math.round(x.s.share * 100) + '%'; }).join(', '), n: tp('doctor.cm.common.n_diary_days', rows.length) });
+      return U.t('doctor.cm.diet.summary', { list: st.map(function (x) { return x.label + ' ' + O._.pct(x.s.share); }).join(', '), n: tp('doctor.cm.common.n_diary_days', rows.length) });
     };
     var dTable = function () {
       var rows = dRows();
       return { caption: U.t('doctor.cm.diet.caption'), head: [U.t('doctor.cm.diet.th_item'), U.t('doctor.cm.diet.th_unit'), U.t('doctor.cm.diet.th_days'), U.t('doctor.cm.diet.th_share'), U.t('doctor.cm.diet.th_mean'), U.t('doctor.cm.diet.th_max')], num: [2, 3, 4, 5],
         rows: O.DIET_ROWS.map(function (r) {
           var s = M.dietItemStats(rows, r[0], r[1]);
-          return [U.t(r[2]), U.t('doctor.cm.unit.' + r[3]), s.daysConsumed, s.share == null ? '–' : Math.round(s.share * 100) + '%', s.meanPerDay == null ? '–' : U.fmtNum(s.meanPerDay, 1), s.max == null ? '–' : s.max];
+          return [U.t(r[2]), U.t('doctor.cm.unit.' + r[3]), s.daysConsumed, s.share == null ? '–' : O._.pct(s.share), s.meanPerDay == null ? '–' : U.fmtNum(s.meanPerDay, 1), s.max == null ? '–' : s.max];
         }) };
     };
     var dTake = function () { return '<span class="ui-chart__text">' + U.esc(dSummary()) + '</span>'; };
@@ -872,15 +974,19 @@ class PatientDetailView {
     var more = root.querySelector('[data-act="range-more"]');
     more.addEventListener('click', function (e) {
       e.stopPropagation();
-      var items = [{ label: U.t('doctor.cm.common.patterns'), checked: !!ILARS_CHARTS.patterns,
+      var items = [{ id: 'pd-patterns-item', label: U.t('doctor.cm.common.patterns'), checked: !!ILARS_CHARTS.patterns,
         onSelect: function () { ILARS_CHARTS.patterns = !ILARS_CHARTS.patterns; self.store('ilars_chart_patterns', ILARS_CHARTS.patterns ? '1' : '0'); rerange(); } }];
-      if (mobile) {
+      // the axis choice is hidden below 960 px (views/patient.css): the menu carries it then
+      if (!root.querySelector('#pd-axis-seg').getClientRects().length) {
         items = [{ head: U.t('doctor.cm.axis.label') }].concat(['date', 'study'].concat(surgeryKind ? ['surgery'] : []).map(function (k) {
           return { label: U.t('doctor.cm.axis.' + (k === 'surgery' && surgeryKind === 'closure' ? 'closure' : k)), checked: axis === k,
             onSelect: function () { axis = k; self.store('ilars_pd_axis', k); axisSeg.select(k); rerange(); } };
         })).concat([{ sep: true }], items);
       }
-      U.menu(more, items, { align: 'end', label: U.t('doctor.ui.range.more') });
+      var menu = U.menu(more, items, { align: 'end', label: U.t('doctor.ui.range.more') });
+      // "Patterns" is an on/off toggle, not one of a set of choices (UI.menu marks every checked item as a radio)
+      var pi = menu && menu.querySelector('#pd-patterns-item');
+      if (pi) pi.setAttribute('role', 'menuitemcheckbox');
     });
 
     // ---------------------------------------------------------- header actions
@@ -974,11 +1080,12 @@ class PatientDetailView {
       return '<span><span class="ui-key t-' + k + '" style="--c:var(--viz-cal-' + (k === 'eq5d5l' ? 'eq5d' : k) + ')"></span>' + U.esc(U.t('doctor.cm.q.type_' + k)) + '</span>';
     }).join('') + (kinds.none ? '<span><span class="ui-key ui-key--missed"></span>' + U.esc(U.t('doctor.cm.q.none')) + '</span>' : '') +
       (kinds.pre ? '<span><span class="ui-key pd-key-pre"></span>' + U.esc(this.tx('doctor.ui.patient.before_registration_key')) + '</span>' : '');
-    var ms = pm.milestoneSummary, next = '';
-    if (dead) next = '';                                  // no visit is coming up after death
-    else if (ms.open) next = '<li class="' + (ms.open.status === 'overdue' ? 'warn' : '') + '"><span>' + U.esc(U.t('doctor.ui.patient.next_eq', { point: ms.open.point })) + '</span><span>' +
-      U.esc(ms.open.status === 'overdue' ? U.t('doctor.ui.patient.due_overdue', { date: U.fmtDay(ms.open.dueDay, 'short') }) : U.fmtDay(ms.open.dueDay, 'short')) + '</span></li>';
-    else if (ms.next) next = '<li><span>' + U.esc(U.t('doctor.ui.patient.next_eq', { point: ms.next.point })) + '</span><span>' + U.esc(U.fmtDay(ms.next.dueDay, 'long')) + '</span></li>';
+    // none after death; a visit past its due date never reads as plain "coming up" with a past date
+    var ev = ILARS_VIEW_MODELS.eqVisitNotice(pm), next = '';
+    if (ev && ev.kind === 'overdue') next = '<li class="warn"><span>' + U.esc(U.t('doctor.ui.patient.next_eq', { point: ev.point })) + '</span><span>' +
+      U.esc(U.t('doctor.ui.patient.due_overdue', { date: U.fmtDay(ev.dueDay, 'short') })) + '</span></li>';
+    else if (ev && ev.kind === 'due') next = '<li><span>' + U.esc(U.t('doctor.cm.kpi.eq_due', { point: ev.point })) + '</span><span>' + U.esc(U.fmtDay(ev.dueDay, 'short')) + '</span></li>';
+    else if (ev) next = '<li><span>' + U.esc(U.t('doctor.ui.patient.next_eq', { point: ev.point })) + '</span><span>' + U.esc(U.fmtDay(ev.dueDay, 'long')) + '</span></li>';
     return '<div class="pd-summary__sec"><div class="pd-summary__h"><span>' + U.esc(U.t('doctor.ui.patient.status_history')) + '</span></div>' + timeline + '</div>' + reg +
       '<div class="pd-summary__sec"><div class="pd-summary__h"><span>' + U.esc(U.t('doctor.ui.patient.q_last30')) + '</span><span class="pd-summary__value"' + (monthlyKnown || dead ? '' : ' title="' + U.esc(U.t('doctor.cm.kpi.adherence_monthly_note')) + '"') + '>' + U.esc(countTxt) + '</span></div>' +
         '<div class="pd-tracker" role="img" aria-label="' + U.esc(dead || adh.ratio == null ? countTxt : U.tp('doctor.cm.kpi.adherence_meta', adh.expected, { done: adh.done, expected: adh.expected })) + '">' + cells.join('') + '</div>' +
@@ -994,7 +1101,12 @@ class PatientDetailView {
       b.addEventListener('click', function () {
         var h = self.hist.rows.filter(function (x) { return String(x.id) === b.dataset.del; })[0];
         if (!h) return;
-        U.confirm({ title: U.t('doctor.ui.status.delete_title'), text: U.t('doctor.ui.status.delete_text', { status: self.statusWord(h.previous_status) }),
+        // only deleting the newest change reverts the status (backend delete_patient_status_change: is_latest);
+        // an older row goes from the history and the current status stays
+        var newest = self.hist.rows.every(function (x) { return x === h || x.changed_at < h.changed_at; });
+        var text = newest ? U.t('doctor.ui.status.delete_text', { status: self.statusWord(h.previous_status) })
+          : self.tx('doctor.ui.status.delete_text_keep', { status: self.statusWord(self.pm ? self.pm.status : self.d.detail.patient_status) });
+        U.confirm({ title: U.t('doctor.ui.status.delete_title'), text: text,
           confirmLabel: U.t('doctor.ui.status.delete_btn'), danger: true, failTitle: U.t('doctor.ui.status.delete_failed'),
           action: function () { return self.api.deletePatientStatusChange(h.id); } })
           .then(function (ok) {
@@ -1062,20 +1174,30 @@ class PatientDetailView {
   renderRegistryLink(cont, code, linked) {
     var U = ILARS_UI, self = this;
     if (!cont) return;
+    cont.lang = 'lt';                                   // the registry wording stays Lithuanian in every UI language (WCAG 3.1.2)
     if (linked) {
-      var label = 'Registras: ' + this.registryName(linked) + (linked.is_mine ? '' : ' (kito gydytojo įrašas)');
-      cont.innerHTML = '<a class="reg-chip reg-chip-linked" href="#registry/' + encodeURIComponent(linked.id) + '"><span class="reg-chip__ic" aria-hidden="true">' + U.icon('link') + '</span><span>' + U.esc(label) + '</span></a>' +
+      var label = function () { return 'Registras: ' + self.registryName(linked) + (linked.is_mine ? '' : ' (kito gydytojo įrašas)'); };
+      cont.innerHTML = '<a class="reg-chip reg-chip-linked" href="#registry/' + encodeURIComponent(linked.id) + '"><span class="reg-chip__ic" aria-hidden="true">' + U.icon('link') + '</span><span data-part="reg-name">' + U.esc(label()) + '</span></a>' +
         (linked.is_mine ? '<button type="button" class="reg-btn reg-btn-link" id="pd-unlink-registry">Atsieti</button>' : '');
       var b = cont.querySelector('#pd-unlink-registry');
       if (b) b.addEventListener('click', function () { self.unlinkRegistry(cont, code, linked.id, b); });
+      // the chip names the record as the picker does, also before the registry list was opened: once the doctor's
+      // record names are read, only the label changes (the focus on Atsieti stays)
+      if (linked.is_mine && !this.regNames && !(window.RegistryListView && window.RegistryListView.names && Object.keys(window.RegistryListView.names).length)) {
+        this.registryNames().then(function () {
+          var el = cont.querySelector('[data-part="reg-name"]');
+          if (el && cont.isConnected) el.textContent = label();
+        });
+      }
     } else {
       cont.innerHTML = '<button type="button" class="reg-btn reg-btn-link pd-reglink__add" id="pd-link-registry">' + U.icon('link', 'i--sm') + '<span>Susieti su registru</span></button>';
       cont.querySelector('#pd-link-registry').addEventListener('click', function () { self.openRegistryPicker(cont, code); });
     }
   }
 
+  /** The doctor's name for an own record: the registry list's names, else the ones registryNames() read (FUNC-19). */
   registryName(rec) {
-    var names = window.RegistryListView && window.RegistryListView.names;
+    var R = window.RegistryListView, names = R && R.names && R.names[rec.id] ? R.names : this.regNames;
     if (rec.is_mine && names && names[rec.id]) {
       var d = names[rec.id], nm = [d.firstName, d.lastName].filter(Boolean).join(' ').trim();
       if (nm) return nm;
@@ -1106,18 +1228,33 @@ class PatientDetailView {
       });
   }
 
+  /**
+   * Names of the doctor's own registry records (Firestore registry_patients, the same query as the registry list),
+   * so the picker and the chip read the same whether or not the registry list was opened first. A read is kept in
+   * this.regNames for the chip (registryName). A failed read = no names.
+   */
+  registryNames() {
+    var self = this, R = window.RegistryListView, auth = window.ILARS_AUTH, user = auth && auth.getCurrentUser && auth.getCurrentUser();
+    if (R && R.names && Object.keys(R.names).length) return Promise.resolve(R.names);
+    if (!auth || !auth.db || !user) return Promise.resolve({});
+    return auth.db.collection('registry_patients').where('doctorUid', '==', user.uid).get().then(function (snap) {
+      var out = {}; snap.forEach(function (doc) { out[doc.id] = doc.data(); }); self.regNames = out; return out;
+    }, function (e) { console.warn('[patient] registry names read failed', e); return {}; });
+  }
+
   openRegistryPicker(cont, code) {
     var U = ILARS_UI, self = this;
-    this.api.getLinkableRegistryPatients().then(function (res) {
-      var recs = (res && res.records) || [];
-      var names = (window.RegistryListView && window.RegistryListView.names) || {};
+    Promise.all([this.api.getLinkableRegistryPatients(), this.registryNames()]).then(function (r) {
+      var res = r[0], recs = (res && res.records) || [];
+      var names = r[1] || {};
       var dlg = document.createElement('dialog');
+      dlg.lang = 'lt';                                  // Lithuanian registry wording in every UI language (WCAG 3.1.2)
       dlg.className = 'registry-picker ui-dialog';
       dlg.setAttribute('aria-labelledby', 'pd-pick-title');
       dlg.innerHTML = '<div class="registry-picker-content"><div class="registry-picker-title" id="pd-pick-title">Pasirinkite registro įrašą</div><div class="registry-picker-list">' +
         (recs.map(function (r) {
           var n = names[r.id], nm = n ? [n.firstName, n.lastName].filter(Boolean).join(' ').trim() : '';
-          return '<button type="button" class="reg-pick-item" data-id="' + U.esc(r.id) + '">' + U.esc(nm || r.lin || r.personal_id_code || r.id) + '</button>';
+          return '<button type="button" class="reg-pick-item" data-id="' + U.esc(r.id) + '">' + U.esc(nm || r.lin || r.personal_id_code || 'Įrašas be LIN') + '</button>';   // never a raw id
         }).join('') || '<p class="reg-empty">Nėra laisvų registro įrašų.</p>') +
         '</div><button type="button" class="reg-btn reg-btn-secondary registry-picker-cancel">Atšaukti</button></div>';
       document.body.appendChild(dlg);

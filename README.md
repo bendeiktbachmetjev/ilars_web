@@ -89,8 +89,9 @@ Run its unit tests from this folder:
 ECHARTS_DIR=<folder with echarts.js 6.1.0> node --test tests/doctor/*.test.js
 ```
 
-`server.py` serves the site with one thread per request, sends `Cache-Control: no-cache` for `locales/*.json`,
-and answers 404 for everything under `/tests/`.
+`server.py` serves its own folder with one thread per request (up to 128 connections waiting), gzips text files
+for browsers that accept it, sends `Cache-Control: no-cache` for `locales/*.json`, and answers 404 for everything
+under `/tests/`. Its own test is `tests/doctor/server.test.js` (needs `python3`).
 
 ## Firebase Configuration
 

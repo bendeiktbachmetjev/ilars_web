@@ -25,7 +25,7 @@
   .app-boot__steps .is-active .s { box-shadow: none; border: 2px solid var(--color-accent-border); border-top-color: var(--color-accent); animation: ui-spin 800ms linear infinite; }
   .app-boot__steps .is-active { color: var(--color-text-on-glass); }
   .app-boot__text { display: grid; gap: 12px; justify-items: center; }
-  .app-boot.is-error .app-boot__ring { animation: none; }
+  .app-boot.is-error .app-boot__ring { display: none; }   /* no spinner shape once nothing is loading */
   /* nothing is loading any more: the skeleton behind the error card stops shimmering */
   body:has(.app-boot.is-error) .app-boot-skeleton .ui-skel::after { animation: none; display: none; }
   .app-boot__text p { max-width: 260px; }

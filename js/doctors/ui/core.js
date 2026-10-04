@@ -87,16 +87,31 @@
     var s = f('m', { month: 'short' }).format(d);
     return /^\d+\.?$/.test(s) ? f('ml', { month: 'long' }).format(d) : s;
   }
+  /** Lithuanian CLDR abbreviated month names. Intl formats lt {day, month: 'short'} as "09-28", with the year as
+      "2026-09-28" and {month: 'short'} as "09" (CLDR lt MMMd = MM-dd), so Lithuanian labels are built here:
+      "rugs. 28", "2026 m. rugs. 28 d.", "rugs.", "2026 m. rugs.". */
+  var LT_MONTHS = ['saus.', 'vas.', 'kov.', 'bal.', 'geg.', 'birž.', 'liep.', 'rugp.', 'rugs.', 'spal.', 'lapkr.', 'gruod.'];
+  function dayMonth(d) {
+    return lang() === 'lt' ? LT_MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate() : f('dm', { day: 'numeric', month: 'short' }).format(d);
+  }
+  function dayMonthYear(d) {
+    return lang() === 'lt' ? d.getUTCFullYear() + ' m. ' + LT_MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate() + ' d.'
+      : f('dmy', { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+  }
+  /** style: 'short' (day + month, the year only when it is not today's year) · 'axis' · 'weekday' · 'month' ("Sept",
+      lt "rugs.") · 'monthYear' ("Sept 2026", lt "2026 m. rugs.") · anything else = day + month + year. */
   function fmtDay(day, style, today) {
     if (day == null) return '—';
     var d = new Date(day * DAY_MS);
-    if (style === 'axis') { if (d.getUTCDate() === 1) return d.getUTCMonth() === 0 ? f('y', { year: 'numeric' }).format(d) : axisMonth(d); return f('dm', { day: 'numeric', month: 'short' }).format(d); }
+    if (style === 'month') return lang() === 'lt' ? LT_MONTHS[d.getUTCMonth()] : f('m', { month: 'short' }).format(d);
+    if (style === 'monthYear') return lang() === 'lt' ? d.getUTCFullYear() + ' m. ' + LT_MONTHS[d.getUTCMonth()] : f('my', { month: 'short', year: 'numeric' }).format(d);
+    if (style === 'axis') { if (d.getUTCDate() === 1) return d.getUTCMonth() === 0 ? f('y', { year: 'numeric' }).format(d) : axisMonth(d); return dayMonth(d); }
     if (style === 'short') {
       var y = new Date((today != null ? today : UI.today()) * DAY_MS).getUTCFullYear();
-      return d.getUTCFullYear() === y ? f('dm', { day: 'numeric', month: 'short' }).format(d) : f('dmy', { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+      return d.getUTCFullYear() === y ? dayMonth(d) : dayMonthYear(d);
     }
     if (style === 'weekday') return f('wd', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(d);
-    return f('dmy', { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+    return dayMonthYear(d);
   }
   function fmtNum(v, dec) {
     if (v == null || !isFinite(v)) return '—';

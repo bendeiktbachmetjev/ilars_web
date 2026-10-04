@@ -7,6 +7,9 @@
     scroll-padding-top: calc(var(--layout-topbar-h) + 72px);
     background: var(--color-bg);
   }
+  /* the sticky top bar is always on screen: focusing one of its controls (menu open/close, Shift+Tab) must not
+     scroll the page (with the padding above, Chromium centred the control and jumped up ~490 px) */
+  html:has(.app-topbar :focus) { scroll-padding-top: 0; }
   body {
     margin: 0; min-height: 100vh;
     background: var(--color-bg);

@@ -6,6 +6,10 @@
   .ov-kpis { margin-bottom: 0; }
   .ov-kpi-meter { width: 72px; flex: none; }
 
+  /* a card without a takeaway sentence (LARS category now, Adherence, EQ VAS now) keeps no empty 44 px band above
+     its chart (the patient grid's rule, patient.css) */
+  .ov-grid .ui-chart__takeaway:empty { min-height: 0; }
+
   /* ---------------------------------------------------------------- C1 needs attention */
   .ov-attn-scroll { margin-top: 10px; overflow-x: auto; }
   .ov-attn-table td { height: 52px; }
@@ -35,6 +39,7 @@
 
   /* ---------------------------------------------------------------- nobody in scope */
   .ov-empty .ui-empty { padding: 48px 20px; }
+  .ov-empty .ui-empty > .ui-btn { margin-top: 12px; }   /* 20 px under the sentence (the empty state's 8 px gap + 12) */
 
   /* ---------------------------------------------------------------- loading skeleton (KPI tiles + one card) */
   .ov-skel { display: grid; gap: var(--layout-gap); }

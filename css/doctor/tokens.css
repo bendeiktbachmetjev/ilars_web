@@ -271,7 +271,8 @@
           modal backdrop — never tables, charts, cards or forms)
        ------------------------------------------------------------------ */
     --color-glass-bar:          rgb(250 250 252 / 0.80); /* with --glass-filter-bar */
-    --color-glass-bar-solid:    rgb(250 250 252 / 0.96); /* no backdrop-filter support */
+    --color-glass-bar-solid:    var(--gray-25);           /* opaque: no backdrop-filter support, reduced transparency,
+                                                             increased contrast (a 0.96 bar let page text show through) */
     --color-glass-menu:         rgb(255 255 255 / 0.92); /* menus, popovers, column filters */
     --color-glass-float-top:    rgb(255 255 255 / 0.82); /* floating save / action bar, */
     --color-glass-float-bottom: rgb(255 255 255 / 0.72); /* vertical gradient top->bottom */
@@ -487,10 +488,13 @@
     --viz-metric-monthly: var(--viz-3);
     --viz-metric-diary:   var(--viz-4);
     --viz-metric-steps:   var(--viz-5);
-    /* Adherence calendar: a normal diary day is a neutral grey that reaches 3:1 on white (WCAG 1.4.11:
-       done vs missed is the adherence signal); the rarer questionnaires use the three all-pairs-safe slots.
+    /* Adherence calendar: a normal diary day (the most common cell) is calm — a light neutral fill with a 1 px
+       darker edge; the EDGE carries the >= 3:1 against white (WCAG 1.4.11: done vs missed is the adherence signal).
+       The rarer questionnaires use the three all-pairs-safe slots (solid colour + their own pattern).
        A day without any questionnaire is a hollow cell with a 1 px dashed --viz-cal-missed-border (also >= 3:1). */
-    --viz-cal-daily:   var(--gray-700);   /* gray-550 reaches 3:1 but sits 5.2 from the EQ cyan under protanopia; gray-700 passes all pairs */
+    --viz-cal-daily:   var(--gray-700);   /* the daily type's ink: tooltip/legend swatch and the cell edge */
+    --viz-cal-daily-fill:   var(--gray-100);           /* calm cell body (charts/patient.js, views/patient.css) */
+    --viz-cal-daily-border: var(--viz-cal-daily);      /* 1 px solid edge, >= 3:1 on the surface and on the fill */
     --viz-cal-missed-border: var(--gray-550);
     --viz-cal-weekly:  var(--viz-1);
     --viz-cal-eq5d:    var(--viz-2);
@@ -507,8 +511,10 @@
        @check ui --viz-8 on --color-surface
        @cvd adjacent Categorical 1-8 (lines, bars, stacks): --viz-1, --viz-2, --viz-3, --viz-4, --viz-5, --viz-6, --viz-7, --viz-8
        @cvd all Categorical 1-3 (scatter, small multiples): --viz-1, --viz-2, --viz-3
-       @cvd all Adherence calendar: --viz-cal-daily, --viz-cal-weekly, --viz-cal-eq5d, --viz-cal-monthly
+       @cvd all Adherence calendar (cell bodies): --viz-cal-daily-fill, --viz-cal-weekly, --viz-cal-eq5d, --viz-cal-monthly
        @check ui --viz-cal-daily on --color-surface
+       @check ui --viz-cal-daily-border on --color-surface, --viz-cal-daily-fill
+       @check info --viz-cal-daily-fill on --color-surface
        @check ui --viz-cal-missed-border on --color-surface
        @cvd info Categorical vs status (unsimulated, should stay far apart): --viz-1, --viz-2, --viz-3, --viz-4, --viz-5 | --color-success, --color-warning, --color-danger */
 

@@ -17,6 +17,16 @@
      top of the box, the Patient column at its left, and the PAGE never scrolls sideways (1280 / 1366 / 1440 for
      every status × scope). The box is almost a viewport tall: the page scrolls to the card first, then the rows. */
   .pl-scroll { overflow: auto; max-height: calc(100dvh - var(--layout-topbar-h) - 24px); overscroll-behavior: auto; }
+  /* a row link reached with Shift+Tab stops below the sticky header row (40 px) with its whole focus ring (2 px +
+     2 px offset) in view, never under the header (WCAG 2.4.11) */
+  .pl-scroll { scroll-padding-top: 44px; }
+  /* right-edge fade while more columns scroll in (the registry's cue); .is-at-end (patient-list.js fade()) removes it */
+  .pl-scroll-box { position: relative; }
+  .pl-scroll-box::after {
+    content: ""; position: absolute; z-index: var(--z-sticky-corner); top: 0; right: 0; bottom: 0; width: 40px; pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--color-surface)); transition: opacity var(--dur-fade);
+  }
+  .pl-scroll-box.is-at-end::after { opacity: 0; }
   .pl-table th { top: 0; }
   .pl-table td, .pl-table th { padding-left: 12px; padding-right: 12px; }
   .pl-table th:first-child, .pl-table td:first-child { padding-left: 20px; }
@@ -29,7 +39,9 @@
   .pl-table [data-col="patient"] { width: 236px; min-width: 200px; white-space: normal; }
   .pl-table [data-col="day"] { width: 72px; }
   .pl-table [data-col="lars"] { min-width: 196px; }
-  .pl-table td[data-col="lars"] .sub { white-space: normal; max-width: 260px; }
+  /* plain text flow (not the table's flex .sub): the median text wraps, the relative date stays whole */
+  .pl-table td[data-col="lars"] .sub { display: block; white-space: normal; max-width: 260px; text-wrap: pretty; }
+  .pl-nowrap { white-space: nowrap; }
   .pl-table [data-col="trend"] { width: 104px; }
   .pl-table [data-col="vas"] { width: 92px; }
   .pl-table [data-col="adherence"] { width: 150px; }
@@ -72,6 +84,7 @@
   /* ---------------------------------------------------------------- footer, empty state */
   .pl-foot { display: flex; flex-wrap: wrap; gap: 4px 18px; padding: 12px 20px 16px; border-top: 1px solid var(--color-separator); font: 400 12px/16px var(--font-ui); color: var(--color-text-secondary); }
   .pl-empty { padding: 48px 20px; }
+  .pl-empty > .ui-btn { margin-top: 12px; }        /* 20 px under the sentence (the empty state's 8 px gap + 12) */
 
   /* ---------------------------------------------------------------- loading skeleton (8 rows, the column rhythm) */
   .pl-skel__row { display: flex; align-items: center; gap: 14px; height: 56px; padding: 0 20px; border-bottom: 1px solid var(--color-hairline); }
@@ -84,11 +97,12 @@
   /* Windows high contrast: shadows are dropped, so the sticky column keeps a real edge */
   @media (forced-colors: active) {
     .pl-table [data-col="patient"] { border-right: 1px solid CanvasText; }
+    .pl-scroll-box::after { display: none; }       /* a fade to the light surface would draw a bright bar */
   }
 
   /* ---------------------------------------------------------------- breakpoints */
   @media (max-width: 1279px) {
-    .pl-toolbar__search { margin-left: 0; width: 100%; order: 10; }
+    .pl-toolbar__search { margin-left: 0; width: 100%; }
   }
   /* phones (< 768, the token breakpoint): rows become stacked items (Patient · LARS · Adherence · Attention);
      Day, Trend, EQ VAS and Last entry hidden (A22); no headers, so a Sort menu button appears; segmented controls
@@ -107,7 +121,7 @@
     .pl-table tbody tr:hover td[data-col="patient"], .pl-table tbody tr:focus-within td[data-col="patient"] { background: none; }
     .pl-table td[data-col="patient"] { margin-bottom: 4px; order: -2; }
     .pl-table td[data-col="lars"] { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
-    .pl-table td[data-col="lars"] .sub { display: inline-flex; max-width: none; }
+    .pl-table td[data-col="lars"] .sub { max-width: none; }
     .pl-table td[data-col="attention"] { order: 5; }
     .pl-table td:is([data-col="day"], [data-col="trend"], [data-col="last"], [data-col="vas"]) { display: none; }
     .pl-table td[data-col="attention"]:not(:has(.ui-attn)) { display: none; }

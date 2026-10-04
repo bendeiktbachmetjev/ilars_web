@@ -42,7 +42,9 @@
       ('cancel' by default); the ONE type="submit" button runs o.submit() — so Enter in a field = the primary action.
       While it runs: .is-loading + aria-busy on the submit button, the dialog stays open. Resolved → closes with 'ok'
       (unless submit() returns false: e.g. create patient switches to its success state). Rejected → the dialog stays
-      open with the typed values and o.error (a .ui-alert, role=alert) shows o.errorTitle + the detail. Bind once. */
+      open with the typed values and o.error (a .ui-alert, role=alert) shows o.errorTitle + the detail. Bind once.
+      A toast raised while o.submit runs (e.g. "Name saved") waits for its outcome (see UI.toast): when the dialog
+      closes, it shows on the page after the dialog gave focus back; when the dialog stays open, it shows inside it. */
   UI.dialogForm = function (dlg, o) {
     var form = dlg.querySelector('form'), btn = form.querySelector('[type="submit"]');
     dlg.addEventListener('click', function (e) { var c = e.target.closest('[data-close]'); if (c && dlg.contains(c)) UI.closeDialog(dlg, c.getAttribute('data-close') || 'cancel'); });
@@ -51,11 +53,20 @@
       if (btn.classList.contains('is-loading')) return;
       if (o.error) o.error.hidden = true;
       btn.classList.add('is-loading'); btn.setAttribute('aria-busy', 'true');
+      var queue = dlg._toastQueue = [];
+      function flush() { if (dlg._toastQueue === queue) dlg._toastQueue = null; queue.splice(0).forEach(function (show) { show(); }); }
       Promise.resolve().then(o.submit).then(function (keepOpen) {
-        if (keepOpen !== false) UI.closeDialog(dlg, 'ok');
+        if (keepOpen === false || !dlg.open) return false;
+        dlg.addEventListener('close', flush, { once: true });     // after openDialog's close handler returned focus
+        UI.closeDialog(dlg, 'ok');
+        return true;
       }, function (err) {
         if (o.error) UI.alert(o.error, typeof o.errorTitle === 'function' ? o.errorTitle(err) : o.errorTitle, err);
-      }).then(function () { btn.classList.remove('is-loading'); btn.removeAttribute('aria-busy'); });
+        return false;
+      }).then(function (closing) {
+        btn.classList.remove('is-loading'); btn.removeAttribute('aria-busy');
+        if (!closing) flush();
+      });
     });
   };
   /** Fills a .ui-alert: icon, bold title, technical detail in small secondary text. */
@@ -94,29 +105,65 @@
 
   // ---------------------------------------------------------------- toast
   /** One sentence. The region is NOT a live region; each toast carries its own role (status / alert), so screen
-      readers announce once. Success: 3.2 s, paused while hovered or focused. Errors stay until closed (× button). */
+      readers announce once. Success: 3.2 s, paused while hovered or focused. Errors stay until closed (× button).
+      While a modal dialog is open, the page behind it is inert (screen readers skip it) and under the blurred
+      backdrop: the toast goes into a region inside that dialog instead (e.g. "Code copied" in create patient). */
   UI.toast = function (text, kind) {
-    var region = document.getElementById('toast-region'); if (!region) return;
     var el = document.createElement('div');
     el.className = 'ui-toast' + (kind ? ' ui-toast--' + kind : '');
     el.setAttribute('role', kind === 'error' ? 'alert' : 'status');
     el.innerHTML = UI.icon(kind === 'error' ? 'alert' : 'check') + '<span></span>' +
       (kind === 'error' ? '<button class="ui-toast__close" type="button" aria-label="' + UI.esc(UI.t('doctor.ui.common.close')) + '">' + UI.icon('x') + '</button>' : '');
     el.querySelector('span').textContent = text;
-    region.appendChild(el);
+    var dlg = modalDialog();
+    if (dlg && dlg._toastQueue) dlg._toastQueue.push(function () { showToast(el, kind); });   // a dialogForm submit runs
+    else showToast(el, kind);
+    return el;
+  };
+  function showToast(el, kind) {
+    var host = toastHost(); if (!host) return;
+    host.appendChild(el);
     var timer, left = 3200, since;
     function leave() { el.classList.add('is-leaving'); setTimeout(function () { el.remove(); }, 200); }
     function run() { since = Date.now(); timer = setTimeout(leave, left); }
     function pause() { clearTimeout(timer); left -= Date.now() - since; }
-    if (kind === 'error') { el.querySelector('.ui-toast__close').addEventListener('click', leave); return el; }
+    if (kind === 'error') { el.querySelector('.ui-toast__close').addEventListener('click', leave); return; }
     el.addEventListener('mouseenter', pause); el.addEventListener('mouseleave', run);
     el.addEventListener('focusin', pause); el.addEventListener('focusout', run);
-    run(); return el;
-  };
+    run();
+  }
+  /** The open modal <dialog> (the top one), or null. */
+  function modalDialog() {
+    var open = document.querySelectorAll('dialog[open]');
+    for (var i = open.length - 1; i >= 0; i--) {
+      try { if (open[i].matches(':modal')) return open[i]; } catch (e) { return open[i]; }   // no :modal: showModal() opens them all
+    }
+    return null;
+  }
+  /** #toast-region, or the region inside the open modal dialog (made on first use). When that dialog closes, a toast
+      still showing moves to #toast-region without its role (it was announced already, so not twice) and without
+      a second entry animation. */
+  function toastHost() {
+    var page = document.getElementById('toast-region'), dlg = modalDialog();
+    if (!dlg) return page;
+    var r = dlg._toastRegion;
+    if (!r) {
+      r = dlg._toastRegion = document.createElement('div');
+      r.className = 'ui-toast-region';
+      dlg.addEventListener('close', function () {
+        Array.prototype.slice.call(r.children).forEach(function (t) {
+          t.removeAttribute('role'); t.classList.add('is-moved');
+          if (page) page.appendChild(t); else t.remove();
+        });
+      });
+    }
+    if (r.parentNode !== dlg) dlg.appendChild(r);      // also after a dialog re-rendered its content
+    return r;
+  }
 
   // ---------------------------------------------------------------- menu (glass, anchored, keyboard)
   var openMenu = null;
-  /** items: [{label, icon?, danger?, checked?, onSelect}] | {sep:true} | {head:'…'} */
+  /** items: [{label, icon?, danger?, checked?, id?, lang?, onSelect}] | {sep:true} | {head:'…'} */
   UI.menu = function (anchor, items, opts) {
     UI.closeMenu();
     opts = opts || {};
@@ -131,9 +178,12 @@
       b.setAttribute('role', it.checked != null ? 'menuitemradio' : 'menuitem');
       if (it.checked != null) b.setAttribute('aria-checked', String(!!it.checked));
       if (it.id) b.id = it.id;
+      if (it.lang) b.lang = it.lang;                 // a language name in its own language (WCAG 3.1.2)
       b.innerHTML = (it.icon ? UI.icon(it.icon, 'i--sm') : '') + '<span></span>';
       b.querySelector('span').textContent = it.label;
-      b.addEventListener('click', function () { UI.closeMenu(); if (it.onSelect) it.onSelect(); });
+      // focus goes back to the anchor BEFORE onSelect: a dialog opened by the item records the anchor as its opener
+      // and returns focus there on Cancel / Esc (else the removed item leaves focus on <body>)
+      b.addEventListener('click', function () { UI.closeMenu(true); if (it.onSelect) it.onSelect(); });
       m.appendChild(b);
     });
     document.body.appendChild(m);
@@ -186,6 +236,8 @@
       if (e.key === 'Escape') { close(true); e.preventDefault(); }
       if (e.key === 'Tab') close(false);
     });
+    // a language was chosen (i18n.js closes the list and loads it): focus returns to the language button, not <body>
+    dd.addEventListener('click', function (e) { if (e.target.closest('button[data-lang]')) btn.focus(); });
   };
 
   // ---------------------------------------------------------------- row links

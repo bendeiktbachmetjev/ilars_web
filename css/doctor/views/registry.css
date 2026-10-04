@@ -19,7 +19,10 @@
     background: linear-gradient(90deg, transparent, var(--color-surface)); transition: opacity var(--dur-fade);
   }
   .registry-table-card.is-at-end::after, .registry-table-card:has(.registry-loading, .registry-empty)::after { opacity: 0; }
-  .registry-table-wrap { overflow: auto; max-height: calc(100vh - 236px); min-height: 360px; overscroll-behavior: contain; }
+  /* scroll-padding: a header control scrolled into view by focus lands clear of the sticky Pacientas column
+     (220 + 4 for the focus ring) and the right-edge fade (40), never under them. No top padding: the stuck header row
+     would sit inside it, and focusing a header button would jump the table back to its first row. */
+  .registry-table-wrap { overflow: auto; max-height: calc(100vh - 236px); min-height: 360px; overscroll-behavior: contain; scroll-padding: 0 40px 0 224px; }
   .registry-table { min-width: 100%; font: 400 13px/18px var(--font-ui); color: var(--color-text); }
   .registry-table th {
     position: sticky; top: 0; z-index: var(--z-sticky-head); height: 40px; padding: 0 6px 0 12px; text-align: left; white-space: nowrap; vertical-align: middle;
@@ -61,6 +64,20 @@
      banner; an export/create error over a loaded table leaves the table alone. */
   #registry-error[style*="block"] ~ .registry-table-card .registry-loading,
   #registry-error[style*="block"] ~ .registry-table-card:has(.registry-loading) { display: none; }
+  /* load errors keep their frozen markup (one bare text node): the list banner (#registry-error, inline display:block)
+     and the record's error / "not found" (a lone .registry-empty that replaces the form) get the .ui-alert danger look —
+     card, alert icon drawn by ::before (absolute, so the inline display:block stays), text in danger ink */
+  #registry-error[style*="block"], #registry-detail-view .registry-empty {
+    position: relative; display: block; min-height: 0; padding: 12px 14px 12px 42px; border-radius: var(--r-md);
+    background: var(--color-danger-bg); box-shadow: inset 0 0 0 1px var(--color-danger-border);
+    text-align: left; font: 500 14px/20px var(--font-ui); color: var(--color-danger-ink); overflow-wrap: anywhere;
+  }
+  #registry-detail-view .registry-empty { max-width: 680px; margin: 24px auto 0; }
+  #registry-error[style*="block"]::before, #registry-detail-view .registry-empty::before {
+    content: ""; position: absolute; left: 14px; top: 13px; width: 18px; height: 18px; background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4.5 21 19.5H3z'/%3E%3Cpath d='M12 10v4.2'/%3E%3Ccircle cx='12' cy='17' r='.8' fill='%23000'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4.5 21 19.5H3z'/%3E%3Cpath d='M12 10v4.2'/%3E%3Ccircle cx='12' cy='17' r='.8' fill='%23000'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
 
   /* column filter + export popovers (appended to <body>, position:fixed by JS; width ≤ 280 = JS clamp). Glass recipe C.
      JS sets only top/left and clamps left to innerWidth − 280 (frozen). right: 8px + width auto + max-width keeps the
@@ -201,6 +218,10 @@
   /* floating glass save bar (appended to #registry-detail-view, outside any filtered ancestor; recipe B) */
   .registry-savebar { position: fixed; z-index: var(--z-savebar); left: 50%; bottom: 24px; transform: translateX(calc(-50% + (var(--layout-form-nav-w) + 28px) / 2)); display: flex; align-items: center; gap: 12px; min-height: var(--layout-savebar-h); padding: 8px 8px 8px 20px; }
   .registry-savebar:has(.registry-form-msg:empty) { padding-left: 8px; }
+  /* load() swaps only the container for "Kraunama…" / the error card and leaves the previous record's bar in place
+     (frozen JS). While no form is on the page the bar must not be usable: Save would send an empty form for the
+     record being opened. Visual-only guard; render() replaces the bar once the form is there. */
+  #registry-detail-view:has(> #registry-detail-container > :is(.registry-loading, .registry-empty)) > .registry-savebar { display: none; }
   .registry-form-msg { display: none; font: 500 13px/18px var(--font-ui); color: var(--color-text-on-glass-secondary); white-space: nowrap; }
   .registry-form-msg.ok { color: var(--color-success-ink); }
   .registry-form-msg.err { color: var(--color-danger-ink); }
@@ -219,6 +240,8 @@
   .registry-confirm-actions .registry-delete-btn { color: var(--color-text-on-accent); background: var(--color-danger-solid); }
   .registry-confirm-actions .registry-delete-btn:hover { background: var(--color-danger-solid-hover); }
   .registry-picker-list { display: grid; gap: 2px; max-height: 340px; overflow: auto; margin: 0 -8px; padding: 2px 0; }
+  /* a long list is a scroller, and the dialog's first focus lands on it: the design ring, not the browser's square one */
+  .registry-picker-list:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; border-radius: 10px; }
   .reg-pick-item { display: flex; align-items: center; min-height: 40px; padding: 0 10px; border: 0; border-radius: 10px; background: none; text-align: left; font: var(--type-body); color: var(--color-text); }
   .reg-pick-item:hover { background: var(--color-fill); }
   .reg-pick-item:focus-visible { outline-offset: -2px; }
@@ -226,7 +249,8 @@
 
   /* Windows high contrast: shadows are dropped, so cards, popovers and the current index entry get real edges */
   @media (forced-colors: active) {
-    .registry-identity-card, .reg-section, .reg-col-pop, .reg-link-row { border: 1px solid CanvasText; }
+    .registry-identity-card, .reg-section, .reg-col-pop, .reg-link-row, #registry-detail-view .registry-empty { border: 1px solid CanvasText; }
+    #registry-error[style*="block"]::before, #registry-detail-view .registry-empty::before { forced-color-adjust: none; background: CanvasText; }
     .registry-nav-chip.is-current { outline: 2px solid Highlight; outline-offset: -2px; }
     .registry-table tbody tr:focus-visible td { outline: 2px solid Highlight; outline-offset: -2px; }
   }
@@ -257,6 +281,13 @@
       content: ""; position: absolute; top: -2px; left: 9px; right: 9px; height: 1px; background: var(--color-border); pointer-events: none;
     }
     .reg-seg-btn.is-on::after, .reg-seg-btn:hover:not(:disabled)::after { opacity: 0; }
+    /* …and none under a selected / hovered option of the line above (it would read as a second edge of the thumb).
+       Groups have ≤ 6 options, so ≤ 2 lines. A full second line sits column under column (+3); a shorter one stretches
+       (4 options: one full-width button; 5: two halves), so every second-line hairline the chosen column overlaps goes. */
+    .reg-seg-btn:is(.is-on, :hover:not(:disabled)) + .reg-seg-btn + .reg-seg-btn + .reg-seg-btn::after,
+    .reg-seg-btn:is(.is-on, :hover:not(:disabled)):nth-child(-n + 3) ~ .reg-seg-btn:nth-child(4):last-child::after,
+    .reg-seg-btn:is(.is-on, :hover:not(:disabled)):nth-child(2) ~ .reg-seg-btn:nth-child(4):nth-last-child(2)::after,
+    .reg-seg-btn:is(.is-on, :hover:not(:disabled)):nth-child(3) ~ .reg-seg-btn:nth-child(5):last-child::after { opacity: 0; }
     .registry-page-topbar { grid-template-columns: 1fr auto; row-gap: 8px; margin-bottom: 16px; }
     .registry-page-title { grid-column: 1 / -1; grid-row: 2; text-align: left; }
     .registry-savebar { left: 16px; right: 16px; bottom: 16px; transform: none; justify-content: space-between; }
@@ -264,5 +295,6 @@
     .registry-form-msg { white-space: normal; }
     /* 390 px: the sticky Pacientas column keeps >= 55 % of the width for data */
     .registry-table .reg-sticky { min-width: min(220px, 45vw); }
+    .registry-table-wrap { scroll-padding-left: calc(min(220px, 45vw) + 4px); }
   }
 }
