@@ -313,7 +313,7 @@ test('A6: EQ-5D-5L profile labels each follow-up vs day 0 and titles the row', S
   render(opt); render(late);
 });
 
-test('A27: questionnaire calendar — per-type pattern (daily none, weekly hatch, monthly dots, EQ ring) and the missed-day border', SSR, () => {
+test('A27: questionnaire calendar — per-type pattern (daily none, weekly hatch, monthly dots, EQ ring) and the missed-day series', SSR, () => {
   const d = patientDetail({ seed: 3, days: 120, adh: 0.8, lars: [30, 25] }, TODAY, true);
   const m = models(d, '3m', 'date');
   const opt = O.questionnaireCalendar(m.cm.q, m.ctx, 'd', 900);
@@ -327,12 +327,22 @@ test('A27: questionnaire calendar — per-type pattern (daily none, weekly hatch
   assert.deepEqual([byType.eq5d5l.dashArrayX[0][0], byType.eq5d5l.dashArrayY[0]], opt.calendar.cellSize);   // ring tile = one cell
   assert.equal(opt.calendar.left % opt.calendar.cellSize[0], 0);
   assert.equal(opt.calendar.top % opt.calendar.cellSize[1], 0);
-  assert.equal(opt.calendar.itemStyle.borderColor, TOK.calMissed);
+  // missed days are their own series drawn above the cells (a calendar day border would be painted over by the
+  // white gap of the neighbouring filled cells): only tracked days before today without a questionnaire
+  const missed = opt.series.find((s) => s.id === 'missed');
+  assert.ok(missed && missed.type === 'custom' && missed.z > (opt.series[0].z || 0), 'missed-day series above the cells');
+  const filled = new Set(opt.series[0].data.map((item) => item.value[0]));
+  assert.ok(missed.data.length > 0, 'the fixture has missed days');
+  missed.data.forEach(([day]) => {
+    assert.ok(!filled.has(day), day + ' has a questionnaire but is drawn as missed');
+    assert.ok(M.parseDay(day) < TODAY, day + ' (today or later) drawn as missed');
+  });
   const svg = render(opt);
   const patterns = svg.match(/<pattern[\s\S]*?<\/pattern>/g) || [];
   assert.ok(patterns.some((p) => /patternTransform="rotate\(/.test(p)), 'weekly hatch in the SVG');
   assert.ok(patterns.filter((p) => /<path d="M[^"]*A/.test(p)).length >= 2, 'monthly dots and the EQ ring in the SVG');
-  assert.ok(svg.includes('stroke="' + TOK.calMissed + '"'), 'missed days drawn with --viz-cal-missed-border');
+  const dashed = (svg.match(/<path [^>]*>/g) || []).filter((p) => p.includes('stroke="' + TOK.calMissed + '"') && /stroke-dasharray="2[, ]+2"/.test(p));
+  assert.equal(dashed.length, missed.data.length, 'one dashed --viz-cal-missed-border cell per missed day');
 });
 
 test('tokens: axis labels use --viz-axis-label; no clone morph anywhere (A7)', SSR, () => {

@@ -59,10 +59,19 @@
   var LOCALES = { en: 'en-GB', lt: 'lt-LT', it: 'it-IT', es: 'es-ES', tr: 'tr-TR' };
   function locale() { return LOCALES[lang()] || lang(); }
   var PR = {};
-  /** Plurals: key_one / key_few / key_other via Intl.PluralRules (Lithuanian needs _few). */
+  function plural(l, n) { PR[l] = PR[l] || new Intl.PluralRules(l); return PR[l].select(n); }
+  /** The current locale's own text, or null (no English fallback, no warning). */
+  function own(key) {
+    var v = g.ILARS_I18N && typeof g.ILARS_I18N.t === 'function' ? g.ILARS_I18N.t(key) : null;
+    return typeof v === 'string' && v !== key ? v : null;
+  }
+  /** Plurals: key_one / key_few / key_other via Intl.PluralRules (Lithuanian needs _few). The category follows the
+      language of the text actually shown: when this locale lacks the key, the English text gets English rules
+      (else lt 181 → "one" → "181 day"). */
   function tp(key, n, params) {
-    var l = lang(); PR[l] = PR[l] || new Intl.PluralRules(l);
-    var k = key + '_' + PR[l].select(n);
+    var l = lang();
+    if (l !== 'en' && own(key + '_other') == null && own(key + '_' + plural(l, n)) == null) l = 'en';
+    var k = key + '_' + plural(l, n);
     if (lookup(k) == null) k = key + '_other';
     return t(k, Object.assign({ n: n }, params || {}));
   }
@@ -71,10 +80,17 @@
   // ---------------------------------------------------------------- format (all day values are UTC day keys)
   var cache = {};
   function f(id, opts) { var k = lang() + id; return cache[k] || (cache[k] = new Intl.DateTimeFormat(locale(), Object.assign({ timeZone: 'UTC' }, opts))); }
+  /** Month label of an axis: the short name ("Jun"), or the long name where the locale's short month is only a
+      number (Lithuanian CLDR gives "06", which would read as a day next to "06-08"): "birželis". Same rule as
+      charts/base.js monthNames(). */
+  function axisMonth(d) {
+    var s = f('m', { month: 'short' }).format(d);
+    return /^\d+\.?$/.test(s) ? f('ml', { month: 'long' }).format(d) : s;
+  }
   function fmtDay(day, style, today) {
     if (day == null) return '—';
     var d = new Date(day * DAY_MS);
-    if (style === 'axis') { if (d.getUTCDate() === 1) return d.getUTCMonth() === 0 ? f('y', { year: 'numeric' }).format(d) : f('m', { month: 'short' }).format(d); return f('dm', { day: 'numeric', month: 'short' }).format(d); }
+    if (style === 'axis') { if (d.getUTCDate() === 1) return d.getUTCMonth() === 0 ? f('y', { year: 'numeric' }).format(d) : axisMonth(d); return f('dm', { day: 'numeric', month: 'short' }).format(d); }
     if (style === 'short') {
       var y = new Date((today != null ? today : UI.today()) * DAY_MS).getUTCFullYear();
       return d.getUTCFullYear() === y ? f('dm', { day: 'numeric', month: 'short' }).format(d) : f('dmy', { day: 'numeric', month: 'short', year: 'numeric' }).format(d);

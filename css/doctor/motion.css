@@ -41,7 +41,7 @@
     .ui-reveal { animation: ui-fade-in 160ms linear both; animation-delay: 0s; }
     .ui-skel::after { animation: none; display: none; }
     ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
-    .ui-seg::before, .ui-switch__track::after { transition-duration: 1ms; }
+    .ui-seg::before { transition-duration: 1ms; }
     .ui-btn:active, .ui-chip:active, .ui-icon-btn:active { transform: none !important; }
     dialog.ui-dialog, dialog.ui-dialog:not([open]) { transform: none; transition-property: opacity, display, overlay; }
     @starting-style { dialog.ui-dialog[open] { transform: none; } }

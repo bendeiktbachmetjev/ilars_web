@@ -6,13 +6,26 @@
   var UI = g.ILARS_UI;
 
   // ---------------------------------------------------------------- dialog
-  /** Opens a <dialog class="ui-dialog">: focus trap, Esc, inert page and focus return come from showModal(). */
+  /** Default first focus (DESIGN-SPEC §3.11): [autofocus] → the first field → the primary action → the first other
+      control (e.g. the first item of a pick list) → the × / Cancel buttons last. Hidden and disabled ones are skipped.
+      (showModal() alone focuses the first focusable element, which is the × button in the dialog head.) */
+  var FOCUS_ORDER = ['[autofocus]', 'input:not([type="hidden"]), select, textarea', '[type="submit"], .ui-btn--primary, .ui-btn--danger',
+    'button:not([data-close]):not(.ui-dialog__close), a[href], [tabindex]:not([tabindex="-1"])', 'button'];
+  function firstFocus(dlg) {
+    for (var i = 0; i < FOCUS_ORDER.length; i++) {
+      var list = dlg.querySelectorAll(FOCUS_ORDER[i]);
+      for (var j = 0; j < list.length; j++) if (!list[j].disabled && list[j].getClientRects().length) return list[j];
+    }
+    return null;
+  }
+  /** Opens a <dialog class="ui-dialog">: focus trap, Esc, inert page and focus return come from showModal().
+      opts.focus = a selector for the first focus; without it (or when it matches nothing) see firstFocus(). */
   UI.openDialog = function (dlg, opts) {
     opts = opts || {};
     var opener = document.activeElement;
     dlg.returnValue = '';
     if (!dlg.open) dlg.showModal();
-    var first = opts.focus ? dlg.querySelector(opts.focus) : dlg.querySelector('[autofocus], input, select, textarea, .ui-btn--primary, .ui-btn--danger, button');
+    var first = (opts.focus && dlg.querySelector(opts.focus)) || firstFocus(dlg);
     if (first) first.focus();
     function onClick(e) { if (e.target === dlg) UI.closeDialog(dlg); }            // backdrop click
     dlg.addEventListener('click', onClick);

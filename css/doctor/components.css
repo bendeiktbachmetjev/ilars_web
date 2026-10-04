@@ -15,7 +15,6 @@
   .ui-btn:active:not(:disabled) { transform: scale(.97); }
   .ui-btn .i { width: 16px; height: 16px; stroke-width: 2; }
   .ui-btn--sm { --h: var(--layout-control-h-sm); padding: 0 12px; font-size: 13px; }
-  .ui-btn--lg { --h: 44px; padding: 0 22px; font-size: 15px; }
   /* primary: the one gradient action per view; hover/pressed get DARKER (tokens), never brightness() */
   .ui-btn--primary { color: var(--color-text-on-accent); background: var(--gradient-action); box-shadow: var(--shadow-action); }
   .ui-btn--primary:hover { color: var(--color-text-on-accent); background: var(--gradient-action-hover); box-shadow: var(--shadow-action-hover); }
@@ -25,15 +24,11 @@
   .ui-btn--fill { color: var(--color-text); background: var(--color-fill); }
   .ui-btn--fill:hover { background: var(--color-fill-hover); }
   .ui-btn--fill:active { background: var(--color-fill-pressed); }
-  .ui-btn--tinted { color: var(--color-accent); background: var(--color-accent-tint); }
-  .ui-btn--tinted:hover { color: var(--color-accent-hover); background: var(--color-accent-tint-hover); }
   .ui-btn--plain { color: var(--color-text-link); background: transparent; padding: 0 10px; }
   .ui-btn--plain:hover { color: var(--color-text-link-hover); background: var(--color-accent-tint); }
   .ui-btn--danger { color: var(--color-text-on-accent); background: var(--color-danger-solid); }
   .ui-btn--danger:hover { color: var(--color-text-on-accent); background: var(--color-danger-solid-hover); }
   .ui-btn--danger:active { background: var(--color-danger-solid-pressed); }
-  .ui-btn--danger-quiet { color: var(--color-danger-ink); background: var(--color-danger-bg); }
-  .ui-btn--danger-quiet:hover { color: var(--color-danger-ink); background: var(--color-danger-bg-strong); }
   .ui-btn:disabled, .ui-btn[aria-disabled="true"] {
     color: var(--color-action-disabled-text); background: var(--color-action-disabled-bg); box-shadow: none; cursor: default;
   }
@@ -125,11 +120,6 @@
     display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: var(--r-pill);
     font: 600 12px/1 var(--font-ui); white-space: nowrap; color: var(--color-tag-neutral-ink); background: var(--color-tag-neutral-bg);
   }
-  .ui-badge--info { color: var(--color-info-ink); background: var(--color-info-bg); }
-  .ui-badge--success { color: var(--color-success-ink); background: var(--color-success-bg); }
-  .ui-badge--warning { color: var(--color-warning-ink); background: var(--color-warning-bg); }
-  .ui-badge--danger { color: var(--color-danger-ink); background: var(--color-danger-bg); }
-  .ui-tag { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: var(--r-xs); background: var(--color-surface-sunken); color: var(--color-text-secondary); font: 500 12px/1 var(--font-ui); white-space: nowrap; }
 
   /* LARS category chip: word + 1/2/3 severity pips (never colour alone). "No score yet" = hollow pips. */
   .ui-lars {
@@ -192,7 +182,6 @@
   .ui-code .ui-icon-btn { width: 24px; height: 24px; border-radius: 6px; }
   .ui-code .ui-icon-btn .i { width: 14px; height: 14px; }
 
-  .ui-kbd { font: 500 11px/1 var(--font-ui); color: var(--color-text-secondary); padding: 3px 5px; border-radius: 5px; background: var(--color-surface); box-shadow: 0 0 0 1px var(--color-border); }
 
   /* =============================== CARDS =============================== */
   .ui-card { position: relative; min-width: 0; background: var(--color-surface); border-radius: var(--r-lg); box-shadow: var(--elevation-card); overflow: clip; }
@@ -201,10 +190,7 @@
   .ui-card__title { font: var(--type-headline); letter-spacing: var(--track-headline); display: flex; align-items: center; gap: 8px; }
   .ui-card__hint { margin-top: 3px; font: var(--type-footnote); letter-spacing: var(--track-footnote); color: var(--color-text-secondary); }
   .ui-card__tools { display: flex; align-items: center; gap: 4px; flex: none; }
-  .ui-card__body { padding: var(--space-4) var(--space-5) var(--space-5); }
-  .ui-card__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 12px 20px 16px; border-top: 1px solid var(--color-hairline); font: var(--type-footnote); color: var(--color-text-secondary); }
   .ui-count { display: inline-grid; place-items: center; min-width: 22px; height: 20px; padding: 0 6px; border-radius: var(--r-pill); font: 600 12px/1 var(--font-ui); font-variant-numeric: tabular-nums; color: var(--color-danger-ink); background: var(--color-danger-bg); }
-  .ui-count--neutral { color: var(--color-tag-neutral-ink); background: var(--color-tag-neutral-bg); }
 
   /* =============================== KPI TILES =============================== */
   .ui-kpi-row { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: var(--layout-gap); }
@@ -258,7 +244,7 @@
   /* Anatomy: head (title, hint, tools: view seg · table toggle · info) → takeaway sentence →
      fixed-height chart box → HTML legend → footnotes. Table twin replaces the box in place. */
   /* empty chart card: one calm line instead of axes; only the ⓘ stays in the tools */
-  .ui-chart.is-empty :is(.ui-chart__box, .ui-chart__duo, [data-part="extra"], .ui-chart__split > aside, [data-part="na"], .ui-chart__foot, .ui-chart__takeaway, .ui-chart__table) { display: none; }
+  .ui-chart.is-empty :is(.ui-chart__box, .ui-chart__duo, [data-part="extra"], .ui-chart__split > aside, [data-part="na"], .ui-chart__foot, .ui-chart__takeaway, .ui-chart__table, .ui-chart__failed) { display: none; }
   .ui-chart.is-empty .ui-card__tools > :not([data-act="info"]) { display: none; }
   .ui-chart__empty .ui-empty { padding: 28px 24px 32px; }
   /* chart cards size their switchers to their OWN width (container query), not the viewport */
@@ -307,7 +293,6 @@
   .ui-key--line { width: 16px; height: 3px; border-radius: 2px; }
   .ui-key--dot { width: 8px; height: 8px; border-radius: 50%; }
   .ui-key--dash { width: 16px; height: 0; border-radius: 0; background: none; border-top: 1.5px dashed var(--c); }
-  .ui-key--hollow { background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--color-empty-border); border-radius: 3px; }
   .ui-key--empty { background: var(--viz-empty); outline: 1px dashed var(--viz-empty-border); outline-offset: -1px; }
   .ui-key--missed { background: var(--color-surface); outline: 1px dashed var(--viz-cal-missed-border); outline-offset: -1px; }
 
@@ -369,24 +354,6 @@
   .ui-search { position: relative; display: flex; align-items: center; }
   .ui-search > .i { position: absolute; left: 10px; width: 16px; height: 16px; color: var(--color-text-secondary); pointer-events: none; }
   .ui-search > .ui-field { height: 34px; padding-left: 32px; font-size: 13px; border-radius: 10px; }
-
-  .ui-checkbox {
-    appearance: none; -webkit-appearance: none; margin: 0; width: 18px; height: 18px; flex: none; border-radius: 5px; cursor: pointer;
-    background: var(--color-surface); border: 1.5px solid var(--color-border-control); transition: background-color var(--dur-press), border-color var(--dur-press);
-  }
-  .ui-checkbox:checked {
-    border-color: var(--color-accent);
-    background: var(--color-accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5.5 12.5 4 4L18.5 7.5'/%3E%3C/svg%3E") center / 13px no-repeat;
-  }
-  @media (forced-colors: active) { .ui-checkbox { appearance: auto; -webkit-appearance: checkbox; } }
-
-  .ui-switch { display: inline-flex; align-items: center; gap: 8px; font: 500 13px/1 var(--font-ui); color: var(--color-text-on-glass-secondary); cursor: pointer; user-select: none; }
-  .ui-switch input { position: absolute; opacity: 0; pointer-events: none; }
-  .ui-switch__track { position: relative; width: 34px; height: 20px; border-radius: var(--r-pill); background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--color-border-control); transition: background-color var(--dur-fade) var(--ease-out), box-shadow var(--dur-fade); }
-  .ui-switch__track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--color-border-control); transition: transform 300ms var(--spring-snappy), background-color var(--dur-fade); }
-  .ui-switch input:checked + .ui-switch__track { background: var(--color-accent); box-shadow: none; }
-  .ui-switch input:checked + .ui-switch__track::after { transform: translateX(14px); background: var(--color-surface); }
-  .ui-switch input:focus-visible + .ui-switch__track { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 
   /* =============================== GLASS: menus, popovers, floating bars =============================== */
   .ui-menu, .ui-popover {
@@ -468,9 +435,6 @@
   .ui-group__row dd { margin: 0; font-weight: 600; text-align: right; }
   .ui-note { display: flex; gap: 8px; align-items: flex-start; font: 400 12px/17px var(--font-ui); color: var(--color-text-secondary); }
   .ui-note .i { width: 15px; height: 15px; margin-top: 1px; color: var(--color-success-ink); }
-  .ui-pick-list { display: grid; gap: 2px; max-height: 320px; overflow: auto; margin: 0 -8px; }
-  .ui-pick-list > button { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border: 0; border-radius: 10px; background: none; text-align: left; font: var(--type-body); color: var(--color-text); }
-  .ui-pick-list > button:hover { background: var(--color-fill); }
 
   /* =============================== TOAST =============================== */
   .ui-toast-region { position: fixed; z-index: var(--z-toast); left: 50%; bottom: 24px; transform: translateX(-50%); display: grid; gap: 8px; justify-items: center; pointer-events: none; }
@@ -508,11 +472,6 @@
   .ui-alert--info > .i, .ui-alert--info .ui-alert__title { color: var(--color-info-ink); }
   .ui-alert--warning { background: var(--color-warning-bg); box-shadow: inset 0 0 0 1px var(--color-warning-border); }
   .ui-alert--warning > .i, .ui-alert--warning .ui-alert__title { color: var(--color-warning-ink); }
-
-  .ui-spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--color-accent-border); border-top-color: var(--color-accent); animation: ui-spin 800ms linear infinite; flex: none; }
-
-  /* tooltip for icon-only controls (positioned by ui/tooltip.js; title attribute is the fallback) */
-  .ui-tooltip { position: fixed; z-index: var(--z-tooltip); max-width: 260px; padding: 6px 9px; border-radius: 8px; background: var(--color-text); color: var(--color-surface); font: 500 12px/16px var(--font-ui); pointer-events: none; animation: ui-fade-in var(--dur-fade) var(--ease-out) both; }
 }
 
 @layer components {
@@ -523,10 +482,22 @@
     .ui-btn, .ui-icon-btn, .ui-chip, .ui-seg, .ui-code { border: 1px solid ButtonText; }
     .ui-seg::before { border: 2px solid Highlight; }
     .ui-chip[aria-pressed="true"], .ui-icon-btn[aria-pressed="true"], .ui-legend__item[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: 1px; }
+    /* small glyphs drawn as fills or inset rings would vanish: system colours and real borders instead */
+    .ui-lars__pips i { background: transparent; border: 1px solid CanvasText; }
+    .ui-lars--none .ui-lars__pips i:nth-child(-n+1),
+    .ui-lars--minor .ui-lars__pips i:nth-child(-n+2),
+    .ui-lars--major .ui-lars__pips i:nth-child(-n+3) { background: CanvasText; }
+    .ui-lars--nodata .ui-lars__pips i { border-color: GrayText; }
+    .ui-pstatus::before { background: CanvasText; }
+    .ui-pstatus--inactive::before { background: transparent; border: 1.5px solid CanvasText; }
+    .ui-pstatus--deceased::before { background: GrayText; }
+    .ui-avatar { border: 1px solid CanvasText; }
+    /* legend keys keep the chart's own colours: the SVG chart next to them is not recoloured */
+    .ui-key { forced-color-adjust: none; }
   }
   /* grouped 12-char patient codes: separate spans, so copy/paste stays ungrouped */
   .cg + .cg { margin-left: .32em; }
   /* chart card: the second canvas and the table twin never show together */
   .ui-chart.is-table [data-part="extra"] { display: none; }
-  .ui-chart__failed { margin: 12px 8px; }
+  .ui-chart__failed { margin: 12px 20px 0; }   /* card.js failed(): above the table twin, same inset as the table */
 }

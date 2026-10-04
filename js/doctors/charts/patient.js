@@ -233,17 +233,49 @@
     }, 0) * size;
   }
   /**
+   * Width ECharts 6 counts for a label when it wraps it (overflow 'break'): the sum of its glyphs, ASCII glyphs
+   * measured, every other glyph counted as one CJK em ("国"). So Turkish "rahatsızlık" (57 px on screen) counts
+   * as about 74 px and a 70 px line cuts the word. Label columns are sized with this measure: a canvas in the
+   * browser (same numbers as ECharts), the estimate above in Node (+ 4 % safety in wrapLines).
+   */
+  var MEASURE = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null;
+  function wrapPx(str, size, font) {
+    if (MEASURE) MEASURE.font = size + 'px ' + font;
+    return String(str).split('').reduce(function (w, c) {
+      var other = c.charCodeAt(0) > 127;
+      return w + (MEASURE ? MEASURE.measureText(other ? '国' : c).width : other ? size : textPx(c, size));
+    }, 0);
+  }
+  /** Lines `str` wraps into at `width` px, broken at spaces (Infinity when one word is wider than the line: ECharts would cut it). */
+  function wrapLines(str, size, width, font) {
+    var lines = 0, line = 0, safe = MEASURE ? 1 : 1.04, sp = wrapPx(' ', size, font) * safe;
+    String(str).split(' ').forEach(function (word) {
+      var w = wrapPx(word, size, font) * safe;
+      if (w > width) lines = Infinity;
+      else if (lines && line + sp + w <= width) line += sp + w;
+      else { lines++; line = w; }
+    });
+    return lines;
+  }
+  /** Narrowest label width (minPx up, 2 px steps) that sets every name on at most maxLines lines without cutting a word. */
+  function namesWidth(names, size, maxLines, minPx, font) {
+    for (var w = minPx; w < 400 && names.some(function (s) { return wrapLines(s, size, w, font) > maxLines; }); w += 2);
+    return w;
+  }
+  /**
    * Profile and VAS share one column layout (the card cross-fades between them). The left column is 132 px,
    * wider when the profile's dimension names need it (labelPx, at most 180). It narrows to 84 px (names wrap,
-   * the view gives phones taller rows) only when the visit columns would get less than 44 px: a half card at
-   * 1024–1279 px keeps one-line names in its 28 px rows.
+   * the view gives phones taller rows; narrowPx widens it when a name needs it to stay on two lines without a
+   * cut word) only when the visit columns would get less than 44 px: a half card at 1024–1279 px keeps
+   * one-line names in its 28 px rows.
    */
-  function eqGrid(widthPx, n, labelPx) {
+  function eqGrid(widthPx, n, labelPx, narrowPx) {
     var w = widthPx || 900, cols = Math.max(1, n);
     var need = Math.min(180, Math.max(132, Math.ceil((labelPx || 0) * 1.04) + 12));     // 4 % safety on the estimate, 8 px label margin
-    var left = w >= 520 || (w - need) / cols >= 44 ? need : 84;
+    var narrow = !(w >= 520 || (w - need) / cols >= 44);
+    var left = narrow ? Math.max(84, narrowPx || 0) : need;
     var right = _.capRight(w, left, cols, 64);
-    return { left: left, right: right, colW: (w - left - right) / cols };
+    return { left: left, right: right, colW: (w - left - right) / cols, narrow: narrow };
   }
   /** Category data + axisLabel for the visit axis: "Day 90" over its date, shortened to fit colW px. */
   function visitAxis(visits, ctx, colW) {
@@ -276,8 +308,8 @@
     });
     var vs = M.eqVsBaseline(vm.visits);
     var dims = DIM_KEYS.map(function (k) { return ctx.t(k); });
-    var labelPx = dims.reduce(function (m, s) { return Math.max(m, textPx(s, 12)); }, 0);
-    var g = eqGrid(widthPx, vm.visits.length, labelPx), va = visitAxis(vm.visits, ctx, g.colW);
+    var labelPx = dims.reduce(function (m, s) { return Math.max(m, wrapPx(s, 12, T.font)); }, 0);
+    var g = eqGrid(widthPx, vm.visits.length, labelPx, namesWidth(dims, 12, 2, 70, T.font) + 14), va = visitAxis(vm.visits, ctx, g.colW);
     var words = vs.pchc.map(function (c) { return c ? ctx.t('doctor.cm.eq.pchc_' + c) : ''; });
     var staggerTop = widest(words, 11) + 6 > g.colW;                     // two lines: every other word one line up
     var opt = Object.assign(o, {
@@ -297,7 +329,7 @@
           position: 'top', axisLine: { show: false }, axisTick: { show: false }, axisLabel: axisLabel(ctx, { fontWeight: 600, interval: 0, lineHeight: 14 }) }
       ],
       yAxis: { type: 'category', data: dims, inverse: true, axisLine: { show: false }, axisTick: { show: false },
-        axisLabel: axisLabel(ctx, { fontSize: 12, width: g.left - (g.left === 84 ? 14 : 10), overflow: 'break', lineHeight: 13 }) },
+        axisLabel: axisLabel(ctx, { fontSize: 12, width: g.left - (g.narrow ? 14 : 10), overflow: 'break', lineHeight: 13, interval: 0 }) },
       visualMap: { type: 'piecewise', show: false, seriesIndex: 0, dimension: 2,
         pieces: [1, 2, 3, 4, 5].map(function (l) { return { value: l, color: T.eqLevel[l - 1] }; }) },
       series: [
@@ -935,17 +967,23 @@
         if (v >= 1 && v <= 4) data.push({ value: [x, y, v], label: { color: v === 4 ? T.seqInkDark : T.seqInkLight } });
       });
     });
-    var right = _.capRight(widthPx, 170, Math.max(1, rows.length), 56);
-    var cellW = ((widthPx || 900) - 170 - right) / Math.max(1, rows.length);
+    // Name column: at least 170 px, wider so each name keeps one line while every month keeps a 44 px cell (room
+    // for its date); otherwise the names take two lines, never cut inside a word. (A name wider than its column
+    // would make ECharts 6 shrink the cells instead.)
+    var names = BURDEN.map(function (b) { return ctx.t(b[1]); }), cols = Math.max(1, rows.length), w = widthPx || 900;
+    var left = namesWidth(names, 12, 1, 158, T.font) + 12;
+    if ((w - left - 8) / cols < 44) left = namesWidth(names, 12, 2, 158, T.font) + 12;
+    var right = _.capRight(widthPx, left, cols, 56);
+    var cellW = (w - left - right) / cols;
     var showNums = cellW >= 22;                                                      // long ranges: colour + tooltip + table
     return Object.assign(o, {
-      grid: grid({ left: 170, right: right, top: 4, bottom: 24 }),
+      grid: grid({ left: left, right: right, top: 4, bottom: 24 }),
       tooltip: Object.assign(o.tooltip, { trigger: 'item', formatter: function (p) {
         return tipValue(p.value[2] + ' / 4') + esc(ctx.t(BURDEN[p.value[1]][1])) + tipHead(ctx.fmtDay(rows[p.value[0]].day, 'long')); } }),
       xAxis: { type: 'category', data: rows.map(function (r) { return ctx.fmtDay(r.day, 'short'); }), axisLine: { show: false }, axisTick: { show: false },
-        axisLabel: axisLabel(ctx, { hideOverlap: true }) },
-      yAxis: { type: 'category', data: BURDEN.map(function (b) { return ctx.t(b[1]); }), inverse: true, axisLine: { show: false }, axisTick: { show: false },
-        axisLabel: axisLabel(ctx, { fontSize: 12 }) },
+        axisLabel: axisLabel(ctx, { hideOverlap: true, interval: cellW >= 44 ? 0 : 'auto' }) },              // a 44 px cell fits its date
+      yAxis: { type: 'category', data: names, inverse: true, axisLine: { show: false }, axisTick: { show: false },
+        axisLabel: axisLabel(ctx, { fontSize: 12, width: left - 12, overflow: 'break', lineHeight: 13, interval: 0 }) },
       visualMap: { type: 'piecewise', show: false, dimension: 2, pieces: [1, 2, 3, 4].map(function (l) { return { value: l, color: fills[l - 1] }; }) },
       series: [{ id: 'burden', type: 'heatmap', data: data,
         itemStyle: { borderColor: T.surface, borderWidth: _.cellBorder(cellW, 3), borderRadius: 6, decal: { symbol: 'none' } },

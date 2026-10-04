@@ -74,7 +74,7 @@
   }
   .lang-dropdown.is-open { display: grid; gap: 1px; }
   .lang-dropdown > button.is-active::after { content: "✓"; margin-left: auto; color: var(--color-accent); font-weight: 600; }
-  @media (forced-colors: active) { .lang-dropdown { border: 1px solid CanvasText; } .app-tb-btn { border: 1px solid ButtonText; } }
+  @media (forced-colors: active) { .lang-dropdown { border: 1px solid CanvasText; } .app-tb-btn { border: 1px solid ButtonText; } .app-account__avatar { border: 1px solid ButtonText; } }
 
   /* ---------------- page ---------------- */
   .app-page {
@@ -104,22 +104,18 @@
 
   /* ---------------- grid ---------------- */
   .app-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--layout-gap); }
-  .span-3 { grid-column: span 3; } .span-4 { grid-column: span 4; } .span-5 { grid-column: span 5; } .span-6 { grid-column: span 6; }
-  .span-7 { grid-column: span 7; } .span-8 { grid-column: span 8; } .span-9 { grid-column: span 9; } .span-12 { grid-column: 1 / -1; }
-  .app-stack { display: grid; gap: var(--layout-gap); align-content: start; }
+  .span-4 { grid-column: span 4; } .span-6 { grid-column: span 6; } .span-8 { grid-column: span 8; } .span-12 { grid-column: 1 / -1; }
   .app-section { margin-top: var(--space-7); }
 
-  /* laptop 1024-1279: thirds become halves, 8|4 becomes full width */
+  /* laptop 1024-1279: an 8 | 4 row becomes full width (span-8, and span-4 marked .lg-full) */
   @media (max-width: 1279px) {
-    .span-7, .span-8, .span-9 { grid-column: 1 / -1; }
-    .span-5 { grid-column: span 6; }
+    .span-8 { grid-column: 1 / -1; }
     .span-4.lg-full { grid-column: 1 / -1; }
-    .span-3 { grid-column: span 6; }
     .app-account__meta { display: none; }
   }
   /* tablet 768-1023: everything stacks */
   @media (max-width: 1023px) {
-    .span-3, .span-4, .span-5, .span-6 { grid-column: 1 / -1; }
+    .span-4, .span-6 { grid-column: 1 / -1; }
     .app-brand__sub { display: none; }
   }
   /* phone < 768 */

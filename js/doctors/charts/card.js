@@ -158,9 +158,13 @@
       render: function () { if (!applyEmpty()) { paintText(); if (g.echarts) draw(false); } return api; },
       setView: function (v) { state.view = v; if (!applyEmpty()) { paintText(); draw(true); } },
       refresh: function () { if (!applyEmpty()) { paintText(); draw(false); } },
+      /** The chart library could not load: the table twin opens for good, with a calm note above it (outside the
+          chart box, which table mode hides); the chart/table toggle goes, since there is no chart to go back to. */
       failed: function () {
         if (o.extra) el.querySelector('[data-part="extra"]').hidden = true;
-        el.querySelector('.ui-chart__box').innerHTML = '<div class="ui-alert ui-alert--info ui-chart__failed">' + UI.icon('info') + '<div>' + UI.esc(UI.t('doctor.cm.common.charts_failed')) + '</div></div>';
+        var tb = el.querySelector('[data-part="table"]');
+        if (!el.querySelector('.ui-chart__failed')) tb.insertAdjacentHTML('beforebegin', '<div class="ui-alert ui-alert--info ui-chart__failed">' + UI.icon('info') + '<div>' + UI.esc(UI.t('doctor.cm.common.charts_failed')) + '</div></div>');
+        el.querySelector('[data-act="table"]').hidden = true;
         state.table = true; el.classList.add('is-table');
       },
       chart: function () { return state.chart; },

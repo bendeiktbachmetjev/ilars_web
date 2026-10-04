@@ -77,6 +77,21 @@ This project is configured for Railway deployment. The `server.py` file serves t
 - **Doctor Login**: Doctors can sign in with Google authentication (Firebase)
 - **Doctor Dashboard**: Full patient management interface with charts and analytics
 
+## Doctor portal
+
+`doctor.html` is the doctors' web app (iLARS study dashboard and the Lithuanian registry). Its architecture,
+script order, design tokens, charts, data layer, translations, the registry freeze rule, tests and accessibility
+rules are described in [docs/doctor-portal.md](docs/doctor-portal.md).
+
+Run its unit tests from this folder:
+
+```bash
+ECHARTS_DIR=<folder with echarts.js 6.1.0> node --test tests/doctor/*.test.js
+```
+
+`server.py` serves the site with one thread per request, sends `Cache-Control: no-cache` for `locales/*.json`,
+and answers 404 for everything under `/tests/`.
+
 ## Firebase Configuration
 
 The app uses Firebase for Google authentication. Make sure to:

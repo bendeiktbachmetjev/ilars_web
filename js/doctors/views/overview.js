@@ -172,7 +172,7 @@ class OverviewView {
           build: function () { return O.cohortLarsDonut(stats, ctx(), larsSum); }, summary: function () { return larsSum; }, table: catTable },
         { v: 'scores', label: U.t('doctor.cm.ov.view_hist'), icon: 'bars', coord: 'cartesian', height: 200,
           build: function () { return O.cohortLarsHistogram(stats, ctx(), larsSum); }, summary: function () { return larsSum; }, table: catTable,
-          notes: cats.nodata ? [U.esc(U.t('doctor.cm.ov.without_score', { n: cats.nodata }))] : [] }
+          notes: cats.nodata ? [U.esc(U.tp('doctor.cm.ov.without_score', cats.nodata))] : [] }
       ] });
     if (!first) c2.el.classList.remove('ui-reveal');
     grid.appendChild(c2.el);
@@ -240,7 +240,7 @@ class OverviewView {
     var adhSum = pp ? U.tp('doctor.cm.ov.summary_adh', adh.length, { median: approx + pp.prefix + pp.value + '%' }) : '';
     var adhTable = function (rows) {
       return { caption: U.t('doctor.cm.ov.adh_title'), head: [U.t('doctor.cm.list.th_patient'), U.t('doctor.cm.list.th_adherence'), U.t('doctor.cm.q.th_days')], num: [1, 2],
-        rows: rows.map(function (r) { var q = M.percentParts(r.ratio); return [r.label, approx + q.prefix + q.value + '%', U.t('doctor.ui.patient.q_days', { done: r.done, expected: r.expected })]; }) };
+        rows: rows.map(function (r) { var q = M.percentParts(r.ratio); return [r.label, approx + q.prefix + q.value + '%', U.tp('doctor.ui.patient.q_days', r.expected, { done: r.done, expected: r.expected })]; }) };
     };
     var c3 = ILARS_CHARTS.card({ id: 'ov-adh', span: 'span-4', fill: true, reveal: nextReveal(), title: U.t('doctor.cm.ov.adh_title'), hint: U.t(adhApprox ? 'doctor.cm.ov.adh_hint_approx' : 'doctor.cm.ov.adh_hint'),
       empty: function () { return adh.length ? null : U.esc(active.length ? U.t('doctor.cm.common.too_early_hint') : noActive); },

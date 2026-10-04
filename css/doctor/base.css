@@ -31,6 +31,9 @@
   button, input, select, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
   button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
   button:disabled { cursor: default; }
+  /* number fields: no native spin buttons (tiny targets, absent from the design); ↑/↓ keys still step the value */
+  input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+  input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   img, svg { display: block; }
   table { border-collapse: separate; border-spacing: 0; }
   ::selection { background: var(--color-text-selection); }
@@ -45,10 +48,7 @@
   body:has(dialog[open]) { overflow: hidden; }   /* modal open: page does not scroll behind it */
 
   /* type helpers */
-  .t-caption { font: var(--type-caption); letter-spacing: var(--track-caption); }
   .t-footnote { font: var(--type-footnote); letter-spacing: var(--track-footnote); }
-  .t-callout { font: var(--type-callout); letter-spacing: var(--track-callout); }
-  .t-headline { font: var(--type-headline); letter-spacing: var(--track-headline); }
   .t-secondary { color: var(--color-text-secondary); }
   .num { font-variant-numeric: tabular-nums; }
   .code { font: var(--type-code); font-variant-numeric: tabular-nums slashed-zero; letter-spacing: .02em; }
@@ -58,7 +58,6 @@
   .i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
   .i--xs { width: 14px; height: 14px; stroke-width: 2; }
   .i--sm { width: 16px; height: 16px; }
-  .i--lg { width: 20px; height: 20px; }
 
   /* Windows high contrast: keep real borders, drop decorative shadows; every focused control gets a system ring
      (box-shadow halos are removed in forced colours, so a halo-only focus would be invisible) */

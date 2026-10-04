@@ -145,13 +145,6 @@
   /* a calendar is centred in its card (base.js calendarBox): its keys and notes sit centred under it, not at the far left */
   .pd-grid .ui-chart:has(.ui-card__tools .ui-seg > button[data-v="calendar"][aria-pressed="true"]):not(.is-table) > .ui-chart__foot { justify-content: center; }
 
-  /* chart library blocked: card.js puts its info alert into the chart box and opens the table; the box itself is
-     hidden in table mode, so keep the box (which now holds only the alert) visible above the table */
-  .pd-grid .ui-chart.is-table > .ui-chart__box:has(> .ui-chart__failed),
-  .pd-grid .ui-chart.is-table .ui-chart__split .ui-chart__box:has(> .ui-chart__failed),
-  .pd-grid .ui-chart.is-table .ui-chart__duo .ui-chart__box:has(> .ui-chart__failed) { display: block; }
-  .pd-grid .ui-chart__failed { margin: 10px 8px 0; }
-
   /* Windows high contrast: shadows and fills are dropped — give the pill groups a real border and keep the
      meaning-carrying colours (driver bars, timeline dots, tracker legend keys) */
   @media (forced-colors: active) {

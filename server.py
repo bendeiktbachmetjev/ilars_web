@@ -4,10 +4,11 @@ Simple HTTP server for static files (Railway deployment)
 Serves the iLARS web application
 """
 import os
+import posixpath
 import sys
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 
 class StaticHandler(SimpleHTTPRequestHandler):
     """Handler for static files with SPA routing support"""
@@ -31,8 +32,15 @@ class StaticHandler(SimpleHTTPRequestHandler):
                     print(f"ERROR: index.html not found at {index_path}", file=sys.stderr)
                     return index_path
             
-            file_path = os.path.join(self.directory, path)
-            
+            file_path = os.path.realpath(os.path.join(self.directory, path))
+
+            # Never serve anything outside this folder (a raw "GET /../../etc/hosts" is not
+            # normalised by every client) or any hidden file/folder such as .git or .DS_Store
+            root = os.path.realpath(self.directory)
+            if not file_path.startswith(root + os.sep) or any(
+                    part.startswith('.') for part in os.path.relpath(file_path, root).split(os.sep)):
+                return os.path.join(self.directory, 'index.html')
+
             # If file doesn't exist, serve index.html (for SPA client-side routing)
             if not os.path.exists(file_path) or os.path.isdir(file_path):
                 return os.path.join(self.directory, 'index.html')
@@ -42,6 +50,21 @@ class StaticHandler(SimpleHTTPRequestHandler):
             print(f"ERROR in translate_path: {e}", file=sys.stderr)
             return os.path.join(self.directory, 'index.html')
     
+    def url_path(self):
+        """Decoded, normalised URL path without the query string, e.g. '/locales/en.json'."""
+        return posixpath.normpath('/' + unquote(urlparse(getattr(self, 'path', '')).path).lstrip('/'))
+
+    def send_head(self):
+        """GET and HEAD: the unit tests under /tests/ are never served (404)."""
+        path = self.url_path().lower()
+        tests_root = os.path.realpath(os.path.join(self.directory, 'tests'))
+        file_path = os.path.realpath(self.translate_path(self.path))
+        if (path == '/tests' or path.startswith('/tests/')
+                or file_path == tests_root or file_path.startswith(tests_root + os.sep)):
+            self.send_error(404, "File not found")
+            return None
+        return super().send_head()
+
     def do_GET(self):
         """Handle GET requests"""
         try:
@@ -68,7 +91,11 @@ class StaticHandler(SimpleHTTPRequestHandler):
             self.send_header('Access-Control-Allow-Headers', '*')
             
             # Add caching headers
-            if self.path.endswith('.html'):
+            url_path = self.url_path()
+            if url_path.startswith('/locales/') and url_path.endswith('.json'):
+                # Translations: the browser revalidates on every load (304 when unchanged), with or without ?v=
+                self.send_header('Cache-Control', 'no-cache')
+            elif self.path.endswith('.html'):
                 self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
                 self.send_header('Pragma', 'no-cache')
                 self.send_header('Expires', '0')
@@ -105,7 +132,8 @@ def main():
             print(f"Files in directory: {os.listdir(os.path.dirname(__file__))}", file=sys.stderr)
             sys.exit(1)
         
-        server = HTTPServer((host, port), StaticHandler)
+        # One thread per request: the doctor portal loads ~45 files, which a single thread served one at a time
+        server = ThreadingHTTPServer((host, port), StaticHandler)
         print(f"Server starting on http://{host}:{port}", file=sys.stderr)
         print(f"Serving files from: {os.path.dirname(__file__)}", file=sys.stderr)
         print(f"index.html exists: {os.path.exists(index_path)}", file=sys.stderr)

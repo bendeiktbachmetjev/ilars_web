@@ -331,7 +331,7 @@ class PatientListView {
           var catChanged = L.first != null && M.larsCategory(L.first) !== L.category;
           var cls = catChanged ? (L.delta < 0 ? ' ui-delta--better' : ' ui-delta--worse') : '';
           delta = '<span class="ui-delta' + cls + '">' + U.icon(L.delta < 0 ? 'arrow-down' : 'arrow-up') + Math.abs(L.delta) +
-            '<span class="sr-only"> ' + U.esc(U.t(L.delta < 0 ? 'doctor.cm.list.delta_sr_down' : 'doctor.cm.list.delta_sr_up', { n: Math.abs(L.delta) })) + '</span></span>';
+            '<span class="sr-only"> ' + U.esc(U.tp(L.delta < 0 ? 'doctor.cm.list.delta_sr_down' : 'doctor.cm.list.delta_sr_up', Math.abs(L.delta))) + '</span></span>';
         }
         var sub = (med ? U.t('doctor.ui.patients.median_4w', { v: U.fmtNum(med.median, med.median % 1 ? 1 : 0) }) +
           (med.category !== L.category ? ' (' + U.t('doctor.cm.lars.cat_' + med.category) + ')' : '') + ' · ' : '') + U.fmtRelative(L.latestDay, today);
@@ -341,7 +341,7 @@ class PatientListView {
         var rec = s.lars.recent || [];
         if (!rec.length) return '<span class="pl-muted">—</span>';
         return '<span class="pl-spark">' + ILARS_CHART_OPTIONS.sparklineSVG(rec, self.tok(), 96, 28) + '</span><span class="sr-only">' +
-          U.esc(U.t('doctor.cm.list.spark_sr', { n: rec.length, first: rec[0].score, last: rec[rec.length - 1].score })) + '</span>';
+          U.esc(U.tp('doctor.cm.list.spark_sr', rec.length, { first: rec[0].score, last: rec[rec.length - 1].score })) + '</span>';
       },
       vas: function () {
         var V = s.vas;
