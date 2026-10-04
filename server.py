@@ -31,7 +31,14 @@ class StaticHandler(SimpleHTTPRequestHandler):
                     print(f"ERROR: index.html not found at {index_path}", file=sys.stderr)
                     return index_path
             
-            file_path = os.path.join(self.directory, path)
+            file_path = os.path.realpath(os.path.join(self.directory, path))
+            
+            # Never serve anything outside this folder (a raw "GET /../../etc/hosts" is not
+            # normalised by every client) or any hidden file/folder such as .git or .DS_Store
+            root = os.path.realpath(self.directory)
+            if not file_path.startswith(root + os.sep) or any(
+                    part.startswith('.') for part in os.path.relpath(file_path, root).split(os.sep)):
+                return os.path.join(self.directory, 'index.html')
             
             # If file doesn't exist, serve index.html (for SPA client-side routing)
             if not os.path.exists(file_path) or os.path.isdir(file_path):
