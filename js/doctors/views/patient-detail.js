@@ -92,11 +92,15 @@ class PatientDetailView {
         function (e) { console.warn('[patient] registry read failed', e); return { failed: true }; }) : null;
       var hist = self.loadHistory(code, seq);                          // its own request; the summary shows its state
       var detailP = api.getPatientDetail(code);
-      // a study coordinator viewing another hospital's patient (can_edit = false): the name is never read
-      var nameP = me && me.is_coordinator ? detailP.then(function (r) {
-        return r && r.can_edit === false ? { name: '', first: '', last: '', canEdit: false } : self.readName(code);
+      // another hospital's patient (can_edit = false, study coordinators): the name is never read or shown.
+      // Coordinators, and a list row already marked read-only, wait for the detail before any Firestore read.
+      var noName = { name: '', first: '', last: '', canEdit: false };
+      var plRow = window.PatientListView && window.PatientListView.byCode && window.PatientListView.byCode[code];
+      var nameP = (me && me.is_coordinator) || (plRow && plRow.can_edit === false) ? detailP.then(function (r) {
+        return r && r.can_edit === false ? noName : self.readName(code);
       }) : self.readName(code);
       return Promise.all([detailP, nameP]).then(function (r) {
+        if (r[0].can_edit === false) r[1] = noName;
         if (r[1].name) self.names[code] = r[1].name;
         var d = { me: me && me.profile ? me.profile : (me || {}), lt: lt, detail: ILARS_DATA.adaptDetail(r[0]),
           readOnly: r[0].can_edit === false,                         // another hospital's patient: view only
@@ -199,7 +203,8 @@ class PatientDetailView {
       var st = pl && pl.st ? pl.st : typeof P.readState === 'function' ? P.readState() : { status: 'active' };
       return P.data().then(function (d) {
         var scope = typeof P.scopeFor === 'function' ? P.scopeFor(st.scope, d.list.rows, d.me) : (st.scope || 'all');
-        var mod = VM.cohortModel(d.list.rows, { today: d.today, meDoctorCode: d.me.doctor_code, scope: scope });
+        var hospital = typeof P.hospitalFilter === 'function' ? P.hospitalFilter(d.list.rows) : '';   // coordinators' filter
+        var mod = VM.cohortModel(d.list.rows, { today: d.today, meDoctorCode: d.me.doctor_code, scope: scope, hospital: hospital });
         return codes(VM.listRows(mod.scoped, Object.assign({}, st, { scope: scope }), d.names));
       }).catch(function () { return null; });
     }
