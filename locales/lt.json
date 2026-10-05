@@ -569,7 +569,8 @@
         "vas_delta_up_other": "{n} balų daugiau, lyginant su pirmuoju klausimynu",
         "vas_delta_down_one": "{n} balu mažiau, lyginant su pirmuoju klausimynu",
         "vas_delta_down_few": "{n} balais mažiau, lyginant su pirmuoju klausimynu",
-        "vas_delta_down_other": "{n} balų mažiau, lyginant su pirmuoju klausimynu"
+        "vas_delta_down_other": "{n} balų mažiau, lyginant su pirmuoju klausimynu",
+        "th_hospital": "Ligoninė"
       },
       "attn": {
         "title": "Reikia dėmesio",
@@ -662,6 +663,11 @@
         "cups": "puodeliai",
         "drinks": "gėrimai",
         "cans": "skardinės"
+      },
+      "hospital": {
+        "all": "Visos ligoninės",
+        "all_lt": "Visos Lietuvos ligoninės",
+        "button": "Ligoninė: {name}"
       }
     },
     "ui": {
@@ -823,7 +829,9 @@
         "eq_none": "EQ-5D-5L klausimynas neužpildytas.",
         "in_study_until": "Tyrime: {days}, iki {date}",
         "q_empty_ended": "Šiuo laikotarpiu klausimynų nėra.",
-        "not_tracked_from": "Nestebima nuo {date} ({status})."
+        "not_tracked_from": "Nestebima nuo {date} ({status}).",
+        "view_only": "Tik peržiūra",
+        "view_only_hint": "Kitos ligoninės pacientas: galite peržiūrėti, bet ne keisti."
       },
       "status": {
         "confirm_title": "Keisti statusą?",

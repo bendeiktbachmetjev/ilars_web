@@ -11,7 +11,7 @@
 (function (g) {
   'use strict';
   var UI = g.ILARS_UI;
-  var EN_FALLBACK = 'locales/en.json?v=14';   // keep the ?v= equal to js/i18n.js
+  var EN_FALLBACK = 'locales/en.json?v=15';   // keep the ?v= equal to js/i18n.js
   var LANGS = { en: 'English', lt: 'Lietuvių', it: 'Italiano', es: 'Español', tr: 'Türkçe' };
   var bootResolve;
   g.ILARS_BOOT = new Promise(function (r) { bootResolve = r; });

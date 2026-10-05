@@ -562,7 +562,8 @@
         "vas_delta_up_one": "{n} point higher than the first questionnaire",
         "vas_delta_up_other": "{n} points higher than the first questionnaire",
         "vas_delta_down_one": "{n} point lower than the first questionnaire",
-        "vas_delta_down_other": "{n} points lower than the first questionnaire"
+        "vas_delta_down_other": "{n} points lower than the first questionnaire",
+        "th_hospital": "Hospital"
       },
       "attn": {
         "title": "Needs attention",
@@ -649,6 +650,11 @@
         "cups": "cups",
         "drinks": "drinks",
         "cans": "cans"
+      },
+      "hospital": {
+        "all": "All hospitals",
+        "all_lt": "All Lithuanian hospitals",
+        "button": "Hospital: {name}"
       }
     },
     "ui": {
@@ -801,7 +807,9 @@
         "eq_none": "No EQ-5D-5L questionnaire was filled in.",
         "in_study_until": "In study for {days}, until {date}",
         "q_empty_ended": "No questionnaire in this time range.",
-        "not_tracked_from": "Not tracked from {date} ({status})."
+        "not_tracked_from": "Not tracked from {date} ({status}).",
+        "view_only": "View only",
+        "view_only_hint": "Another hospital’s patient: you can view, not change."
       },
       "status": {
         "confirm_title": "Change status?",

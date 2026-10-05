@@ -280,3 +280,27 @@ test('LARS since registration > Categories: every stack ends exactly on 100 %, o
   const tip = o.tooltip.formatter([0, 1, 2].map((i) => ({ dataIndex: 0, seriesIndex: i, value: val(o.series[i].data[0]), seriesName: 's' + i, color: 'x' })));
   assert.ok(tip.includes('18%') && tip.includes('29%') && tip.includes('53%'), tip);   // 3/17, 5/17, 9/17 rounded for reading
 });
+
+test('study coordinators: hospital filter narrows every count; rows without can_edit stay editable', () => {
+  const l = D.adaptList(F.extended.patients);
+  const today = l.today ? M.todayDay(l.today) : M.parseDay(F.today);
+  // the fixture has no hospital_name / can_edit (an ordinary doctor's list): nothing changes for them
+  const plain = VM.cohortModel(l.rows, { today, meDoctorCode: ME, scope: 'all' });
+  assert.ok(plain.all.every(s => s.hospital === null && s.canEdit === true));
+  assert.deepEqual(VM.hospitals(l.rows), []);
+  assert.equal(VM.validHospital('Kauno klinikos', l.rows), '');
+  // a coordinator's list: the first 5 rows belong to another hospital, read-only
+  const rows = l.rows.map((r, i) => Object.assign({}, r, i < 5
+    ? { hospital_name: 'Kauno klinikos', can_edit: false } : { hospital_name: 'Santaros', can_edit: true }));
+  assert.deepEqual(VM.hospitals(rows), ['Kauno klinikos', 'Santaros']);
+  assert.equal(VM.validHospital('Kauno klinikos', rows), 'Kauno klinikos');
+  assert.equal(VM.validHospital('Gone hospital', rows), '');
+  const all = VM.cohortModel(rows, { today, meDoctorCode: ME, scope: 'all' });
+  const kaun = VM.cohortModel(rows, { today, meDoctorCode: ME, scope: 'all', hospital: 'Kauno klinikos' });
+  assert.equal(all.scoped.length, rows.length);
+  assert.equal(kaun.scoped.length, 5);
+  assert.ok(kaun.scoped.every(s => s.hospital === 'Kauno klinikos' && s.canEdit === false));
+  assert.equal(kaun.all.length, rows.length);                        // "all" stays unfiltered (empty-state check)
+  assert.ok(kaun.attention.every(s => s.hospital === 'Kauno klinikos'));
+  assert.equal(kaun.stats.status.active + kaun.stats.status.inactive + kaun.stats.status.dead, 5);
+});

@@ -542,7 +542,8 @@
         "vas_delta_up_one": "{n} punto in più rispetto al primo questionario",
         "vas_delta_up_other": "{n} punti in più rispetto al primo questionario",
         "vas_delta_down_one": "{n} punto in meno rispetto al primo questionario",
-        "vas_delta_down_other": "{n} punti in meno rispetto al primo questionario"
+        "vas_delta_down_other": "{n} punti in meno rispetto al primo questionario",
+        "th_hospital": "Ospedale"
       },
       "attn": {
         "title": "Richiede attenzione",
@@ -629,6 +630,11 @@
         "cups": "tazze",
         "drinks": "bevande",
         "cans": "lattine"
+      },
+      "hospital": {
+        "all": "Tutti gli ospedali",
+        "all_lt": "Tutti gli ospedali lituani",
+        "button": "Ospedale: {name}"
       }
     },
     "ui": {
@@ -781,7 +787,9 @@
         "eq_none": "Nessun questionario EQ-5D-5L compilato.",
         "in_study_until": "Nello studio per {days}, fino al {date}",
         "q_empty_ended": "Nessun questionario in questo periodo.",
-        "not_tracked_from": "Non monitorato dal {date} ({status})."
+        "not_tracked_from": "Non monitorato dal {date} ({status}).",
+        "view_only": "Solo lettura",
+        "view_only_hint": "Paziente di un altro ospedale: può vederlo, ma non modificarlo."
       },
       "status": {
         "confirm_title": "Cambiare lo stato?",

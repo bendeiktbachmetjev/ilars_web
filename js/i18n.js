@@ -120,7 +120,7 @@
   // Translation loading
   // ------------------------------------------------------------------
   function load(lang, cb) {
-    var url = localesBase() + lang + '.json?v=14';
+    var url = localesBase() + lang + '.json?v=15';
     fetch(url)
       .then(function (r) {
         if (!r.ok) throw new Error(r.status);

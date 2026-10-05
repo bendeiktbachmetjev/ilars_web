@@ -8,13 +8,17 @@
           ILARS_VIEW_MODELS            data/cohort-model.js (scope, counts, filters, sorts — tested)
    Contract (tabs.js / app.js): window.PatientListView = new PatientListView(api); .show('patients', {restore}) on
    every #patients route render; .load(force) re-reads the list (force = the cached request is dropped first).
-   State: sessionStorage.ilars_pl_state = {status, attention, sort}; localStorage.ilars_scope_v2 (shared with overview.js).
+   State: sessionStorage.ilars_pl_state = {status, attention, sort}; localStorage.ilars_scope_v2 and, for study
+          coordinators, localStorage.ilars_hospital_v1 (the hospital filter; both shared with overview.js).
+   Coordinators (window.ILARS_IS_COORDINATOR) also get every Lithuanian hospital's patients, read-only: a Hospital
+   column and a hospital filter. Other doctors see the list exactly as before.
    Shared with overview.js and the patient page: PatientListView.data(), PatientListView.readScope() and the cell
    helpers larsChip() / attnChips() (global functions, as in the golden reference).
    Rule: untrusted text (names, codes, API strings) reaches HTML only through ILARS_UI.esc / fmtCode / textContent. */
 /* global ILARS_UI, ILARS_DATA, ILARS_METRICS, ILARS_VIEW_MODELS, ILARS_CHART_OPTIONS, ILARS_CHARTS, OverviewView */
 // v2: the first redesign build saved an automatic "My patients" default under 'ilars_scope'; that value is ignored
 var SCOPE_KEY = 'ilars_scope_v2';
+var HOSPITAL_KEY = 'ilars_hospital_v1';
 class PatientListView {
   constructor(api) {
     this.api = api;
@@ -46,6 +50,32 @@ class PatientListView {
   /** Default scope: "All visible" (the doctor's own patients and the hospital's), as the portal always showed. */
   static scopeFor(stored) {
     return stored || 'all';
+  }
+  /** Study coordinators see other Lithuanian hospitals too (GET /doctors/me is_coordinator). */
+  static coordinator() { return !!window.ILARS_IS_COORDINATOR; }
+  /** The coordinator's hospital filter: a hospital_name in the rows, or '' = every hospital (others: always ''). */
+  static hospitalFilter(rows) {
+    var h = '';
+    if (!PatientListView.coordinator()) return '';
+    try { h = localStorage.getItem(HOSPITAL_KEY) || ''; } catch (e) { /* private mode */ }
+    return ILARS_VIEW_MODELS.validHospital(h, rows);
+  }
+  static writeHospital(h) { try { localStorage.setItem(HOSPITAL_KEY, h || ''); } catch (e) { /* private mode */ } }
+  /** The hospital filter button (its label is set by hospitalLabel). */
+  static hospitalButtonHtml(id) {
+    return '<button class="ui-btn ui-btn--secondary ui-btn--sm" type="button" id="' + id + '" aria-haspopup="menu" aria-expanded="false">' +
+      ILARS_UI.icon('hospital') + '<span></span>' + ILARS_UI.icon('chev-down', 'i--xs') + '</button>';
+  }
+  static hospitalLabel(btn, h) {
+    var U = ILARS_UI;
+    btn.querySelector('span').textContent = U.t('doctor.cm.hospital.button', { name: h || U.t('doctor.cm.hospital.all') });
+  }
+  /** Hospital menu: "All hospitals" + the hospitals in the rows (radio items); onPick('' | name). */
+  static hospitalMenu(btn, rows, onPick) {
+    var U = ILARS_UI, cur = PatientListView.hospitalFilter(rows);
+    var item = function (h, label) { return { label: label, checked: cur === h, onSelect: function () { if (h !== cur) onPick(h); } }; };
+    U.menu(btn, [item('', U.t('doctor.cm.hospital.all'))].concat(ILARS_VIEW_MODELS.hospitals(rows).map(function (h) { return item(h, h); })),
+      { label: U.t('doctor.cm.list.th_hospital') });
   }
   /** Overview "Show all N in the patient list": the list opens on Active with the attention toggle on. */
   static showAttentionOnly() {
@@ -161,7 +191,8 @@ class PatientListView {
   // ------------------------------------------------------------ list
   renderList() {
     var self = this, U = ILARS_UI, M = ILARS_METRICS, VM = ILARS_VIEW_MODELS, d = this.data, st = this.st;
-    var mod = VM.cohortModel(d.list.rows, { today: d.today, meDoctorCode: d.me.doctor_code, scope: st.scope });
+    var coord = PatientListView.coordinator(), hosp = PatientListView.hospitalFilter(d.list.rows);
+    var mod = VM.cohortModel(d.list.rows, { today: d.today, meDoctorCode: d.me.doctor_code, scope: st.scope, hospital: hosp });
     var r = VM.listRows(mod.scoped, st, d.names);
     var caps = (d.list.rows[0] && M.listRowCaps(d.list.rows[0])) || {};
     var ext = !!caps.adherence;
@@ -195,6 +226,7 @@ class PatientListView {
     this.segStatus.select(st.status); this.segScope.select(st.scope);
     this.segStatus.place(); this.segScope.place();
     document.querySelector('#pl-sort span').textContent = U.t('doctor.ui.patients.sort_label', { order: st.sort ? this.sortLabel() : U.t('doctor.ui.patients.sort_default_short') });
+    if (coord) PatientListView.hospitalLabel(document.getElementById('pl-hosp'), hosp);
     var attn = document.getElementById('pl-attn');
     attn.querySelector('.count').textContent = r.attentionN;
     attn.setAttribute('aria-pressed', String(st.attention));
@@ -204,6 +236,7 @@ class PatientListView {
     var attnCol = { k: 'attention', label: U.t('doctor.cm.list.th_attention') };
     var cols = [{ k: 'patient', sort: true, label: U.t('doctor.cm.list.th_patient') }];
     if (this.narrow.matches) cols.push(attnCol);
+    if (coord) cols.push({ k: 'hospital', label: U.t('doctor.cm.list.th_hospital') });
     cols.push({ k: 'day', sort: true, label: U.t('doctor.cm.list.th_day') }, { k: 'lars', sort: true, label: U.t('doctor.cm.list.th_lars') });
     if (caps.larsRecent) cols.push({ k: 'trend', label: U.t('doctor.cm.list.th_trend') });
     cols.push({ k: 'vas', sort: true, label: U.t('doctor.cm.list.th_vas') }, { k: 'adherence', sort: true, label: U.t('doctor.cm.list.th_adherence') });
@@ -270,6 +303,7 @@ class PatientListView {
     tb.innerHTML =
       U.segHtml('pl-status', ['active', 'inactive', 'dead', 'all'].map(function (k) { return { v: k, label: U.t('doctor.cm.status.' + (k === 'dead' ? 'deceased' : k)), count: 0 }; }), st.status, { cls: '', label: U.t('doctor.cm.list.th_status') }) +
       U.segHtml('pl-scope', [{ v: 'mine', label: U.t('doctor.cm.scope.mine') }, { v: 'all', label: U.t('doctor.cm.scope.all') }], st.scope, { cls: '', label: U.t('doctor.cm.scope.label') }) +
+      (PatientListView.coordinator() ? PatientListView.hospitalButtonHtml('pl-hosp') : '') +
       '<button class="ui-chip" type="button" id="pl-attn" aria-pressed="' + st.attention + '">' + U.icon('alert', 'i--sm') + '<span>' + U.esc(U.t('doctor.cm.list.attention_only')) + '</span> <span class="count"></span></button>' +
       // phones have no column headers: sorting goes through a menu (radio items, the same orders as the headers).
       // Before the search in the DOM: the search is drawn last (its own row below 1280 px), so Tab follows the eye.
@@ -279,6 +313,11 @@ class PatientListView {
     this.segStatus = U.seg(document.getElementById('pl-status'), function (v) { self.update(function () { st.status = v; }); });
     this.segScope = U.seg(document.getElementById('pl-scope'), function (v) { self.update(function () { st.scope = v; }); });
     document.getElementById('pl-sort').addEventListener('click', function (e) { e.stopPropagation(); self.sortMenu(e.currentTarget); });
+    var hb = document.getElementById('pl-hosp');
+    if (hb) hb.addEventListener('click', function (e) {
+      e.stopPropagation();
+      PatientListView.hospitalMenu(hb, self.data.list.rows, function (h) { self.update(function () { PatientListView.writeHospital(h); }, false, '#pl-hosp'); });
+    });
     document.getElementById('pl-attn').addEventListener('click', function (e) {
       var on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
       self.update(function () { st.attention = on; if (on) st.status = 'active'; });
@@ -400,7 +439,8 @@ class PatientListView {
         var txt = U.esc(U.fmtRelative(s.lastActivityDay, today));
         return warn ? '<span class="pl-last warn">' + U.icon('alert', 'i--xs') + txt + '</span>' : '<span>' + txt + '</span>';
       },
-      attention: function () { return attnChips(s.attention); }
+      attention: function () { return attnChips(s.attention); },
+      hospital: function () { return s.hospital ? '<span class="pl-hosp">' + U.esc(s.hospital) + '</span>' : '<span class="pl-muted">—</span>'; }
     };
     return '<tr class="has-link">' + cols.map(function (c) {
       return '<td data-col="' + c.k + '"' + (c.k === 'adherence' ? ' data-label="' + U.esc(U.t('doctor.ui.patients.adherence_label')) + '"' : '') + '>' + cells[c.k]() + '</td>';

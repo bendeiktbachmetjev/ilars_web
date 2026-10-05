@@ -542,7 +542,8 @@
         "vas_delta_down_one": "{n} punto menos que el primer cuestionario",
         "vas_delta_down_other": "{n} puntos menos que el primer cuestionario",
         "more_reasons": "+{n}",
-        "adherence_low": "Baja"
+        "adherence_low": "Baja",
+        "th_hospital": "Hospital"
       },
       "attn": {
         "title": "Requiere atención",
@@ -629,6 +630,11 @@
         "cups": "tazas",
         "drinks": "bebidas",
         "cans": "latas"
+      },
+      "hospital": {
+        "all": "Todos los hospitales",
+        "all_lt": "Todos los hospitales de Lituania",
+        "button": "Hospital: {name}"
       }
     },
     "ui": {
@@ -781,7 +787,9 @@
         "eq_none": "No se completó ningún cuestionario EQ-5D-5L.",
         "in_study_until": "En el estudio durante {days}, hasta el {date}",
         "q_empty_ended": "Sin cuestionarios en este periodo.",
-        "not_tracked_from": "Sin seguimiento desde el {date} ({status})."
+        "not_tracked_from": "Sin seguimiento desde el {date} ({status}).",
+        "view_only": "Solo lectura",
+        "view_only_hint": "Paciente de otro hospital: puede verlo, pero no modificarlo."
       },
       "status": {
         "confirm_title": "¿Cambiar el estado?",

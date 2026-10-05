@@ -99,7 +99,7 @@ ECharts and SheetJS (Excel export) are **not** script tags: they load lazily whe
 | `app`, `PatientListView`, `OverviewView`, `PatientDetailView`, `RegistryListView`, `RegistryDetailView` | `app.js`, `views/*` | router and views |
 
 Browser storage (per viewer, every access wrapped in `try/catch`): localStorage `ilars_lang`, `ilars_scope`,
-`ilars_pd_range`, `ilars_pd_axis`, `ilars_chart_patterns`; sessionStorage `ilars_pl_state` plus the session keys
+`ilars_hospital_v1` (study coordinators' hospital filter), `ilars_pd_range`, `ilars_pd_axis`, `ilars_chart_patterns`; sessionStorage `ilars_pl_state` plus the session keys
 written by the login page (`ilars_user_role`, `ilars_doctor_*`).
 
 ---
@@ -189,6 +189,11 @@ for the check to be re-run before merging. If a new colour fails, change the col
 - `data/metrics.js` holds every rule and threshold (LARS categories, adherence, "needs attention" rules, date ranges).
   All days are UTC day numbers; "today" is the server's `as_of_date` when present, else the browser's UTC date.
 - Fake data only in development: the portal never needs production data to be tested (see §9).
+- **Study coordinators** (`GET /doctors/me` → `is_coordinator`, kept in `window.ILARS_IS_COORDINATOR`) also get the
+  patients of every Lithuanian hospital, read-only. Only for them the Patients tab shows a Hospital column, and the
+  Patients and Overview tabs a hospital filter. A patient with `can_edit: false` (another hospital's) opens view-only:
+  no status menu, no deleting status changes, no registry linking, and the name is never read from Firestore.
+  Other doctors see exactly what they saw before.
 
 ---
 

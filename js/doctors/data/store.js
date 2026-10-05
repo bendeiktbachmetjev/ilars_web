@@ -2,7 +2,8 @@
    and window.ILARS_PROFILE.
 
    ILARS_PROFILE()            → Promise of the ONE cached GET /doctors/me per session (today it was called 3×).
-                                Sets window.ILARS_IS_LT before anything renders (fixes the deep-link race).
+                                Sets window.ILARS_IS_LT before anything renders (fixes the deep-link race), and
+                                window.ILARS_IS_COORDINATOR (study coordinators: every LT hospital, read-only).
    store.patients({include})  → Promise of ILARS_DATA.adaptList(GET /getPatients?status=all[&include=…]);
                                 one cache entry per `include` value.
    store.names()              → Promise of {code: "First Last"} from Firestore (the doctor's own patients).
@@ -26,6 +27,7 @@
     if (!profileP) {
       profileP = keep(A().getDoctorProfile().then(function (r) {
         g.ILARS_IS_LT = !!(r && r.is_lithuania);
+        g.ILARS_IS_COORDINATOR = !!(r && r.is_coordinator);
         return r;
       }), function () { profileP = null; });
     }

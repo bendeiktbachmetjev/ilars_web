@@ -672,6 +672,8 @@
       code: row.patient_code, startDay: startDay, dayInStudy: startDay == null ? null : today - startDay,
       status: status, doctorCode: row.doctor_code || null,
       isMine: !!(ctx.meDoctorCode && row.doctor_code && row.doctor_code === ctx.meDoctorCode),
+      // study coordinators also see other Lithuanian hospitals, read-only (can_edit = false; absent = editable)
+      hospital: row.hospital_name || null, canEdit: row.can_edit !== false,
       counts: counts, lars: lars, vas: vas, lastActivityDay: lastDay, lastEqDay: lastEqDay,
       adherence: adherence, caps: caps
     };

@@ -91,9 +91,15 @@ class PatientDetailView {
       var reg = lt ? self.registryRows().then(function (rows) { return { rows: rows }; },
         function (e) { console.warn('[patient] registry read failed', e); return { failed: true }; }) : null;
       var hist = self.loadHistory(code, seq);                          // its own request; the summary shows its state
-      return Promise.all([api.getPatientDetail(code), self.readName(code)]).then(function (r) {
+      var detailP = api.getPatientDetail(code);
+      // a study coordinator viewing another hospital's patient (can_edit = false): the name is never read
+      var nameP = me && me.is_coordinator ? detailP.then(function (r) {
+        return r && r.can_edit === false ? { name: '', first: '', last: '', canEdit: false } : self.readName(code);
+      }) : self.readName(code);
+      return Promise.all([detailP, nameP]).then(function (r) {
         if (r[1].name) self.names[code] = r[1].name;
         var d = { me: me && me.profile ? me.profile : (me || {}), lt: lt, detail: ILARS_DATA.adaptDetail(r[0]),
+          readOnly: r[0].can_edit === false,                         // another hospital's patient: view only
           linked: null, regFailed: false, regPending: lt, name: r[1].name, first: r[1].first, last: r[1].last, canEditName: r[1].canEdit };
         // a deceased patient: the status history gives the day tracking ended (header, missed days); it was
         // requested in parallel, so it is usually here already — wait for it a little, never for long
@@ -387,12 +393,14 @@ class PatientDetailView {
               : pm.deathDay != null ? '<span class="pd-meta__item"><b>' + U.esc(this.tx('doctor.ui.patient.in_study_until', { days: U.fmtDays(pm.deathDay - pm.startDay), date: U.fmtDay(pm.deathDay, 'long') })) + '</b></span>' : '') +
             '<span class="pd-meta__item">' + U.esc(U.t('doctor.ui.patient.registered', { date: U.fmtDay(pm.startDay, 'long') })) + '</span>' +
             '<span class="pd-meta__item" data-part="doctor" hidden></span>' +
+            (d.readOnly ? '<span class="pd-meta__item" data-part="hospital" hidden></span>' : '') +
             (lastAct ? '<span class="pd-meta__item">' + U.esc(U.t('doctor.ui.patient.last_entry', { when: this.relativeInline(lastAct.day, pm.today) })) + '</span>' : '') +
           '</div></div>' + surgeryLine +
         '</div></div>' +
         '<div class="pd-head__actions">' +
           '<div class="pd-status" id="patient-status-bar"><span class="ui-pstatus ui-pstatus--pill ui-pstatus--' + (status === 'dead' ? 'deceased' : status) + '" id="patient-status-indicator">' + U.esc(this.statusWord(status)) + '</span>' +
-            '<button class="pd-status__btn" type="button" id="patient-change-status" aria-haspopup="menu" aria-expanded="false">' + U.esc(U.t('doctor.ui.patient.change_status')) + U.icon('chev-down', 'i--xs') + '</button></div>' +
+            (d.readOnly ? '<span class="pd-status__ro" title="' + U.esc(U.t('doctor.ui.patient.view_only_hint')) + '">' + U.icon('eye', 'i--xs') + U.esc(U.t('doctor.ui.patient.view_only')) + '</span></div>'
+              : '<button class="pd-status__btn" type="button" id="patient-change-status" aria-haspopup="menu" aria-expanded="false">' + U.esc(U.t('doctor.ui.patient.change_status')) + U.icon('chev-down', 'i--xs') + '</button></div>') +
           (d.lt && !d.regFailed ? '<div class="pd-reglink" id="patient-registry-link"' + (d.regPending ? ' aria-busy="true"><span class="ui-skel ui-skel--pill pd-reglink__skel" aria-hidden="true"></span>' : '>') + '</div>' : '') +
           '<button class="ui-icon-btn ui-icon-btn--round" type="button" data-act="more" aria-haspopup="menu" aria-expanded="false" aria-label="' + U.esc(U.t('doctor.ui.common.more')) + '" title="' + U.esc(U.t('doctor.ui.common.more')) + '">' + U.icon('more') + '</button>' +
         '</div></header>';
@@ -992,7 +1000,7 @@ class PatientDetailView {
     // ---------------------------------------------------------- header actions
     root.querySelector('[data-act="copy"]').addEventListener('click', function () { self.copyCode(code); });
     var sbtn = root.querySelector('#patient-change-status');
-    sbtn.addEventListener('click', function (e) {
+    if (sbtn) sbtn.addEventListener('click', function (e) {
       e.stopPropagation();
       U.menu(sbtn, [{ head: U.t('doctor.ui.patient.status_menu') }].concat(['active', 'inactive', 'dead'].map(function (k) {
         return { label: self.statusWord(k), checked: status === k, onSelect: function () { if (k !== status) self.changeStatus(root, status, k); } };
@@ -1017,6 +1025,8 @@ class PatientDetailView {
       var mine = d.me && r.doctor_code && r.doctor_code === d.me.doctor_code;
       var f = (r.doctor_first_name || '').trim(), l = (r.doctor_last_name || '').trim();
       var label = mine ? U.t('doctor.ui.common.you') : (l || f ? (f ? f.charAt(0).toUpperCase() + '. ' : '') + l : (r.doctor_code || ''));
+      var hel = root.querySelector('[data-part="hospital"]');
+      if (hel && r.hospital_name) { hel.textContent = r.hospital_name; hel.hidden = false; }
       if (!label) return;
       el.textContent = label; el.hidden = false;
     }, function () { /* the doctor label is optional */ });
@@ -1051,7 +1061,7 @@ class PatientDetailView {
           (i === 0 ? '<span class="ui-badge pd-timeline__tag">' + U.esc(U.t('doctor.ui.patient.current')) + '</span>' : '') +
           (h.reason ? '<span class="t-secondary">' + U.esc(h.reason) + '</span>' : '') + '</span>' +
           '<span class="pd-timeline__when">' + U.esc(day != null ? U.fmtDay(day, 'long') : '') +
-          '<button class="ui-icon-btn ui-icon-btn--sm" type="button" data-del="' + U.esc(h.id) + '" aria-label="' + U.esc(U.t('doctor.ui.patient.delete_change')) + '" title="' + U.esc(U.t('doctor.ui.patient.delete_change')) + '">' + U.icon('trash', 'i--xs') + '</button></span></li>';
+          (d.readOnly ? '' : '<button class="ui-icon-btn ui-icon-btn--sm" type="button" data-del="' + U.esc(h.id) + '" aria-label="' + U.esc(U.t('doctor.ui.patient.delete_change')) + '" title="' + U.esc(U.t('doctor.ui.patient.delete_change')) + '">' + U.icon('trash', 'i--xs') + '</button>') + '</span></li>';
       }).join('') + registered + '</ol>';
     }
     var reg = '', r = d.regFailed ? null : d.linked;
@@ -1189,6 +1199,8 @@ class PatientDetailView {
           if (el && cont.isConnected) el.textContent = label();
         });
       }
+    } else if (this.d && this.d.readOnly) {
+      cont.hidden = true;                                 // another hospital's patient: linking is its own hospital's
     } else {
       cont.innerHTML = '<button type="button" class="reg-btn reg-btn-link pd-reglink__add" id="pd-link-registry">' + U.icon('link', 'i--sm') + '<span>Susieti su registru</span></button>';
       cont.querySelector('#pd-link-registry').addEventListener('click', function () { self.openRegistryPicker(cont, code); });

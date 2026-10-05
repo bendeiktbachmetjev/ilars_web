@@ -542,7 +542,8 @@
         "vas_delta_up_one": "ilk anketten {n} puan yüksek",
         "vas_delta_up_other": "ilk anketten {n} puan yüksek",
         "vas_delta_down_one": "ilk anketten {n} puan düşük",
-        "vas_delta_down_other": "ilk anketten {n} puan düşük"
+        "vas_delta_down_other": "ilk anketten {n} puan düşük",
+        "th_hospital": "Hastane"
       },
       "attn": {
         "title": "Dikkat gerektiriyor",
@@ -629,6 +630,11 @@
         "cups": "fincan",
         "drinks": "içecek",
         "cans": "kutu"
+      },
+      "hospital": {
+        "all": "Tüm hastaneler",
+        "all_lt": "Tüm Litvanya hastaneleri",
+        "button": "Hastane: {name}"
       }
     },
     "ui": {
@@ -781,7 +787,9 @@
         "eq_none": "Hiç EQ-5D-5L anketi doldurulmadı.",
         "in_study_until": "Çalışmada {days}, {date} tarihine kadar",
         "q_empty_ended": "Bu zaman aralığında anket yok.",
-        "not_tracked_from": "{date} tarihinden itibaren takip edilmiyor ({status})."
+        "not_tracked_from": "{date} tarihinden itibaren takip edilmiyor ({status}).",
+        "view_only": "Yalnızca görüntüleme",
+        "view_only_hint": "Başka bir hastanenin hastası: görüntüleyebilirsiniz, değiştiremezsiniz."
       },
       "status": {
         "confirm_title": "Durum değiştirilsin mi?",

@@ -47,6 +47,9 @@
   .pl-table [data-col="adherence"] { width: 150px; }
   .pl-table [data-col="last"] { width: 112px; }
   .pl-table [data-col="attention"] { min-width: 150px; max-width: 220px; white-space: normal; }
+  /* study coordinators only: the patient's hospital (long official names wrap) */
+  .pl-table [data-col="hospital"] { min-width: 140px; max-width: 180px; white-space: normal; }
+  .pl-hosp { font: 400 13px/17px var(--font-ui); color: var(--color-text-secondary); overflow-wrap: anywhere; }
   .pl-table td[data-col="attention"] .ui-attn-list { padding: 6px 0; }
   .pl-empty-row td { height: auto; }
   .pl-spark { display: block; line-height: 0; }

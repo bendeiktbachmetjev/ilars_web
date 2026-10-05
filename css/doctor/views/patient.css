@@ -32,6 +32,8 @@
   .pd-status { display: inline-flex; align-items: center; gap: 2px; height: 36px; padding: 3px; border-radius: var(--r-pill); background: var(--color-surface); box-shadow: 0 0 0 1px var(--color-border), 0 1px 2px rgb(0 0 0 / .04); }
   .pd-status__btn { height: 30px; display: inline-flex; align-items: center; gap: 4px; padding: 0 10px 0 12px; border: 0; border-radius: var(--r-pill); background: none; font: 500 13px/1 var(--font-ui); color: var(--color-text); }
   .pd-status__btn:hover { background: var(--color-fill); }
+  /* another hospital's patient (study coordinators): no status menu, a quiet "View only" in its place */
+  .pd-status__ro { height: 30px; display: inline-flex; align-items: center; gap: 4px; padding: 0 12px 0 10px; font: 500 13px/1 var(--font-ui); color: var(--color-text-secondary); }
 
   /* LT registry link group (#patient-registry-link contract): chip + quiet Atsieti, or one "Susieti su registru" */
   .pd-reglink { display: inline-flex; align-items: center; gap: 2px; height: 36px; padding: 3px 3px 3px 4px; border-radius: var(--r-pill); background: var(--color-surface); box-shadow: 0 0 0 1px var(--color-border), 0 1px 2px rgb(0 0 0 / .04); }

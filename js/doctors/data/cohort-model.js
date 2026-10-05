@@ -12,18 +12,29 @@
   var REASON_ORDER = ['lars_worse', 'vas_drop', 'no_entry', 'no_lars', 'not_started', 'eq_overdue'];
 
   /**
-   * rows = adapted /getPatients?status=all rows; ctx = {today, meDoctorCode, scope: 'mine' | 'all'}.
+   * rows = adapted /getPatients?status=all rows; ctx = {today, meDoctorCode, scope: 'mine' | 'all', hospital?}.
+   * ctx.hospital (study coordinators' hospital filter): a hospital_name, or empty = every hospital.
    * all/scoped = M.summarizeListRow() summaries; stats = M.cohortStats(scoped);
    * attention = active patients in scope with ≥ 1 reason, in the default order; startDays of the scope.
    */
   function cohortModel(rows, ctx) {
     var all = (rows || []).map(function (r) { return M.summarizeListRow(r, ctx); });
     var scoped = ctx.scope === 'mine' ? all.filter(function (s) { return s.isMine; }) : all;
+    if (ctx.hospital) scoped = scoped.filter(function (s) { return s.hospital === ctx.hospital; });
     var stats = M.cohortStats(scoped, ctx.today);
     var attention = scoped.filter(function (s) { return s.status === 'active' && s.attention.length; }).sort(M.compareDefault);
     return { all: all, scoped: scoped, stats: stats, attention: attention,
       startDays: scoped.map(function (s) { return s.startDay; }).filter(function (d) { return d != null; }) };
   }
+
+  /** Hospital names in the rows, A→Z (the coordinators' hospital filter). */
+  function hospitals(rows) {
+    var seen = {};
+    (rows || []).forEach(function (r) { if (r.hospital_name) seen[r.hospital_name] = 1; });
+    return Object.keys(seen).sort(function (a, b) { return a.localeCompare(b); });
+  }
+  /** A stored hospital filter counts only while that hospital is still in the rows; else '' (every hospital). */
+  function validHospital(h, rows) { return h && hospitals(rows).indexOf(h) > -1 ? h : ''; }
 
   /** A stored list state is trusted only as far as it is valid (sessionStorage outlives code changes). */
   function validStatus(v) { return STATUSES.indexOf(v) > -1 ? v : 'active'; }
@@ -100,7 +111,7 @@
   }
 
   var API = { cohortModel: cohortModel, listRows: listRows, nextSort: nextSort, sorter: sorter, validSort: validSort,
-    validStatus: validStatus, topReasons: topReasons };
+    validStatus: validStatus, topReasons: topReasons, hospitals: hospitals, validHospital: validHospital };
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   else root.ILARS_VIEW_MODELS = Object.assign(root.ILARS_VIEW_MODELS || {}, API);
 })(typeof window !== 'undefined' ? window : this);

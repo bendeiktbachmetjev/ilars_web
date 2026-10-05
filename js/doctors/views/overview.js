@@ -6,7 +6,8 @@
    for the session and Registrations takes the full last row.
    Contract (tabs.js): window.OverviewView = new OverviewView(api); .load() on every #overview route render;
    .load(true) re-reads the list (after create patient).
-   Scope: the list's "My patients · All visible" control and storage (localStorage.ilars_scope_v2).
+   Scope: the list's "My patients · All visible" control and storage (localStorage.ilars_scope_v2); study
+   coordinators also get the list's hospital filter (localStorage.ilars_hospital_v1).
    Charts: ILARS_CHARTS.card + the ILARS_CHART_OPTIONS cohort builders (charts/cohort.js), no overrides. */
 /* global ILARS_UI, ILARS_DATA, ILARS_METRICS, ILARS_VIEW_MODELS, ILARS_CHART_OPTIONS, ILARS_CHARTS, PatientListView, larsChip, attnChips */
 class OverviewView {
@@ -84,22 +85,36 @@ class OverviewView {
     this.d = d;
     this.renderedLang = U.locale();
     var scope = PatientListView.scopeFor(PatientListView.readScope(), d.list.rows, d.me);
-    var mod = VM.cohortModel(d.list.rows, { today: d.today, meDoctorCode: d.me.doctor_code, scope: scope });
+    var coord = PatientListView.coordinator(), hosp = PatientListView.hospitalFilter(d.list.rows);
+    var mod = VM.cohortModel(d.list.rows, { today: d.today, meDoctorCode: d.me.doctor_code, scope: scope, hospital: hosp });
     var stats = mod.stats, caps = (d.list.rows[0] && M.listRowCaps(d.list.rows[0])) || {};
     var names = d.names;
     document.getElementById('study-title').textContent = U.t('doctor.ui.overview.title');
     // a no-break space before the dot: a wrapped line never starts with '·' (VIS-25)
-    document.getElementById('study-sub').textContent = U.t('doctor.ui.overview.sub', { hospital: d.me.hospital_name || '', date: U.fmtDay(d.today, 'weekday') }).replace(/ · /g, '\u00a0· ');
+    // a coordinator's "All visible" without a hospital filter covers every Lithuanian hospital
+    var subHospital = hosp || (coord && scope === 'all' ? U.t('doctor.cm.hospital.all_lt') : d.me.hospital_name || '');
+    document.getElementById('study-sub').textContent = U.t('doctor.ui.overview.sub', { hospital: subHospital, date: U.fmtDay(d.today, 'weekday') }).replace(/ · /g, '\u00a0· ');
     document.getElementById('tab-count-patients').textContent = mod.scoped.length;
     this.dispose();
 
     // scope: the same control and storage as the list (A20); no "as of" chip (the date is in the page sub line)
-    var toolbar = '<div class="ov-toolbar">' + U.segHtml('ov-scope', [{ v: 'mine', label: U.t('doctor.cm.scope.mine') }, { v: 'all', label: U.t('doctor.cm.scope.all') }], scope, { cls: '', label: U.t('doctor.cm.scope.label') }) + '</div>';
+    var toolbar = '<div class="ov-toolbar">' + U.segHtml('ov-scope', [{ v: 'mine', label: U.t('doctor.cm.scope.mine') }, { v: 'all', label: U.t('doctor.cm.scope.all') }], scope, { cls: '', label: U.t('doctor.cm.scope.label') }) +
+      (coord ? PatientListView.hospitalButtonHtml('ov-hosp') : '') + '</div>';
     var bindScope = function () {
       U.seg(document.getElementById('ov-scope'), function (v) {
         PatientListView.writeScope(v);
         if (window.PatientListView && window.PatientListView.st) window.PatientListView.st.scope = v;
         U.transition(function () { self.render(d); }, 'list');
+      });
+      var hb = document.getElementById('ov-hosp');
+      if (!hb) return;
+      PatientListView.hospitalLabel(hb, hosp);
+      hb.addEventListener('click', function (e) {
+        e.stopPropagation();
+        PatientListView.hospitalMenu(hb, d.list.rows, function (h) {
+          PatientListView.writeHospital(h);
+          U.transition(function () { self.render(d); }, 'list').then(function () { var b = document.getElementById('ov-hosp'); if (b) b.focus({ preventScroll: true }); });
+        });
       });
     };
     var first = !root.dataset.shown;
